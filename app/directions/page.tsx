@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { c, font } from "@/lib/theme";
+import { c, font, r } from "@/lib/theme";
 
 export default function DirectionsPage() {
   const router = useRouter();
@@ -13,7 +13,7 @@ export default function DirectionsPage() {
         minHeight: "100vh",
         background: c.dirBg,
         color: c.dirInk,
-        padding: "48px 48px 140px",
+        padding: `${r.pagePxWide} ${r.pagePxWide} 140px`,
       }}
     >
       <div style={{ maxWidth: 1280, margin: "0 auto" }}>
@@ -36,7 +36,7 @@ export default function DirectionsPage() {
           style={{
             fontFamily: font.space,
             fontWeight: 700,
-            fontSize: 32,
+            fontSize: "clamp(24px, 6vw, 32px)",
             letterSpacing: "-.02em",
             margin: "0 0 6px",
           }}
@@ -51,8 +51,8 @@ export default function DirectionsPage() {
         <div
           style={{
             display: "grid",
-            gridTemplateColumns: "repeat(3,1fr)",
-            gap: 24,
+            gridTemplateColumns: r.col3,
+            gap: r.gapSm,
             alignItems: "start",
           }}
         >
@@ -98,7 +98,7 @@ export default function DirectionsPage() {
               <div
                 style={{
                   background: c.bg,
-                  height: 340,
+                  height: r.dirCardH,
                   padding: "28px 24px",
                   overflow: "hidden",
                 }}
@@ -118,7 +118,7 @@ export default function DirectionsPage() {
                   style={{
                     fontFamily: font.space,
                     fontWeight: 700,
-                    fontSize: 30,
+                    fontSize: "clamp(22px, 6vw, 30px)",
                     lineHeight: 1.04,
                     letterSpacing: "-.02em",
                     color: c.text,
@@ -138,7 +138,7 @@ export default function DirectionsPage() {
                 >
                   Real agents on dedicated machines, working 24/7 across every channel.
                 </div>
-                <div style={{ display: "flex", gap: 8 }}>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
                   <div
                     style={{
                       background: c.lime,
@@ -177,15 +177,15 @@ export default function DirectionsPage() {
                     gap: 6,
                   }}
                 >
-                  <div style={{ display: "flex", gap: 8 }}>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
                     <span style={{ color: c.faint }}>09:41</span>
                     <span>Qualified lead → booked intro call</span>
                   </div>
-                  <div style={{ display: "flex", gap: 8 }}>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
                     <span style={{ color: c.faint }}>09:38</span>
                     <span>Replied to 3 tickets via WhatsApp</span>
                   </div>
-                  <div style={{ display: "flex", gap: 8 }}>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
                     <span style={{ color: c.green }}>●</span>
                     <span style={{ color: c.green }}>WORKING</span>
                   </div>
@@ -228,7 +228,7 @@ export default function DirectionsPage() {
               <div
                 style={{
                   background: c.ivory,
-                  height: 340,
+                  height: r.dirCardH,
                   padding: "28px 24px",
                   overflow: "hidden",
                 }}
@@ -249,7 +249,7 @@ export default function DirectionsPage() {
                     fontFamily: font.serif,
                     fontStyle: "italic",
                     fontWeight: 500,
-                    fontSize: 31,
+                    fontSize: "clamp(22px, 6vw, 31px)",
                     lineHeight: 1.08,
                     color: c.ivoryInk,
                   }}
@@ -270,7 +270,7 @@ export default function DirectionsPage() {
                   Brief it like a person. It sells, supports and recruits — around the
                   clock.
                 </div>
-                <div style={{ display: "flex", gap: 8 }}>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
                   <div
                     style={{
                       background: c.ivoryInk,
@@ -389,7 +389,7 @@ export default function DirectionsPage() {
               <div
                 style={{
                   background: c.midnight,
-                  height: 340,
+                  height: r.dirCardH,
                   padding: "28px 24px",
                   overflow: "hidden",
                   backgroundImage:
@@ -411,7 +411,7 @@ export default function DirectionsPage() {
                   style={{
                     fontFamily: font.space,
                     fontWeight: 700,
-                    fontSize: 30,
+                    fontSize: "clamp(22px, 6vw, 30px)",
                     lineHeight: 1.05,
                     letterSpacing: "-.02em",
                     color: "#EAF0FF",
@@ -431,7 +431,7 @@ export default function DirectionsPage() {
                 >
                   One console. Every agent, every channel, every machine.
                 </div>
-                <div style={{ display: "flex", gap: 8 }}>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
                   <div
                     style={{
                       background: c.midnightBlue,
@@ -462,7 +462,7 @@ export default function DirectionsPage() {
                   style={{
                     marginTop: 18,
                     display: "grid",
-                    gridTemplateColumns: "1fr 1fr",
+                    gridTemplateColumns: r.split,
                     gap: 8,
                   }}
                 >

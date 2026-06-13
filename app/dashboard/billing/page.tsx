@@ -9,7 +9,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { basePlanRows, getBillDatasets, invoices } from "@/lib/data";
-import { c, font } from "@/lib/theme";
+import { c, font, r } from "@/lib/theme";
 import { Btn } from "@/components/ui";
 
 const billTabDefs: Array<[string, string]> = [
@@ -34,7 +34,7 @@ export default function BillingPage() {
   );
 
   return (
-    <div data-screen-label="Billing" style={{ padding: "36px 40px" }}>
+    <div data-screen-label="Billing" style={{ padding: `${r.contentPy} ${r.pagePx}` }}>
       {/* Header */}
       <div
         style={{
@@ -42,6 +42,8 @@ export default function BillingPage() {
           alignItems: "baseline",
           justifyContent: "space-between",
           marginBottom: 28,
+          flexWrap: "wrap",
+          gap: 14,
         }}
       >
         <h2
@@ -159,7 +161,7 @@ export default function BillingPage() {
       <div
         style={{
           display: "grid",
-          gridTemplateColumns: "1.2fr .8fr",
+          gridTemplateColumns: r.billing,
           gap: 20,
           marginBottom: 28,
           alignItems: "stretch",
@@ -283,12 +285,12 @@ export default function BillingPage() {
       <div
         style={{
           display: "grid",
-          gridTemplateColumns: "1.2fr .8fr",
+          gridTemplateColumns: r.billing,
           gap: 20,
           alignItems: "start",
         }}
       >
-        <div>
+        <div style={{ minWidth: 0 }}>
           <div
             style={{
               fontFamily: font.mono,
@@ -300,6 +302,8 @@ export default function BillingPage() {
           >
             PER-AGENT USAGE
           </div>
+          <div className="ark-scroll" style={{ overflowX: "auto" }}>
+          <div style={{ minWidth: 440 }}>
           <div style={{ border: `1px solid ${c.border}`, background: c.panel }}>
             {planRows.map((b, i) => (
               <div
@@ -363,9 +367,11 @@ export default function BillingPage() {
               </div>
             ))}
           </div>
+          </div>
+          </div>
         </div>
 
-        <div>
+        <div style={{ minWidth: 0 }}>
           <div
             style={{
               fontFamily: font.mono,
@@ -377,6 +383,8 @@ export default function BillingPage() {
           >
             INVOICES
           </div>
+          <div className="ark-scroll" style={{ overflowX: "auto" }}>
+          <div style={{ minWidth: 360 }}>
           <div style={{ border: `1px solid ${c.border}`, background: c.panel }}>
             {invoices.map((v, i) => (
               <div
@@ -406,6 +414,8 @@ export default function BillingPage() {
                 </span>
               </div>
             ))}
+          </div>
+          </div>
           </div>
         </div>
       </div>

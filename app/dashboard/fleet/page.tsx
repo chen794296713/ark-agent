@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { c, font } from "@/lib/theme";
+import { c, font, r } from "@/lib/theme";
 import { useApp } from "@/lib/store";
 import { Btn, HoverDiv } from "@/components/ui";
 import type { Agent } from "@/lib/types";
@@ -139,12 +139,14 @@ function FleetCard({ a }: { a: Agent }) {
 export default function FleetPage() {
   const { agents } = useApp();
   return (
-    <div style={{ padding: "36px 40px" }}>
+    <div style={{ padding: `${r.contentPy} ${r.pagePx}` }}>
       <div
         style={{
           display: "flex",
           alignItems: "baseline",
           justifyContent: "space-between",
+          flexWrap: "wrap",
+          gap: 12,
           marginBottom: 28,
         }}
       >
@@ -166,7 +168,7 @@ export default function FleetPage() {
           </button>
         </Link>
       </div>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(2,1fr)", gap: 14 }}>
+      <div style={{ display: "grid", gridTemplateColumns: r.col2, gap: r.gapSm }}>
         {agents.map((a) => (
           <FleetCard key={a.id} a={a} />
         ))}

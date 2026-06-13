@@ -6,7 +6,7 @@
  */
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { c, font } from "@/lib/theme";
+import { c, font, r } from "@/lib/theme";
 
 interface PillDef {
   label: string;
@@ -46,6 +46,7 @@ export function DemoPill() {
 
   return (
     <div
+      className="ark-scroll"
       style={{
         position: "fixed",
         bottom: 20,
@@ -60,8 +61,11 @@ export function DemoPill() {
         border: `1px solid ${c.borderStrong}`,
         padding: 4,
         boxShadow: "0 8px 28px rgba(0,0,0,.5)",
-        maxWidth: "calc(100vw - 24px)",
-        flexWrap: "wrap",
+        maxWidth: "calc(100vw - 16px)",
+        // Wraps to multiple rows on desktop; on mobile becomes a single
+        // horizontally scrollable row so it never stacks over page content.
+        flexWrap: r.pillWrap,
+        overflowX: r.pillOverflow,
         justifyContent: "center",
       }}
     >
@@ -75,12 +79,14 @@ export function DemoPill() {
               background: on ? c.lime : "transparent",
               color: on ? c.bg : c.muted,
               border: "none",
-              padding: "7px 14px",
+              padding: r.pillPad,
               fontFamily: font.mono,
-              fontSize: 11,
+              fontSize: r.pillFs,
               letterSpacing: ".04em",
               cursor: "pointer",
               textDecoration: "none",
+              whiteSpace: "nowrap",
+              flex: "0 0 auto",
             }}
           >
             {p.label}

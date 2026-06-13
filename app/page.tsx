@@ -2,11 +2,12 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { c, font } from "@/lib/theme";
+import { c, font, r } from "@/lib/theme";
 import { dict } from "@/lib/i18n";
 import { useApp } from "@/lib/store";
 import { landingRoles, heroFeed } from "@/lib/data";
 import { Btn, HoverDiv } from "@/components/ui";
+import { MobileNav } from "@/components/MobileNav";
 
 export default function LandingPage() {
   const router = useRouter();
@@ -15,6 +16,7 @@ export default function LandingPage() {
 
   const [tick, setTick] = useState(0);
   const [approved, setApproved] = useState(false);
+  const [navOpen, setNavOpen] = useState(false);
 
   useEffect(() => {
     const id = setInterval(() => setTick((x) => x + 1), 2800);
@@ -45,7 +47,7 @@ export default function LandingPage() {
           style={{
             maxWidth: 1240,
             margin: "0 auto",
-            padding: "0 40px",
+            padding: `0 ${r.pagePx}`,
             height: 64,
             display: "flex",
             alignItems: "center",
@@ -81,7 +83,7 @@ export default function LandingPage() {
           </div>
           <div
             style={{
-              display: "flex",
+              display: r.desktopNav,
               gap: 26,
               fontSize: 14,
               color: c.muted,
@@ -104,7 +106,7 @@ export default function LandingPage() {
           <div
             style={{
               marginLeft: "auto",
-              display: "flex",
+              display: r.desktopNav,
               alignItems: "center",
               gap: 16,
             }}
@@ -184,8 +186,31 @@ export default function LandingPage() {
               {t.hire}
             </Btn>
           </div>
+          {/* Mobile hamburger — shown only ≤640px via --r-mobile-nav */}
+          <button
+            aria-label="Open menu"
+            onClick={() => setNavOpen(true)}
+            style={{
+              display: r.mobileNav,
+              marginLeft: "auto",
+              width: 44,
+              height: 44,
+              alignItems: "center",
+              justifyContent: "center",
+              background: "transparent",
+              border: `1px solid ${c.border}`,
+              color: c.text,
+              fontFamily: font.mono,
+              fontSize: 20,
+              cursor: "pointer",
+            }}
+          >
+            ≡
+          </button>
         </div>
       </div>
+
+      <MobileNav open={navOpen} onClose={() => setNavOpen(false)} />
 
       {/* Hero */}
       <div
@@ -200,10 +225,10 @@ export default function LandingPage() {
           style={{
             maxWidth: 1240,
             margin: "0 auto",
-            padding: "88px 40px 96px",
+            padding: `${r.heroPy} ${r.pagePx} 96px`,
             display: "grid",
-            gridTemplateColumns: "1.15fr .85fr",
-            gap: 64,
+            gridTemplateColumns: r.hero,
+            gap: r.gapLg,
             alignItems: "center",
           }}
         >
@@ -456,7 +481,7 @@ export default function LandingPage() {
       </div>
 
       {/* Roles */}
-      <div id="roles" style={{ maxWidth: 1240, margin: "0 auto", padding: "104px 40px" }}>
+      <div id="roles" style={{ maxWidth: 1240, margin: "0 auto", padding: `${r.sectionPy} ${r.pagePx}` }}>
         <div
           style={{
             fontFamily: font.mono,
@@ -473,7 +498,8 @@ export default function LandingPage() {
             display: "flex",
             alignItems: "flex-end",
             justifyContent: "space-between",
-            gap: 40,
+            flexWrap: "wrap",
+            gap: "clamp(16px, 4vw, 40px)",
             marginBottom: 48,
           }}
         >
@@ -481,7 +507,7 @@ export default function LandingPage() {
             style={{
               fontFamily: font.space,
               fontWeight: 700,
-              fontSize: 44,
+              fontSize: "clamp(28px, 6vw, 44px)",
               letterSpacing: "-.02em",
               margin: 0,
             }}
@@ -496,7 +522,7 @@ export default function LandingPage() {
         <div
           style={{
             display: "grid",
-            gridTemplateColumns: "repeat(4,1fr)",
+            gridTemplateColumns: r.col4,
             gap: 1,
             background: c.line,
             border: `1px solid ${c.line}`,
@@ -571,7 +597,7 @@ export default function LandingPage() {
           background: c.panel,
         }}
       >
-        <div style={{ maxWidth: 1240, margin: "0 auto", padding: "104px 40px" }}>
+        <div style={{ maxWidth: 1240, margin: "0 auto", padding: `${r.sectionPy} ${r.pagePx}` }}>
           <div
             style={{
               fontFamily: font.mono,
@@ -587,7 +613,7 @@ export default function LandingPage() {
             style={{
               fontFamily: font.space,
               fontWeight: 700,
-              fontSize: 44,
+              fontSize: "clamp(28px, 6vw, 44px)",
               letterSpacing: "-.02em",
               margin: "0 0 56px",
               maxWidth: 640,
@@ -597,7 +623,7 @@ export default function LandingPage() {
             <br />
             Deploy it like software.
           </h2>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 48 }}>
+          <div style={{ display: "grid", gridTemplateColumns: r.col3, gap: r.gapMd }}>
             <div style={{ borderTop: `1px solid ${c.borderStrong}`, paddingTop: 24 }}>
               <div
                 style={{ fontFamily: font.mono, fontSize: 13, color: c.lime, marginBottom: 14 }}
@@ -701,7 +727,7 @@ export default function LandingPage() {
       </div>
 
       {/* Engines */}
-      <div id="engines" style={{ maxWidth: 1240, margin: "0 auto", padding: "104px 40px" }}>
+      <div id="engines" style={{ maxWidth: 1240, margin: "0 auto", padding: `${r.sectionPy} ${r.pagePx}` }}>
         <div
           style={{
             fontFamily: font.mono,
@@ -717,14 +743,14 @@ export default function LandingPage() {
           style={{
             fontFamily: font.space,
             fontWeight: 700,
-            fontSize: 44,
+            fontSize: "clamp(28px, 6vw, 44px)",
             letterSpacing: "-.02em",
             margin: "0 0 48px",
           }}
         >
           Two engines. One workforce.
         </h2>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 20 }}>
+        <div style={{ display: "grid", gridTemplateColumns: r.col3, gap: r.gapSm }}>
           <div style={{ border: `1px solid ${c.border}`, background: c.panel, padding: "32px 28px" }}>
             <div
               style={{
@@ -834,9 +860,9 @@ export default function LandingPage() {
           style={{
             maxWidth: 1240,
             margin: "0 auto",
-            padding: "104px 40px",
+            padding: `${r.sectionPy} ${r.pagePx}`,
             display: "grid",
-            gridTemplateColumns: "1fr 1fr",
+            gridTemplateColumns: r.split,
             gap: 72,
             alignItems: "center",
           }}
@@ -857,7 +883,7 @@ export default function LandingPage() {
               style={{
                 fontFamily: font.space,
                 fontWeight: 700,
-                fontSize: 44,
+                fontSize: "clamp(28px, 6vw, 44px)",
                 letterSpacing: "-.02em",
                 margin: "0 0 24px",
               }}
@@ -922,7 +948,7 @@ export default function LandingPage() {
             <div
               style={{
                 display: "grid",
-                gridTemplateColumns: "repeat(3,1fr)",
+                gridTemplateColumns: r.col3,
                 gap: 1,
                 background: c.line,
                 border: `1px solid ${c.line}`,
@@ -1007,7 +1033,7 @@ export default function LandingPage() {
       </div>
 
       {/* Pricing */}
-      <div id="pricing" style={{ maxWidth: 1240, margin: "0 auto", padding: "104px 40px" }}>
+      <div id="pricing" style={{ maxWidth: 1240, margin: "0 auto", padding: `${r.sectionPy} ${r.pagePx}` }}>
         <div
           style={{
             fontFamily: font.mono,
@@ -1024,7 +1050,8 @@ export default function LandingPage() {
             display: "flex",
             alignItems: "flex-end",
             justifyContent: "space-between",
-            gap: 40,
+            flexWrap: "wrap",
+            gap: "clamp(16px, 4vw, 40px)",
             marginBottom: 48,
           }}
         >
@@ -1032,7 +1059,7 @@ export default function LandingPage() {
             style={{
               fontFamily: font.space,
               fontWeight: 700,
-              fontSize: 44,
+              fontSize: "clamp(28px, 6vw, 44px)",
               letterSpacing: "-.02em",
               margin: 0,
             }}
@@ -1049,8 +1076,8 @@ export default function LandingPage() {
         <div
           style={{
             display: "grid",
-            gridTemplateColumns: "repeat(3,1fr)",
-            gap: 20,
+            gridTemplateColumns: r.col3,
+            gap: r.gapSm,
             alignItems: "stretch",
           }}
         >
@@ -1079,7 +1106,7 @@ export default function LandingPage() {
               style={{
                 fontFamily: font.space,
                 fontWeight: 700,
-                fontSize: 44,
+                fontSize: "clamp(30px, 9vw, 44px)",
                 letterSpacing: "-.02em",
               }}
             >
@@ -1169,7 +1196,7 @@ export default function LandingPage() {
               style={{
                 fontFamily: font.space,
                 fontWeight: 700,
-                fontSize: 44,
+                fontSize: "clamp(30px, 9vw, 44px)",
                 letterSpacing: "-.02em",
               }}
             >
@@ -1246,7 +1273,7 @@ export default function LandingPage() {
               style={{
                 fontFamily: font.space,
                 fontWeight: 700,
-                fontSize: 44,
+                fontSize: "clamp(30px, 9vw, 44px)",
                 letterSpacing: "-.02em",
               }}
             >
@@ -1317,9 +1344,9 @@ export default function LandingPage() {
           style={{
             maxWidth: 1240,
             margin: "0 auto",
-            padding: "64px 40px 48px",
+            padding: `64px ${r.pagePx} 48px`,
             display: "grid",
-            gridTemplateColumns: "1.4fr 1fr 1fr 1fr",
+            gridTemplateColumns: r.footer,
             gap: 40,
           }}
         >

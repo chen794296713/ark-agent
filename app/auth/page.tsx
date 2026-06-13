@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { c, font, gridBg } from "@/lib/theme";
+import { c, font, gridBg, r } from "@/lib/theme";
 import { Btn } from "@/components/ui";
 
 type AuthMode = "login" | "signup" | "forgot";
@@ -56,13 +56,15 @@ export default function AuthPage() {
   return (
     <div
       data-screen-label="Sign in"
-      style={{ minHeight: "100vh", display: "grid", gridTemplateColumns: "1fr 1fr" }}
+      style={{ minHeight: "100vh", display: "grid", gridTemplateColumns: r.split }}
     >
+      <div style={{ display: r.authHero }}>
       <div
         style={{
+          height: "100%",
           background: c.panel,
           borderRight: `1px solid ${c.line}`,
-          padding: "40px 48px",
+          padding: `40px ${r.pagePxWide}`,
           display: "flex",
           flexDirection: "column",
           ...gridBg,
@@ -167,15 +169,16 @@ export default function AuthPage() {
           ARKAGENT.AI — GLOBAL · IAGENT.CC — 中国大陆
         </div>
       </div>
+      </div>
       <div
         style={{
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          padding: 48,
+          padding: r.pagePxWide,
         }}
       >
-        <div style={{ width: 400 }}>
+        <div style={{ width: r.formW }}>
           <h2
             style={{
               fontFamily: font.space,
@@ -216,7 +219,7 @@ export default function AuthPage() {
           <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
             {aSSO && (
               <>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                <div style={{ display: "grid", gridTemplateColumns: r.split, gap: 10 }}>
                   <Btn
                     onClick={doAuth}
                     hoverStyle={{ borderColor: c.borderMute }}

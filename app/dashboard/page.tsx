@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { c, font } from "@/lib/theme";
+import { c, font, r } from "@/lib/theme";
 import { overviewFeed } from "@/lib/data";
 import { useApp } from "@/lib/store";
 import { HoverDiv } from "@/components/ui";
@@ -25,7 +25,7 @@ export default function OverviewPage() {
   });
 
   return (
-    <div style={{ padding: "36px 40px" }}>
+    <div style={{ padding: `${r.contentPy} ${r.pagePx}` }}>
       <div
         style={{
           display: "flex",
@@ -38,7 +38,7 @@ export default function OverviewPage() {
           style={{
             fontFamily: font.space,
             fontWeight: 700,
-            fontSize: 26,
+            fontSize: "clamp(20px, 4.5vw, 26px)",
             letterSpacing: "-.01em",
             margin: 0,
           }}
@@ -53,7 +53,7 @@ export default function OverviewPage() {
       <div
         style={{
           display: "grid",
-          gridTemplateColumns: "repeat(4,1fr)",
+          gridTemplateColumns: r.col4,
           gap: 1,
           background: c.line,
           border: `1px solid ${c.line}`,
@@ -93,8 +93,8 @@ export default function OverviewPage() {
       <div
         style={{
           display: "grid",
-          gridTemplateColumns: "1.5fr 1fr",
-          gap: 32,
+          gridTemplateColumns: r.overview,
+          gap: r.gapMd,
           alignItems: "start",
         }}
       >

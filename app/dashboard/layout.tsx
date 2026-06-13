@@ -1,8 +1,9 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { c, font } from "@/lib/theme";
+import { c, font, r } from "@/lib/theme";
 import { Btn } from "@/components/ui";
 
 const navDefs = [
@@ -15,6 +16,12 @@ const navDefs = [
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
+  const [drawerOpen, setDrawerOpen] = useState(false);
+
+  // Dismiss the mobile drawer whenever the route changes (tap a nav row → go + close).
+  useEffect(() => {
+    setDrawerOpen(false);
+  }, [pathname]);
 
   function isActive(id: string): boolean {
     if (id === "overview") return pathname === "/dashboard";
@@ -24,18 +31,28 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     return false;
   }
 
+  function go(href: string) {
+    router.push(href);
+    setDrawerOpen(false);
+  }
+
   return (
-    <div style={{ minHeight: "100vh", display: "grid", gridTemplateColumns: "236px 1fr" }}>
-      {/* Sidebar */}
+    <div style={{ minHeight: "100vh", display: "grid", gridTemplateColumns: r.dashGrid }}>
+      {/* Scrim behind the drawer (mobile only; .r-scrim is display:none ≥641px). */}
+      {drawerOpen && <div className="r-scrim" onClick={() => setDrawerOpen(false)} />}
+
+      {/* Sidebar — sticky rail on desktop, off-canvas drawer on mobile.
+          Width/height/transform live in .r-dash-sidebar (globals.css) so they
+          aren't overridden by inline specificity; only position is a token. */}
       <div
+        className={`r-dash-sidebar${drawerOpen ? " open" : ""}`}
         style={{
           borderRight: `1px solid ${c.line}`,
           background: c.panel,
           display: "flex",
           flexDirection: "column",
-          position: "sticky",
+          position: r.sidebarPos,
           top: 0,
-          height: "100vh",
         }}
       >
         <Link
@@ -99,7 +116,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             return (
               <button
                 key={n.id}
-                onClick={() => router.push(n.href)}
+                onClick={() => go(n.href)}
                 style={{
                   display: "flex",
                   alignItems: "center",
@@ -131,7 +148,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         </div>
 
         <Btn
-          onClick={() => router.push("/hire")}
+          onClick={() => go("/hire")}
           hoverStyle={{ borderColor: c.lime }}
           style={{
             margin: "8px 12px",
@@ -196,7 +213,81 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       </div>
 
       {/* Main */}
-      <div style={{ minWidth: 0 }}>{children}</div>
+      <div style={{ minWidth: 0 }}>
+        {/* Mobile app-bar — shown only ≤640px via --r-mobile-nav */}
+        <div
+          style={{
+            display: r.mobileNav,
+            position: "sticky",
+            top: 0,
+            zIndex: 40,
+            alignItems: "center",
+            gap: 12,
+            height: 56,
+            padding: "0 16px",
+            background: c.panel,
+            borderBottom: `1px solid ${c.line}`,
+          }}
+        >
+          <button
+            aria-label="Open navigation"
+            onClick={() => setDrawerOpen(true)}
+            style={{
+              width: 40,
+              height: 40,
+              display: "grid",
+              placeItems: "center",
+              background: "transparent",
+              border: `1px solid ${c.border}`,
+              color: c.text,
+              fontFamily: font.mono,
+              fontSize: 18,
+              cursor: "pointer",
+            }}
+          >
+            ≡
+          </button>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <div
+              style={{
+                width: 22,
+                height: 22,
+                background: c.lime,
+                display: "grid",
+                placeItems: "center",
+                fontFamily: font.space,
+                fontWeight: 700,
+                color: c.bg,
+                fontSize: 13,
+              }}
+            >
+              A
+            </div>
+            <span
+              style={{
+                fontFamily: font.mono,
+                fontSize: 13,
+                fontWeight: 500,
+                letterSpacing: ".04em",
+                color: c.text,
+              }}
+            >
+              ARK_AGENT
+            </span>
+          </div>
+          <span
+            style={{
+              marginLeft: "auto",
+              fontFamily: font.mono,
+              fontSize: 11.5,
+              color: c.muted,
+            }}
+          >
+            18,420 / 30k
+          </span>
+        </div>
+        {children}
+      </div>
     </div>
   );
 }

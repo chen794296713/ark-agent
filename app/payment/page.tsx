@@ -8,7 +8,7 @@
  */
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import { c, font } from "@/lib/theme";
+import { c, font, r } from "@/lib/theme";
 import { useApp } from "@/lib/store";
 import { Btn } from "@/components/ui";
 
@@ -151,6 +151,7 @@ export default function PaymentPage() {
         gridTemplateColumns: "repeat(25, 1fr)",
         width: "176px",
         height: "176px",
+        maxWidth: "100%",
         background: "#fff",
         padding: "10px",
       }}
@@ -275,10 +276,10 @@ export default function PaymentPage() {
         style={{
           maxWidth: "1080px",
           margin: "0 auto",
-          padding: "48px 40px 140px",
+          padding: `${r.pagePxWide} ${r.pagePx} 140px`,
           display: "grid",
-          gridTemplateColumns: ".9fr 1.1fr",
-          gap: "48px",
+          gridTemplateColumns: r.checkout,
+          gap: r.gapMd,
           alignItems: "start",
         }}
       >
@@ -314,6 +315,8 @@ export default function PaymentPage() {
               border: `1px solid ${c.border}`,
               padding: "3px",
               width: "fit-content",
+              maxWidth: "100%",
+              flexWrap: "wrap",
               marginBottom: "20px",
             }}
           >
@@ -425,6 +428,8 @@ export default function PaymentPage() {
               border: `1px solid ${c.border}`,
               padding: "3px",
               width: "fit-content",
+              maxWidth: "100%",
+              flexWrap: "wrap",
               marginBottom: "8px",
             }}
           >
@@ -458,7 +463,7 @@ export default function PaymentPage() {
                 <div
                   style={{
                     display: "grid",
-                    gridTemplateColumns: "1fr 1fr",
+                    gridTemplateColumns: r.split,
                     gap: "10px",
                     marginBottom: "16px",
                   }}
@@ -546,7 +551,7 @@ export default function PaymentPage() {
                       style={inputStyle(true)}
                     />
                   </div>
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "14px" }}>
+                  <div style={{ display: "grid", gridTemplateColumns: r.split, gap: "14px" }}>
                     <div>
                       <div style={labelStyle}>EXPIRY</div>
                       <input
@@ -570,7 +575,7 @@ export default function PaymentPage() {
                       />
                     </div>
                   </div>
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "14px" }}>
+                  <div style={{ display: "grid", gridTemplateColumns: r.split, gap: "14px" }}>
                     <div>
                       <div style={labelStyle}>NAME ON CARD</div>
                       <input

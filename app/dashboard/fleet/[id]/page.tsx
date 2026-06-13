@@ -2,7 +2,7 @@
 
 import { Suspense, useEffect, useRef, useState } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
-import { c, font } from "@/lib/theme";
+import { c, font, r } from "@/lib/theme";
 import { useApp } from "@/lib/store";
 import { Btn } from "@/components/ui";
 import { genTexts, roleIdByName } from "@/lib/data";
@@ -131,7 +131,7 @@ function ChatTab({ cur }: { cur: Agent }) {
         background: c.panel,
         display: "flex",
         flexDirection: "column",
-        height: 480,
+        height: r.chatH,
       }}
     >
       <div
@@ -245,7 +245,7 @@ function PerformanceTab({ cur }: { cur: Agent }) {
     <div
       style={{
         display: "grid",
-        gridTemplateColumns: "1fr 1fr",
+        gridTemplateColumns: r.detailPerf,
         gap: 20,
         alignItems: "start",
       }}
@@ -399,7 +399,7 @@ function SettingsTab({ cur }: { cur: Agent }) {
     <div
       style={{
         display: "grid",
-        gridTemplateColumns: "1.35fr .65fr",
+        gridTemplateColumns: r.detailSettings,
         gap: 20,
         alignItems: "start",
       }}
@@ -635,7 +635,7 @@ function AgentDetailInner() {
   const sc = curPaused ? c.amber : cur.sc;
 
   return (
-    <div style={{ padding: "36px 40px" }}>
+    <div style={{ padding: `${r.contentPy} ${r.pagePx}` }}>
       <Btn
         onClick={() => router.push("/dashboard/fleet")}
             hoverStyle={{ color: c.muted }}
@@ -661,6 +661,7 @@ function AgentDetailInner() {
               alignItems: "center",
               gap: 20,
               marginBottom: 0,
+              flexWrap: "wrap",
             }}
           >
             <div
@@ -679,7 +680,7 @@ function AgentDetailInner() {
               {cur.mono}
             </div>
             <div style={{ flex: 1 }}>
-              <div style={{ fontFamily: font.space, fontWeight: 700, fontSize: 22 }}>{cur.name}</div>
+              <div style={{ fontFamily: font.space, fontWeight: 700, fontSize: "clamp(18px, 4vw, 22px)" }}>{cur.name}</div>
               <div style={{ fontSize: 14, color: c.muted }}>
                 {cur.role} ·{" "}
                 <span style={{ fontFamily: font.mono, fontSize: 12.5 }}>{cur.engine}</span> · VM{" "}
@@ -711,12 +712,15 @@ function AgentDetailInner() {
             </div>
           </div>
           <div
+            className="ark-scroll"
             style={{
               display: "flex",
               border: `1px solid ${c.border}`,
               borderTop: "none",
               background: c.bg,
               marginBottom: 28,
+              overflowX: "auto",
+              flexWrap: "nowrap",
             }}
           >
             {TABS.map((t) => {
@@ -735,6 +739,7 @@ function AgentDetailInner() {
                     fontFamily: font.space,
                     fontWeight: 500,
                     cursor: "pointer",
+                    whiteSpace: "nowrap",
                   }}
                 >
                   {t.label}

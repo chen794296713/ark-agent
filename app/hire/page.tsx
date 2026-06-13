@@ -2,7 +2,7 @@
 
 import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { c, font } from "@/lib/theme";
+import { c, font, r } from "@/lib/theme";
 import { rolesData, genTexts, hireChannels } from "@/lib/data";
 import { useApp } from "@/lib/store";
 import { Btn } from "@/components/ui";
@@ -219,7 +219,7 @@ function HireInner() {
           borderBottom: "1px solid #1B212C",
           display: "flex",
           alignItems: "center",
-          padding: "0 32px",
+          padding: `0 ${r.pagePx}`,
           gap: 24,
         }}
       >
@@ -264,7 +264,7 @@ function HireInner() {
         style={{
           flex: 1,
           display: "grid",
-          gridTemplateColumns: "280px 1fr",
+          gridTemplateColumns: r.hireGrid,
           maxWidth: 1240,
           width: "100%",
           margin: "0 auto",
@@ -274,7 +274,7 @@ function HireInner() {
         <div
           style={{
             borderRight: "1px solid #1B212C",
-            padding: "48px 32px 48px 40px",
+            padding: `48px ${r.pagePx} 48px ${r.pagePxWide}`,
             display: "flex",
             flexDirection: "column",
             gap: 32,
@@ -334,7 +334,7 @@ function HireInner() {
         </div>
 
         {/* Step content */}
-        <div style={{ padding: "48px 0 120px 48px", maxWidth: 760 }}>
+        <div style={{ padding: `48px 0 120px ${r.pagePxWide}`, maxWidth: 760 }}>
           {/* Step 1 — Role */}
           {hireStep === 1 && (
             <>
@@ -342,7 +342,7 @@ function HireInner() {
                 style={{
                   fontFamily: font.space,
                   fontWeight: 700,
-                  fontSize: 32,
+                  fontSize: "clamp(24px, 5vw, 32px)",
                   letterSpacing: "-.02em",
                   margin: "0 0 8px",
                 }}
@@ -355,7 +355,7 @@ function HireInner() {
               <div
                 style={{
                   display: "grid",
-                  gridTemplateColumns: "repeat(2,1fr)",
+                  gridTemplateColumns: r.col2,
                   gap: 12,
                 }}
               >
@@ -416,7 +416,7 @@ function HireInner() {
                 style={{
                   fontFamily: font.space,
                   fontWeight: 700,
-                  fontSize: 32,
+                  fontSize: "clamp(24px, 5vw, 32px)",
                   letterSpacing: "-.02em",
                   margin: "0 0 8px",
                 }}
@@ -445,7 +445,8 @@ function HireInner() {
                     onChange={(e) => setAgentName(e.target.value)}
                     placeholder="e.g. Aria"
                     style={{
-                      width: 280,
+                      width: "100%",
+                      maxWidth: 280,
                       background: "#0E1116",
                       border: "1px solid #232B38",
                       color: "#E8ECF1",
@@ -698,7 +699,7 @@ function HireInner() {
                 style={{
                   fontFamily: font.space,
                   fontWeight: 700,
-                  fontSize: 32,
+                  fontSize: "clamp(24px, 5vw, 32px)",
                   letterSpacing: "-.02em",
                   margin: "0 0 8px",
                 }}
@@ -712,7 +713,7 @@ function HireInner() {
               <div
                 style={{
                   display: "grid",
-                  gridTemplateColumns: "repeat(3,1fr)",
+                  gridTemplateColumns: r.col3,
                   gap: 12,
                   marginBottom: 40,
                 }}
@@ -920,7 +921,7 @@ function HireInner() {
                 style={{
                   fontFamily: font.space,
                   fontWeight: 700,
-                  fontSize: 32,
+                  fontSize: "clamp(24px, 5vw, 32px)",
                   letterSpacing: "-.02em",
                   margin: "0 0 8px",
                 }}
@@ -1094,6 +1095,8 @@ function HireInner() {
               style={{
                 display: "flex",
                 justifyContent: "space-between",
+                flexWrap: "wrap",
+                gap: 12,
                 marginTop: 48,
                 borderTop: "1px solid #1B212C",
                 paddingTop: 24,

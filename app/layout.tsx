@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import {
   Space_Grotesk,
   Instrument_Sans,
@@ -39,6 +39,14 @@ export const metadata: Metadata = {
   title: "ArkAgent — Hire an AI employee, not another app.",
   description:
     "ArkAgent puts a real autonomous agent on a dedicated machine — selling, supporting, recruiting and writing for you around the clock. Brief it like a person; manage it from the apps you already use. arkagent.ai (global) · iagent.cc (中国大陆).",
+};
+
+// Ensures the page renders at true device width (not a zoomed-out 980px canvas)
+// so the responsive token layer in globals.css can take effect on phones.
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  themeColor: "#0B0D10",
 };
 
 export default function RootLayout({

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { c, font } from "@/lib/theme";
+import { c, font, r } from "@/lib/theme";
 import { channelDefs } from "@/lib/data";
 import { Btn } from "@/components/ui";
 
@@ -11,9 +11,9 @@ export default function ChannelsPage() {
   const [chanSaved, setChanSaved] = useState<Record<string, boolean>>({});
 
   return (
-    <div data-screen-label="Channels" style={{ padding: "36px 40px" }}>
+    <div data-screen-label="Channels" style={{ padding: `${r.contentPy} ${r.pagePx}` }}>
       <div style={{ marginBottom: 28 }}>
-        <h2 style={{ fontFamily: font.space, fontWeight: 700, fontSize: 26, margin: "0 0 6px" }}>Channels</h2>
+        <h2 style={{ fontFamily: font.space, fontWeight: 700, fontSize: "clamp(20px, 5vw, 26px)", margin: "0 0 6px" }}>Channels</h2>
         <p style={{ color: c.muted, margin: 0, fontSize: 14.5 }}>Where you — and your customers — talk to your agents. Connect once; every agent can use it.</p>
       </div>
       <div style={{ maxWidth: 780, display: "flex", flexDirection: "column", gap: 10 }}>
@@ -42,7 +42,7 @@ export default function ChannelsPage() {
               </div>
               {isOpen && (
                 <div style={{ borderTop: `1px solid ${c.line}`, padding: 20, display: "flex", flexDirection: "column", gap: 16 }}>
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+                  <div style={{ display: "grid", gridTemplateColumns: r.split, gap: 14 }}>
                     {d.fields.map((f) => {
                       const key = d.name + "." + f.k;
                       return (
@@ -58,7 +58,7 @@ export default function ChannelsPage() {
                       );
                     })}
                   </div>
-                  <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+                  <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
                     <button
                       onClick={() => setChanSaved((s) => ({ ...s, [d.name]: true }))}
                       style={{ background: c.lime, color: c.ink, border: "none", padding: "10px 20px", fontFamily: font.space, fontWeight: 700, fontSize: 13.5, cursor: "pointer" }}
