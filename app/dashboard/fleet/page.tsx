@@ -2,17 +2,26 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useCallback, useEffect, useState } from "react";
 import { c, font, r } from "@/lib/theme";
-import { useApp } from "@/lib/store";
+import { api, ApiError } from "@/lib/client-api";
+import type { AgentDTO } from "@/lib/serializers";
+import { statusDisplay, ENGINE_LABEL, channelsText } from "@/lib/agent-display";
 import { Btn, HoverDiv } from "@/components/ui";
-import type { Agent } from "@/lib/types";
 
-function FleetCard({ a }: { a: Agent }) {
+function FleetCard({
+  a,
+  onToggle,
+}: {
+  a: AgentDTO;
+  onToggle: (a: AgentDTO) => void;
+}) {
   const router = useRouter();
-  const { isPaused, togglePause } = useApp();
-  const paused = isPaused(a.id);
-  const st = paused ? "PAUSED" : a.st;
-  const sc = paused ? c.amber : a.sc;
+  const [busy, setBusy] = useState(false);
+  const st = statusDisplay(a.status);
+  const paused = a.status === "paused";
+  const chans = channelsText(a.channels) || `${a.channels.length}`;
+
   return (
     <HoverDiv
       onClick={() => router.push(`/dashboard/fleet/${a.id}`)}
@@ -29,7 +38,7 @@ function FleetCard({ a }: { a: Agent }) {
           style={{
             width: 42,
             height: 42,
-            background: a.hue,
+            background: a.hue ?? c.lime,
             color: c.ink,
             display: "grid",
             placeItems: "center",
@@ -45,8 +54,8 @@ function FleetCard({ a }: { a: Agent }) {
           <div style={{ fontSize: 13, color: c.muted }}>{a.role}</div>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-          <span style={{ width: 6, height: 6, borderRadius: "50%", background: sc }} />
-          <span style={{ fontFamily: font.mono, fontSize: 11, color: sc }}>{st}</span>
+          <span style={{ width: 6, height: 6, borderRadius: "50%", background: st.color }} />
+          <span style={{ fontFamily: font.mono, fontSize: 11, color: st.color }}>{st.label}</span>
         </div>
       </div>
       <div
@@ -61,15 +70,17 @@ function FleetCard({ a }: { a: Agent }) {
       >
         <div style={{ padding: "10px 14px", borderRight: `1px solid ${c.line}`, flex: 1 }}>
           ENGINE
-          <div style={{ color: c.text2, fontSize: 12.5, marginTop: 3 }}>{a.engine}</div>
+          <div style={{ color: c.text2, fontSize: 12.5, marginTop: 3 }}>
+            {ENGINE_LABEL[a.engine] ?? a.engine}
+          </div>
         </div>
         <div style={{ padding: "10px 14px", borderRight: `1px solid ${c.line}`, flex: 1 }}>
           CREDITS
-          <div style={{ color: c.text2, fontSize: 12.5, marginTop: 3 }}>{a.credits}</div>
+          <div style={{ color: c.text2, fontSize: 12.5, marginTop: 3 }}>{a.creditsUsed}</div>
         </div>
         <div style={{ padding: "10px 14px", flex: 1 }}>
           CHANNELS
-          <div style={{ color: c.text2, fontSize: 12.5, marginTop: 3 }}>{a.chansTxt}</div>
+          <div style={{ color: c.text2, fontSize: 12.5, marginTop: 3 }}>{chans}</div>
         </div>
       </div>
       <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
@@ -94,9 +105,19 @@ function FleetCard({ a }: { a: Agent }) {
           Manage
         </Btn>
         <Btn
-          onClick={(e) => {
+          disabled={busy}
+          onClick={async (e) => {
             e.stopPropagation();
-            togglePause(a.id);
+            if (busy) return;
+            setBusy(true);
+            try {
+              const { agent } = await api.lifecycle(a.id, paused ? "resume" : "pause");
+              onToggle(agent);
+            } catch {
+              /* leave state unchanged on failure */
+            } finally {
+              setBusy(false);
+            }
           }}
           hoverStyle={{ borderColor: c.amber, color: c.amber }}
           style={{
@@ -107,10 +128,11 @@ function FleetCard({ a }: { a: Agent }) {
             padding: 9,
             fontFamily: font.space,
             fontSize: 13,
-            cursor: "pointer",
+            cursor: busy ? "default" : "pointer",
+            opacity: busy ? 0.6 : 1,
           }}
         >
-          {paused ? "Resume" : "Pause"}
+          {busy ? "…" : paused ? "Resume" : "Pause"}
         </Btn>
         <Btn
           onClick={(e) => {
@@ -137,7 +159,33 @@ function FleetCard({ a }: { a: Agent }) {
 }
 
 export default function FleetPage() {
-  const { agents } = useApp();
+  const [agents, setAgents] = useState<AgentDTO[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const { agents: list } = await api.listAgents();
+        if (alive) setAgents(list);
+      } catch (e) {
+        if (alive) setError(e instanceof ApiError ? e.message : "Failed to load fleet.");
+      } finally {
+        if (alive) setLoading(false);
+      }
+    })();
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  const handleToggle = useCallback((updated: AgentDTO) => {
+    setAgents((prev) => prev.map((a) => (a.id === updated.id ? updated : a)));
+  }, []);
+
   return (
     <div style={{ padding: `${r.contentPy} ${r.pagePx}` }}>
       <div
@@ -168,11 +216,75 @@ export default function FleetPage() {
           </button>
         </Link>
       </div>
-      <div style={{ display: "grid", gridTemplateColumns: r.col2, gap: r.gapSm }}>
-        {agents.map((a) => (
-          <FleetCard key={a.id} a={a} />
-        ))}
-      </div>
+
+      {loading ? (
+        <div
+          style={{
+            border: `1px solid ${c.border}`,
+            background: c.panel,
+            padding: 40,
+            textAlign: "center",
+            fontFamily: font.mono,
+            fontSize: 12,
+            letterSpacing: ".06em",
+            color: c.faint,
+          }}
+        >
+          LOADING FLEET…
+        </div>
+      ) : error ? (
+        <div
+          style={{
+            border: `1px solid ${c.redBorder}`,
+            background: c.redWash,
+            padding: 40,
+            textAlign: "center",
+            fontFamily: font.mono,
+            fontSize: 12.5,
+            color: c.red,
+          }}
+        >
+          {error}
+        </div>
+      ) : agents.length === 0 ? (
+        <div
+          style={{
+            border: `1px solid ${c.border}`,
+            background: c.panel,
+            padding: "48px 32px",
+            textAlign: "center",
+          }}
+        >
+          <div style={{ fontFamily: font.space, fontWeight: 700, fontSize: 18, marginBottom: 8 }}>
+            No agents yet
+          </div>
+          <div style={{ fontSize: 13.5, color: c.muted, marginBottom: 20 }}>
+            Hire your first agent to start building your fleet.
+          </div>
+          <Link href="/hire" style={{ textDecoration: "none" }}>
+            <button
+              style={{
+                background: c.lime,
+                color: c.ink,
+                border: "none",
+                padding: "10px 18px",
+                fontFamily: font.space,
+                fontWeight: 700,
+                fontSize: 13.5,
+                cursor: "pointer",
+              }}
+            >
+              + Hire new agent
+            </button>
+          </Link>
+        </div>
+      ) : (
+        <div style={{ display: "grid", gridTemplateColumns: r.col2, gap: r.gapSm }}>
+          {agents.map((a) => (
+            <FleetCard key={a.id} a={a} onToggle={handleToggle} />
+          ))}
+        </div>
+      )}
     </div>
   );
 }

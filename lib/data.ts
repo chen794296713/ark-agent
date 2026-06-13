@@ -3,7 +3,7 @@
  * AI-generated brief copy, channel definitions and billing datasets.
  * All ported verbatim from ArkAgent.dc.html.
  */
-import { c, roleHue } from "@/lib/theme";
+import { c, roleHue } from "./theme";
 import type {
   Agent,
   BillDataset,
@@ -11,7 +11,7 @@ import type {
   GenText,
   PlanRow,
   Role,
-} from "@/lib/types";
+} from "./types";
 
 const LIME = c.lime;
 

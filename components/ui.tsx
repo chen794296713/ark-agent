@@ -16,6 +16,41 @@ import { useState } from "react";
 const TRANSITION =
   "background .15s ease, border-color .15s ease, color .15s ease, box-shadow .15s ease, opacity .15s ease";
 
+/**
+ * Merge base + (engaged ? hover) styles. When the hover state toggles a border
+ * *longhand* (e.g. `borderColor`) while the base sets the `border` *shorthand*,
+ * React warns that removing the longhand on un-hover — while the shorthand is
+ * still set — can cause styling bugs. So when that combination occurs we expand
+ * the shorthand into longhands, which keeps the property set stable across
+ * renders (React's recommended "replace the shorthand with separate values").
+ */
+function mergeStyle(
+  style: React.CSSProperties | undefined,
+  hoverStyle: React.CSSProperties | undefined,
+  engaged: boolean,
+): React.CSSProperties {
+  const merged: React.CSSProperties = {
+    transition: TRANSITION,
+    ...style,
+    ...(engaged && hoverStyle ? hoverStyle : null),
+  };
+  const togglesBorderLonghand =
+    !!hoverStyle &&
+    ("borderColor" in hoverStyle ||
+      "borderWidth" in hoverStyle ||
+      "borderStyle" in hoverStyle);
+  if (togglesBorderLonghand && typeof merged.border === "string") {
+    const parts = merged.border.trim().split(/\s+/);
+    if (parts.length >= 3) {
+      merged.borderWidth ??= parts[0] as React.CSSProperties["borderWidth"];
+      merged.borderStyle ??= parts[1] as React.CSSProperties["borderStyle"];
+      merged.borderColor ??= parts.slice(2).join(" ");
+    }
+    delete merged.border;
+  }
+  return merged;
+}
+
 /** Shared engaged-state + handler set for both primitives. */
 function useEngaged(handlers: {
   onMouseEnter?: (e: React.MouseEvent<never>) => void;
@@ -71,7 +106,7 @@ export function Btn({
     <button
       {...rest}
       {...on}
-      style={{ transition: TRANSITION, ...style, ...(engaged && hoverStyle ? hoverStyle : null) }}
+      style={mergeStyle(style, hoverStyle, engaged)}
     />
   );
 }
@@ -99,7 +134,7 @@ export function HoverDiv({
     <div
       {...rest}
       {...on}
-      style={{ transition: TRANSITION, ...style, ...(engaged && hoverStyle ? hoverStyle : null) }}
+      style={mergeStyle(style, hoverStyle, engaged)}
     />
   );
 }

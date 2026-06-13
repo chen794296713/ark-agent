@@ -1,9 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { c, font, gridBg, r } from "@/lib/theme";
 import { Btn } from "@/components/ui";
+import { useApp } from "@/lib/store";
+import { ApiError } from "@/lib/client-api";
 
 type AuthMode = "login" | "signup" | "forgot";
 
@@ -15,24 +17,51 @@ const authTitles: Record<AuthMode, [string, string]> = {
 
 export default function AuthPage() {
   const router = useRouter();
+  const { user, authReady, login, register } = useApp();
   const [authMode, setAuthMode] = useState<AuthMode>("login");
   const [resetSent, setResetSent] = useState(false);
   const [email, setEmail] = useState("");
   const [pw, setPw] = useState("");
   const [name, setName] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  // Already signed in → go straight to the dashboard.
+  useEffect(() => {
+    if (authReady && user) router.replace("/dashboard");
+  }, [authReady, user, router]);
 
   const am = authMode;
   const setAuth = (m: AuthMode) => {
     setAuthMode(m);
     setResetSent(false);
+    setError(null);
   };
-  const doAuth = () => {
+  const doAuth = async () => {
+    setError(null);
     if (am === "forgot") {
       setResetSent(true);
       return;
     }
-    router.push("/dashboard");
+    if (!email.trim() || !pw) {
+      setError("Please enter your email and password.");
+      return;
+    }
+    if (am === "signup" && !name.trim()) {
+      setError("Please enter your name.");
+      return;
+    }
+    setBusy(true);
+    try {
+      if (am === "login") await login(email.trim(), pw);
+      else await register(name.trim(), email.trim(), pw);
+      router.push("/dashboard");
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Something went wrong. Please try again.");
+      setBusy(false);
+    }
   };
+  const ssoUnavailable = () => setError("Social sign-in is coming soon — please use email.");
 
   const aLogin = am === "login";
   const aSignup = am === "signup";
@@ -191,6 +220,20 @@ export default function AuthPage() {
             {authTitle}
           </h2>
           <p style={{ color: c.muted, margin: "0 0 28px", fontSize: 14.5 }}>{authSub}</p>
+          {error && (
+            <div
+              style={{
+                border: `1px solid ${c.redBorder}`,
+                background: c.redWash,
+                color: c.red,
+                padding: "12px 14px",
+                marginBottom: 16,
+                fontSize: 13.5,
+              }}
+            >
+              {error}
+            </div>
+          )}
           {aForgotSent && (
             <div
               style={{
@@ -221,7 +264,7 @@ export default function AuthPage() {
               <>
                 <div style={{ display: "grid", gridTemplateColumns: r.split, gap: 10 }}>
                   <Btn
-                    onClick={doAuth}
+                    onClick={ssoUnavailable}
                     hoverStyle={{ borderColor: c.borderMute }}
                     style={{
                       border: `1px solid ${c.borderStrong}`,
@@ -236,7 +279,7 @@ export default function AuthPage() {
                     G · Google
                   </Btn>
                   <Btn
-                    onClick={doAuth}
+                    onClick={ssoUnavailable}
                     hoverStyle={{ borderColor: c.borderMute }}
                     style={{
                       border: `1px solid ${c.borderStrong}`,
@@ -357,6 +400,7 @@ export default function AuthPage() {
             )}
             <Btn
               onClick={doAuth}
+              disabled={busy}
               hoverStyle={{ background: c.limeHover }}
               style={{
                 background: c.lime,
@@ -366,11 +410,12 @@ export default function AuthPage() {
                 fontFamily: font.space,
                 fontWeight: 700,
                 fontSize: 15,
-                cursor: "pointer",
+                cursor: busy ? "default" : "pointer",
+                opacity: busy ? 0.7 : 1,
                 marginTop: 4,
               }}
             >
-              {authBtnLabel}
+              {busy ? "Please wait…" : authBtnLabel}
             </Btn>
           </div>
           <div

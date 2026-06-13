@@ -3,27 +3,38 @@
 import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { c, font, r } from "@/lib/theme";
-import { rolesData, genTexts, hireChannels } from "@/lib/data";
-import { useApp } from "@/lib/store";
+import { api, ApiError, type RoleDTO } from "@/lib/client-api";
+import { ENGINE_LABEL, planLabel } from "@/lib/agent-display";
 import { Btn } from "@/components/ui";
-import type { Agent } from "@/lib/types";
 
 const LIME = c.lime;
 const ACCENT = c.accent;
 const INKBG = c.panel; // #0E1116
 const BORD = c.border; // #232B38
 
+/** Channel picker labels (incl. native script) mapped to API type strings. */
+const CHANNEL_OPTIONS: { label: string; type: string; on: boolean }[] = [
+  { label: "Telegram", type: "telegram", on: true },
+  { label: "WhatsApp", type: "whatsapp", on: true },
+  { label: "WeChat 微信", type: "wechat", on: false },
+  { label: "LINE", type: "line", on: false },
+  { label: "Slack", type: "slack", on: false },
+  { label: "Email", type: "email", on: false },
+];
+
 function HireInner() {
   const router = useRouter();
   const params = useSearchParams();
-  const { setCreatedAgent } = useApp();
 
   const preRole = params.get("role");
-  const initialRole =
-    preRole && rolesData.some((r) => r.id === preRole) ? preRole : "prospector";
+
+  // ---- roles catalog (from API) ----
+  const [roles, setRoles] = useState<RoleDTO[]>([]);
+  const [rolesLoading, setRolesLoading] = useState(true);
+  const [rolesError, setRolesError] = useState<string | null>(null);
 
   const [hireStep, setHireStep] = useState(1);
-  const [selRole, setSelRole] = useState(initialRole);
+  const [selRole, setSelRole] = useState<string>("");
   const [agentName, setAgentName] = useState("");
   const [instructions, setInstructions] = useState("");
   const [rules, setRules] = useState("");
@@ -34,12 +45,16 @@ function HireInner() {
     "Send intro sequence to new leads",
   ]);
   const [engine, setEngine] = useState("auto");
-  const [channels, setChannels] = useState<Record<string, boolean>>({ ...hireChannels });
+  const [channels, setChannels] = useState<Record<string, boolean>>(() =>
+    Object.fromEntries(CHANNEL_OPTIONS.map((o) => [o.type, o.on])),
+  );
   const [genBusyI, setGenBusyI] = useState(false);
   const [genBusyR, setGenBusyR] = useState(false);
 
   const [launching, setLaunching] = useState(false);
   const [launchStep, setLaunchStep] = useState(-1);
+  const [launchError, setLaunchError] = useState<string | null>(null);
+  const [createdId, setCreatedId] = useState<string | null>(null);
   const lvRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
@@ -48,26 +63,57 @@ function HireInner() {
     };
   }, []);
 
+  // Fetch the role catalog on mount. (rolesLoading starts true, rolesError null.)
+  useEffect(() => {
+    let alive = true;
+    api
+      .roles()
+      .then(({ roles: rs }) => {
+        if (!alive) return;
+        setRoles(rs);
+        // Honor a ?role= preselect when valid, else first role.
+        setSelRole((cur) => {
+          if (cur && rs.some((x) => x.id === cur)) return cur;
+          if (preRole && rs.some((x) => x.id === preRole)) return preRole;
+          return rs[0]?.id ?? "";
+        });
+      })
+      .catch((err: unknown) => {
+        if (!alive) return;
+        if (err instanceof ApiError && err.status === 401) {
+          router.push("/auth");
+          return;
+        }
+        setRolesError(err instanceof ApiError ? err.message : "Couldn't load roles.");
+      })
+      .finally(() => {
+        if (alive) setRolesLoading(false);
+      });
+    return () => {
+      alive = false;
+    };
+    // preRole is read once on mount; router is stable.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const selRoleObj = useMemo(
-    () => rolesData.find((r) => r.id === selRole) || rolesData[0],
-    [selRole],
+    () => roles.find((x) => x.id === selRole) || roles[0],
+    [roles, selRole],
   );
 
-  const gt = genTexts[selRole] || genTexts.prospector;
-
   const genInstr = () => {
-    if (genBusyI) return;
+    if (genBusyI || !selRoleObj) return;
     setGenBusyI(true);
     setTimeout(() => {
-      setInstructions(gt.i);
+      setInstructions(selRoleObj.defaultInstructions || "");
       setGenBusyI(false);
     }, 900);
   };
   const genRules = () => {
-    if (genBusyR) return;
+    if (genBusyR || !selRoleObj) return;
     setGenBusyR(true);
     setTimeout(() => {
-      setRules(gt.r);
+      setRules(selRoleObj.defaultRules || "");
       setGenBusyR(false);
     }, 900);
   };
@@ -79,31 +125,27 @@ function HireInner() {
     setTaskDraft("");
   };
 
-  const launch = () => {
-    if (launching) return;
-    setLaunching(true);
-    setLaunchStep(0);
-    lvRef.current = setInterval(() => {
-      setLaunchStep((ls) => {
-        if (ls >= 4) {
-          if (lvRef.current) clearInterval(lvRef.current);
-          return ls;
-        }
-        return ls + 1;
-      });
-    }, 950);
-  };
+  // Selected channel TYPE strings (e.g. ["telegram","whatsapp"]).
+  const chanTypes = Object.keys(channels).filter((k) => channels[k]);
+  const chanLabels = chanTypes.map(
+    (t) => CHANNEL_OPTIONS.find((o) => o.type === t)?.label ?? t,
+  );
+  const revName = agentName.trim() || selRoleObj?.name || "Aria";
 
-  const chanList = Object.keys(channels).filter((k) => channels[k]);
-  const revName = agentName.trim() || "Aria";
+  // Engine actually used: explicit pick, or the role's default for auto-match.
+  const resolvedEngine: "openclaw" | "hermes" =
+    engine === "openclaw" || engine === "hermes"
+      ? engine
+      : selRoleObj?.defaultEngine ?? "openclaw";
   const engineName =
     engine === "auto"
       ? "Auto-match (we pick per brief)"
-      : engine === "openclaw"
-        ? "OpenClaw"
-        : "Hermes";
+      : ENGINE_LABEL[engine] ?? "OpenClaw";
 
-  const launchDone = launchStep >= 4;
+  const planTier: "associate" | "professional" | "director" =
+    selRoleObj?.minPlan ?? "professional";
+
+  const launchDone = launchStep >= 4 && !!createdId;
 
   const canNext = hireStep === 1 ? !!selRole : true;
   const nextStep = () => {
@@ -116,62 +158,71 @@ function HireInner() {
       setHireStep(hireStep - 1);
       setLaunching(false);
       setLaunchStep(-1);
+      setLaunchError(null);
+      setCreatedId(null);
+      if (lvRef.current) clearInterval(lvRef.current);
     } else {
       router.push("/");
     }
   };
 
-  const enterDash = () => {
-    const created: Agent = {
-      id: "created",
-      name: revName,
-      role: selRoleObj.name,
-      engine: engine === "hermes" ? "Hermes" : "OpenClaw",
-      hue: selRoleObj.hue,
-      mono: revName[0].toUpperCase(),
-      st: "ONBOARDING",
-      sc: ACCENT,
-      vm: "sgp-07",
-      up: "0d 0h",
-      credits: "0",
-      chansTxt: chanList.map((ch) => ch.split(" ")[0]).join(" · ") || "Web",
-      line: "Just hired · running first task",
-      act: [
-        {
-          t: "JUST NOW",
-          txt: "Started first task: " + (tasks[0] || "reviewing the job brief"),
-          tag: "STARTED",
-          tagC: ACCENT,
-        },
-      ],
-      tasks: tasks.map((txt, i) => ({
-        txt,
-        sym: i === 0 ? "◌" : "·",
-        c: i === 0 ? ACCENT : c.faint,
-        tc: i === 0 ? c.text : c.muted,
-        meta: i === 0 ? "IN PROGRESS" : "QUEUED",
-      })),
-      perfNote: "First self-review will run after one week of activity.",
-      perf: [{ label: "Tasks started", val: "1", delta: "", w: "10%" }],
-      queue: [],
-      chat: [
-        {
-          who: "them",
-          txt:
-            "Hi! I’m " +
-            revName +
-            ", your new " +
-            selRoleObj.name +
-            ". I’ve read the brief and started on the first task. I’ll check in at 18:00 — message me here or on " +
-            (chanList[0] || "the web console") +
-            " anytime.",
-          meta: revName.toUpperCase() + " · JUST NOW",
-        },
-      ],
-    };
-    setCreatedAgent(created);
-    router.push("/dashboard");
+  const launch = () => {
+    if (launching || !selRoleObj) return;
+    setLaunching(true);
+    setLaunchStep(0);
+    setLaunchError(null);
+    setCreatedId(null);
+
+    // Run the provisioning animation in parallel with the real request.
+    lvRef.current = setInterval(() => {
+      setLaunchStep((ls) => {
+        if (ls >= 4) {
+          if (lvRef.current) clearInterval(lvRef.current);
+          return ls;
+        }
+        return ls + 1;
+      });
+    }, 950);
+
+    api
+      .createAgent({
+        name: revName,
+        roleId: selRoleObj.id,
+        engine: resolvedEngine,
+        planTier,
+        instructions,
+        rules,
+        channels: chanTypes,
+        tasks,
+      })
+      .then(({ agent }) => {
+        setCreatedId(agent.id);
+      })
+      .catch((err: unknown) => {
+        if (lvRef.current) clearInterval(lvRef.current);
+        setLaunching(false);
+        setLaunchStep(-1);
+        if (err instanceof ApiError && err.status === 401) {
+          router.push("/auth");
+          return;
+        }
+        setLaunchError(
+          err instanceof ApiError ? err.message : "Launch failed. Please try again.",
+        );
+      });
   };
+
+  const enterDash = () => {
+    if (createdId) router.push(`/dashboard/fleet/${createdId}`);
+  };
+
+  // Auto-advance to the dashboard once both the animation and the API resolve.
+  useEffect(() => {
+    if (launchDone && createdId) {
+      const t = setTimeout(() => router.push(`/dashboard/fleet/${createdId}`), 600);
+      return () => clearTimeout(t);
+    }
+  }, [launchDone, createdId, router]);
 
   // ----- stepper rail -----
   const stepDefs = [
@@ -193,9 +244,9 @@ function HireInner() {
   // ----- launch rows -----
   const launchDefs = [
     "Provisioning dedicated VM — sgp-07 (Singapore)",
-    "Installing " + (engine === "hermes" ? "Hermes" : "OpenClaw") + " runtime",
+    "Installing " + (ENGINE_LABEL[resolvedEngine] ?? "OpenClaw") + " runtime",
     "Loading job brief, rules & first tasks",
-    "Connecting " + (chanList.join(", ") || "web console"),
+    "Connecting " + (chanLabels.join(", ") || "web console"),
     revName + " is live — first task started",
   ];
   const launchRows = launchDefs.map((label, i) => {
@@ -353,60 +404,112 @@ function HireInner() {
               <p style={{ color: c.muted, margin: "0 0 32px" }}>
                 Pick a ready-made role, or describe your own from scratch.
               </p>
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: r.col2,
-                  gap: 12,
-                }}
-              >
-                {rolesData.map((r) => {
-                  const sel = selRole === r.id;
-                  return (
-                    <div
-                      key={r.id}
-                      onClick={() => setSelRole(r.id)}
-                      style={{
-                        border: "1px solid " + (sel ? ACCENT : BORD),
-                        background: sel ? c.limeWash : INKBG,
-                        padding: "18px 20px",
-                        cursor: "pointer",
-                        display: "flex",
-                        gap: 14,
-                        alignItems: "center",
-                      }}
-                    >
+
+              {rolesLoading && (
+                <div
+                  style={{
+                    fontFamily: font.mono,
+                    fontSize: 13,
+                    color: c.muted,
+                    border: `1px solid ${c.border}`,
+                    background: c.panel,
+                    padding: "20px 22px",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 12,
+                  }}
+                >
+                  <span style={{ color: ACCENT, animation: "spin 1s linear infinite", display: "inline-block" }}>
+                    ◌
+                  </span>
+                  Loading roles…
+                </div>
+              )}
+
+              {!rolesLoading && rolesError && (
+                <div
+                  style={{
+                    border: `1px solid ${c.redBorder}`,
+                    background: c.redWash,
+                    padding: "18px 22px",
+                    fontSize: 14,
+                    color: c.text,
+                  }}
+                >
+                  {rolesError}
+                </div>
+              )}
+
+              {!rolesLoading && !rolesError && roles.length === 0 && (
+                <div
+                  style={{
+                    border: `1px solid ${c.border}`,
+                    background: c.panel,
+                    padding: "18px 22px",
+                    fontSize: 14,
+                    color: c.muted,
+                  }}
+                >
+                  No roles are available right now.
+                </div>
+              )}
+
+              {!rolesLoading && !rolesError && roles.length > 0 && (
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: r.col2,
+                    gap: 12,
+                  }}
+                >
+                  {roles.map((role) => {
+                    const sel = selRole === role.id;
+                    return (
                       <div
+                        key={role.id}
+                        onClick={() => setSelRole(role.id)}
                         style={{
-                          width: 34,
-                          height: 34,
-                          flexShrink: 0,
-                          background: r.hue,
-                          color: c.ink,
-                          display: "grid",
-                          placeItems: "center",
-                          fontFamily: font.space,
-                          fontWeight: 700,
+                          border: "1px solid " + (sel ? ACCENT : BORD),
+                          background: sel ? c.limeWash : INKBG,
+                          padding: "18px 20px",
+                          cursor: "pointer",
+                          display: "flex",
+                          gap: 14,
+                          alignItems: "center",
                         }}
                       >
-                        {r.mono}
-                      </div>
-                      <div>
                         <div
                           style={{
+                            width: 34,
+                            height: 34,
+                            flexShrink: 0,
+                            background: role.hue,
+                            color: c.ink,
+                            display: "grid",
+                            placeItems: "center",
                             fontFamily: font.space,
                             fontWeight: 700,
-                            fontSize: 15.5,
                           }}
                         >
-                          {r.name}
+                          {role.mono}
                         </div>
-                        <div style={{ fontSize: 12.5, color: c.muted }}>{r.blurb}</div>
+                        <div>
+                          <div
+                            style={{
+                              fontFamily: font.space,
+                              fontWeight: 700,
+                              fontSize: 15.5,
+                            }}
+                          >
+                            {role.name}
+                          </div>
+                          <div style={{ fontSize: 12.5, color: c.muted }}>{role.blurb}</div>
+                        </div>
                       </div>
-                    </div>
-                  );
-                })}
-              </div>
+                    );
+                  })}
+                </div>
+              )}
             </>
           )}
 
@@ -425,7 +528,7 @@ function HireInner() {
                 Write the job brief
               </h2>
               <p style={{ color: c.muted, margin: "0 0 32px" }}>
-                Hiring: <span style={{ color: c.accent }}>{selRoleObj.name}</span> — plain
+                Hiring: <span style={{ color: c.accent }}>{selRoleObj?.name ?? "—"}</span> — plain
                 language is all it needs.
               </p>
               <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
@@ -885,13 +988,13 @@ function HireInner() {
                 CHANNELS — WHERE YOU'LL TALK TO IT
               </div>
               <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                {Object.keys(channels).map((label) => {
-                  const on = channels[label];
+                {CHANNEL_OPTIONS.map((opt) => {
+                  const on = channels[opt.type];
                   return (
                     <button
-                      key={label}
+                      key={opt.type}
                       onClick={() =>
-                        setChannels((cs) => ({ ...cs, [label]: !cs[label] }))
+                        setChannels((cs) => ({ ...cs, [opt.type]: !cs[opt.type] }))
                       }
                       style={{
                         border: "1px solid " + (on ? ACCENT : BORD),
@@ -903,7 +1006,7 @@ function HireInner() {
                         cursor: "pointer",
                       }}
                     >
-                      {label}
+                      {opt.label}
                     </button>
                   );
                 })}
@@ -940,12 +1043,12 @@ function HireInner() {
                 }}
               >
                 {[
-                  { k: "ROLE", v: selRoleObj.name, last: false },
+                  { k: "ROLE", v: selRoleObj?.name ?? "—", last: false },
                   { k: "NAME", v: revName, last: false },
                   { k: "ENGINE", v: engineName, last: false },
                   {
                     k: "CHANNELS",
-                    v: chanList.length ? chanList.join(" · ") + " · Web" : "Web console",
+                    v: chanLabels.length ? chanLabels.join(" · ") + " · Web" : "Web console",
                     last: false,
                   },
                   {
@@ -955,7 +1058,7 @@ function HireInner() {
                   },
                   {
                     k: "PLAN",
-                    v: "Professional — $149/mo · 25,000 credits incl.",
+                    v: planLabel(planTier),
                     last: true,
                   },
                 ].map((row) => (
@@ -981,6 +1084,21 @@ function HireInner() {
                   </div>
                 ))}
               </div>
+
+              {launchError && (
+                <div
+                  style={{
+                    border: `1px solid ${c.redBorder}`,
+                    background: c.redWash,
+                    padding: "14px 20px",
+                    fontSize: 14,
+                    color: c.text,
+                    marginBottom: 16,
+                  }}
+                >
+                  {launchError}
+                </div>
+              )}
 
               {!launching && (
                 <Btn
@@ -1119,6 +1237,7 @@ function HireInner() {
               </button>
               <button
                 onClick={nextStep}
+                disabled={!canNext}
                 style={{
                   background: canNext ? LIME : c.borderStrong,
                   color: canNext ? c.ink : c.faint,

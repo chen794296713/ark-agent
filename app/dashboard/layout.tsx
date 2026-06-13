@@ -6,6 +6,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { c, font, r } from "@/lib/theme";
 import { Btn } from "@/components/ui";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { useApp } from "@/lib/store";
 
 const navDefs = [
   { id: "overview", label: "Overview", icon: "◫", href: "/dashboard" },
@@ -14,15 +15,22 @@ const navDefs = [
   { id: "billing", label: "Billing & usage", icon: "▤", href: "/dashboard/billing" },
 ];
 
+const fmt = (n: number) => n.toLocaleString("en-US");
+
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
+  const { user, workspace, authReady, logout } = useApp();
   const [drawerOpen, setDrawerOpen] = useState(false);
 
-  // Dismiss the mobile drawer whenever the route changes (tap a nav row → go + close).
   useEffect(() => {
     setDrawerOpen(false);
   }, [pathname]);
+
+  // Auth gate: bounce to /auth once we know there is no session.
+  useEffect(() => {
+    if (authReady && !user) router.replace("/auth");
+  }, [authReady, user, router]);
 
   function isActive(id: string): boolean {
     if (id === "overview") return pathname === "/dashboard";
@@ -31,20 +39,46 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     if (id === "billing") return pathname.startsWith("/dashboard/billing");
     return false;
   }
-
   function go(href: string) {
     router.push(href);
     setDrawerOpen(false);
   }
+  async function doLogout() {
+    await logout();
+    router.replace("/auth");
+  }
+
+  if (!authReady) {
+    return (
+      <div
+        style={{
+          minHeight: "100vh",
+          display: "grid",
+          placeItems: "center",
+          color: c.muted,
+          fontFamily: font.mono,
+          fontSize: 13,
+        }}
+      >
+        Loading…
+      </div>
+    );
+  }
+  if (!user) return null; // redirect effect will navigate away
+
+  const creditsUsed = workspace?.creditsUsed ?? 0;
+  const creditsIncluded = workspace?.creditsIncluded ?? 0;
+  const pct = creditsIncluded > 0 ? Math.min(100, Math.round((creditsUsed / creditsIncluded) * 100)) : 0;
+  const resetDays = workspace?.cycleResetsAt
+    ? Math.max(0, Math.ceil((new Date(workspace.cycleResetsAt).getTime() - Date.now()) / 86400_000))
+    : null;
+  const initial = (user.name || "?").slice(0, 1).toUpperCase();
+  const creditsChip = `${fmt(creditsUsed)} / ${creditsIncluded >= 1000 ? Math.round(creditsIncluded / 1000) + "k" : creditsIncluded}`;
 
   return (
     <div style={{ minHeight: "100vh", display: "grid", gridTemplateColumns: r.dashGrid }}>
-      {/* Scrim behind the drawer (mobile only; .r-scrim is display:none ≥641px). */}
       {drawerOpen && <div className="r-scrim" onClick={() => setDrawerOpen(false)} />}
 
-      {/* Sidebar — sticky rail on desktop, off-canvas drawer on mobile.
-          Width/height/transform live in .r-dash-sidebar (globals.css) so they
-          aren't overridden by inline specificity; only position is a token. */}
       <div
         className={`r-dash-sidebar${drawerOpen ? " open" : ""}`}
         style={{
@@ -84,14 +118,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           >
             A
           </div>
-          <span
-            style={{
-              fontFamily: font.mono,
-              fontSize: 13.5,
-              fontWeight: 500,
-              letterSpacing: ".04em",
-            }}
-          >
+          <span style={{ fontFamily: font.mono, fontSize: 13.5, fontWeight: 500, letterSpacing: ".04em" }}>
             ARK_AGENT
           </span>
         </Link>
@@ -108,7 +135,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           >
             WORKSPACE
           </div>
-          <div style={{ fontSize: 14, color: c.text2 }}>Ark Industries Pte Ltd</div>
+          <div style={{ fontSize: 14, color: c.text2 }}>{workspace?.name ?? "Workspace"}</div>
         </div>
 
         <div style={{ padding: "14px 12px", display: "flex", flexDirection: "column", gap: 2 }}>
@@ -133,13 +160,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                   width: "100%",
                 }}
               >
-                <span
-                  style={{
-                    fontFamily: font.mono,
-                    fontSize: 12,
-                    color: on ? c.accent : c.faint,
-                  }}
-                >
+                <span style={{ fontFamily: font.mono, fontSize: 12, color: on ? c.accent : c.faint }}>
                   {n.icon}
                 </span>
                 {n.label}
@@ -166,13 +187,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           + Hire new agent
         </Btn>
 
-        <div
-          style={{
-            marginTop: "auto",
-            padding: "18px 20px",
-            borderTop: `1px solid ${c.line}`,
-          }}
-        >
+        <div style={{ marginTop: "auto", padding: "18px 20px", borderTop: `1px solid ${c.line}` }}>
           <div
             style={{
               display: "flex",
@@ -184,13 +199,16 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             }}
           >
             <span>CREDITS</span>
-            <span style={{ color: c.text2 }}>18,420 / 30,000</span>
+            <span style={{ color: c.text2 }}>
+              {fmt(creditsUsed)} / {fmt(creditsIncluded)}
+            </span>
           </div>
           <div style={{ height: 4, background: c.line }}>
-            <div style={{ height: 4, width: "61%", background: c.lime }} />
+            <div style={{ height: 4, width: `${pct}%`, background: c.lime }} />
           </div>
           <div style={{ fontSize: 11.5, color: c.faint, marginTop: 8 }}>
-            Resets in 17 days · <span style={{ color: c.muted }}>overage $2 / 1k</span>
+            {resetDays !== null ? `Resets in ${resetDays} days` : "Usage this cycle"} ·{" "}
+            <span style={{ color: c.muted }}>overage $2 / 1k</span>
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 18 }}>
             <div
@@ -204,19 +222,51 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 fontSize: 12,
                 fontFamily: font.space,
                 fontWeight: 700,
+                color: c.text,
               }}
             >
-              W
+              {initial}
             </div>
-            <div style={{ fontSize: 13, color: c.text2 }}>Wei Zhang</div>
-            <ThemeToggle style={{ marginLeft: "auto" }} />
+            <div
+              style={{
+                fontSize: 13,
+                color: c.text2,
+                minWidth: 0,
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                whiteSpace: "nowrap",
+              }}
+            >
+              {user.name}
+            </div>
+            <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 6 }}>
+              <button
+                onClick={doLogout}
+                title="Sign out"
+                aria-label="Sign out"
+                style={{
+                  width: 30,
+                  height: 30,
+                  display: "grid",
+                  placeItems: "center",
+                  background: "transparent",
+                  border: `1px solid ${c.border}`,
+                  color: c.muted,
+                  cursor: "pointer",
+                  fontFamily: font.mono,
+                  fontSize: 13,
+                }}
+              >
+                ⎋
+              </button>
+              <ThemeToggle />
+            </div>
           </div>
         </div>
       </div>
 
       {/* Main */}
       <div style={{ minWidth: 0 }}>
-        {/* Mobile app-bar — shown only ≤640px via --r-mobile-nav */}
         <div
           style={{
             display: r.mobileNav,
@@ -277,15 +327,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               ARK_AGENT
             </span>
           </div>
-          <span
-            style={{
-              marginLeft: "auto",
-              fontFamily: font.mono,
-              fontSize: 11.5,
-              color: c.muted,
-            }}
-          >
-            18,420 / 30k
+          <span style={{ marginLeft: "auto", fontFamily: font.mono, fontSize: 11.5, color: c.muted }}>
+            {creditsChip}
           </span>
           <ThemeToggle />
         </div>

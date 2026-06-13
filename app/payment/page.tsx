@@ -7,9 +7,10 @@
  * Global -> Stripe card form; CN -> Alipay QR (deterministic 25x25).
  */
 import { useRouter } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { c, font, r } from "@/lib/theme";
 import { useApp } from "@/lib/store";
+import { api, ApiError } from "@/lib/client-api";
 import { Btn } from "@/components/ui";
 
 type Region = "global" | "cn";
@@ -34,6 +35,8 @@ export default function PaymentPage() {
 
   const [payState, setPayState] = useState<PayState>("idle");
   const [aliState, setAliState] = useState<AliState>("idle");
+  const [payError, setPayError] = useState<string | null>(null);
+  const [invoiceNo, setInvoiceNo] = useState<string | null>(null);
 
   // stripe card fields
   const [cardEmail, setCardEmail] = useState("");
@@ -43,22 +46,14 @@ export default function PaymentPage() {
   const [cardName, setCardName] = useState("");
   const [cardCountry, setCardCountry] = useState("Singapore");
 
-  const ptRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const atRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  useEffect(
-    () => () => {
-      if (ptRef.current) clearTimeout(ptRef.current);
-      if (atRef.current) clearTimeout(atRef.current);
-    },
-    [],
-  );
-
   const payBackBilling = () => router.push("/dashboard/billing");
 
   const setRegion = (r: Region) => {
     setPayRegion(r);
     setPayState("idle");
     setAliState("idle");
+    setPayError(null);
+    setInvoiceNo(null);
   };
 
   const amt = isCN
@@ -191,17 +186,45 @@ export default function PaymentPage() {
     : "CANCEL ANYTIME · OVERAGE METERED · VAT INVOICE ON REQUEST";
 
   const payBtnLabel = payState === "processing" ? "Processing…" : "Pay " + amt;
+
+  // Shared checkout call. On 401 -> /auth. On other ApiError -> surface message.
+  const runCheckout = async (provider: "stripe" | "alipay"): Promise<boolean> => {
+    setPayError(null);
+    try {
+      const { invoice } = await api.checkout({
+        planId: "professional",
+        cycle: yrPay ? "annual" : "monthly",
+        provider,
+      });
+      setInvoiceNo(invoice.number);
+      return true;
+    } catch (err) {
+      if (err instanceof ApiError && err.status === 401) {
+        router.push("/auth");
+        return false;
+      }
+      setPayError(
+        err instanceof ApiError ? err.message : "Payment failed. Please try again.",
+      );
+      return false;
+    }
+  };
+
   const payNow = () => {
     if (payState !== "idle") return;
     setPayState("processing");
-    ptRef.current = setTimeout(() => setPayState("done"), 1400);
+    void runCheckout(region === "cn" ? "alipay" : "stripe").then((ok) => {
+      setPayState(ok ? "done" : "idle");
+    });
   };
   const payReceiptEmail = cardEmail.trim() || "wei@company.com";
 
   const simAli = () => {
     if (aliState !== "idle") return;
     setAliState("confirm");
-    atRef.current = setTimeout(() => setAliState("done"), 1300);
+    void runCheckout("alipay").then((ok) => {
+      setAliState(ok ? "done" : "idle");
+    });
   };
 
   const inputStyle = (mono: boolean): React.CSSProperties => ({
@@ -612,6 +635,19 @@ export default function PaymentPage() {
                   >
                     {payBtnLabel}
                   </Btn>
+                  {payError && (
+                    <div
+                      style={{
+                        fontFamily: font.mono,
+                        fontSize: "12px",
+                        color: c.red,
+                        letterSpacing: ".02em",
+                        lineHeight: 1.5,
+                      }}
+                    >
+                      {payError}
+                    </div>
+                  )}
                 </div>
                 <div
                   style={{
@@ -673,7 +709,7 @@ export default function PaymentPage() {
                     margin: "14px 0 22px",
                   }}
                 >
-                  REF ch_3PqXk2LkdIwHu7ix · VISA ••4242
+                  {invoiceNo ? `INVOICE ${invoiceNo}` : "REF ch_3PqXk2LkdIwHu7ix"} · VISA ••4242
                 </div>
                 <button
                   onClick={payBackBilling}
@@ -747,6 +783,20 @@ export default function PaymentPage() {
                     >
                       模拟扫码支付（演示）
                     </Btn>
+                    {payError && (
+                      <div
+                        style={{
+                          marginTop: "16px",
+                          fontFamily: font.mono,
+                          fontSize: "12px",
+                          color: c.red,
+                          letterSpacing: ".02em",
+                          lineHeight: 1.5,
+                        }}
+                      >
+                        {payError}
+                      </div>
+                    )}
                   </>
                 )}
                 {aliState === "confirm" && (
@@ -808,7 +858,7 @@ export default function PaymentPage() {
                         margin: "14px 0 22px",
                       }}
                     >
-                      订单号 ARK-20260613-0042 · 电子发票可在账单页申请
+                      {invoiceNo ? `订单号 ${invoiceNo}` : "订单号 ARK-20260613-0042"} · 电子发票可在账单页申请
                     </div>
                     <button
                       onClick={payBackBilling}
