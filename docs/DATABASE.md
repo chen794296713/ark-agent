@@ -396,7 +396,7 @@ Deleting a `users` row cascades to `workspaces` → `agents` → all agent child
 
 ## 6. Seeded data (`npm run db:seed`)
 
-The seed is **idempotent for reference data** (`onConflictDoNothing`) and **rebuilds the demo workspace** each run by deleting the demo user (`wei@company.com`) and letting cascades clear its data.
+The seed is **idempotent for reference data** (`onConflictDoNothing`) and **rebuilds the demo workspace** each run by deleting the demo user (`demo`) and letting cascades clear its data. The `demo` account is the ONLY one seeded with mock data; every registered user starts with an empty, real workspace.
 
 ### Reference: 3 plans
 
@@ -425,8 +425,8 @@ Sourced from `rolesData` in `lib/data.ts`. `default_engine` and `min_plan` are d
 
 ### Demo workspace
 
-- **User**: `Wei Zhang` — login `wei@company.com` / `password123` (scrypt-hashed, email pre-verified), locale `en`.
-- **Workspace**: `Ark Industries Pte Ltd`, owned by Wei (who is also the `owner` member). `credits_included = 30000`, `credits_used = 18420`, cycle resets ~17 days ahead.
+- **User**: `Demo` — login `demo` / `demo123` (scrypt-hashed, email pre-verified), locale `en`. This is the only mock-data account.
+- **Workspace**: `Ark Industries Pte Ltd`, owned by Demo (who is also the `owner` member). `credits_included = 30000`, `credits_used = 18420`, cycle resets ~17 days ahead.
 - **Channels** (7, one per type): `telegram`, `whatsapp`, `wechat`, `web` → `connected`; `slack` → `pending`; `line`, `email` → `disconnected`.
 - **Agents**: one per entry in `agentsData`, each with:
   - role mapped from `roleIdByName` (fallback `admin`), engine lower-cased, plan from `planForAgent` (Nova/Atlas → `professional`, else `associate`), status mapped from prototype labels.

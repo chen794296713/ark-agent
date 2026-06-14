@@ -4,7 +4,7 @@
  * Run with:  npm run db:seed   (idempotent — re-seeding rebuilds the demo data)
  */
 import { randomUUID, scryptSync, randomBytes } from "node:crypto";
-import { eq } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
 import { db } from "./index";
 import * as s from "./schema";
 import {
@@ -17,8 +17,10 @@ import {
 } from "../data";
 import { roleHue } from "../theme";
 
-const DEMO_EMAIL = "wei@company.com";
-const DEMO_PASSWORD = "password123";
+// The ONLY account that carries mock/demo data. Every other (registered) user
+// starts with an empty, real workspace.
+const DEMO_EMAIL = "demo";
+const DEMO_PASSWORD = "demo123";
 
 function hashPassword(pw: string): string {
   const salt = randomBytes(16).toString("hex");
@@ -106,16 +108,19 @@ async function main() {
   await db.insert(s.agentRoles).values(roleRows).onConflictDoNothing();
 
   console.log("→ rebuilding demo workspace…");
-  // Remove any prior demo data. Delete the workspace first (cascades agents,
-  // channels, subscriptions, invoices, usage) so agents.created_by_id no longer
-  // references the user, then delete the user (cascades its sessions).
-  const prior = await db
+  // Remove any prior demo data (current + legacy demo logins). Delete the
+  // workspace first (cascades agents, channels, subscriptions, invoices, usage)
+  // so agents.created_by_id no longer references the user, then delete the user
+  // (cascades its sessions). Cleaning legacy emails avoids orphaned demo data
+  // (e.g. colliding invoice numbers) when the demo login is renamed.
+  const LEGACY_DEMO_EMAILS = ["wei@company.com"];
+  const priorUsers = await db
     .select({ id: s.users.id })
     .from(s.users)
-    .where(eq(s.users.email, DEMO_EMAIL));
-  if (prior[0]) {
-    await db.delete(s.workspaces).where(eq(s.workspaces.ownerId, prior[0].id));
-    await db.delete(s.users).where(eq(s.users.id, prior[0].id));
+    .where(inArray(s.users.email, [DEMO_EMAIL, ...LEGACY_DEMO_EMAILS]));
+  for (const u of priorUsers) {
+    await db.delete(s.workspaces).where(eq(s.workspaces.ownerId, u.id));
+    await db.delete(s.users).where(eq(s.users.id, u.id));
   }
 
   const [user] = await db
@@ -123,7 +128,7 @@ async function main() {
     .values({
       email: DEMO_EMAIL,
       passwordHash: hashPassword(DEMO_PASSWORD),
-      name: "Wei Zhang",
+      name: "Demo",
       locale: "en",
       emailVerifiedAt: new Date(),
     })

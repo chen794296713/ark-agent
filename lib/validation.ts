@@ -17,7 +17,9 @@ export const registerSchema = z.object({
 });
 
 export const loginSchema = z.object({
-  email: z.string().email().max(320),
+  // Accepts an email OR a plain username (e.g. the seeded `demo` account).
+  // Registration still requires a real email, so all new users use real data.
+  email: z.string().min(1).max(320),
   password: z.string().min(1).max(200),
 });
 
