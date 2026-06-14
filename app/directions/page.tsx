@@ -2,9 +2,13 @@
 
 import { useRouter } from "next/navigation";
 import { c, font, r } from "@/lib/theme";
+import { useApp } from "@/lib/store";
+import { directions } from "@/lib/i18n/directions";
 
 export default function DirectionsPage() {
   const router = useRouter();
+  const { lang } = useApp();
+  const t = directions[lang];
 
   return (
     <div
@@ -30,7 +34,7 @@ export default function DirectionsPage() {
             marginBottom: 24,
           }}
         >
-          ← Back to prototype
+          {t.back}
         </button>
         <h2
           style={{
@@ -41,12 +45,10 @@ export default function DirectionsPage() {
             margin: "0 0 6px",
           }}
         >
-          ArkAgent — visual directions
+          {t.pageTitle}
         </h2>
         <p style={{ color: c.dirMuted, margin: "0 0 40px", maxWidth: 640 }}>
-          Three brand directions for the same hero. Direction A is built out as the
-          live prototype; B and C are sketches we can switch to — say the word and
-          I&apos;ll re-skin everything.
+          {t.pageIntro}
         </p>
         <div
           style={{
@@ -73,7 +75,7 @@ export default function DirectionsPage() {
                   letterSpacing: ".08em",
                 }}
               >
-                A — TERMINAL LIME
+                {t.aLabel}
               </span>
               <span
                 style={{
@@ -84,7 +86,7 @@ export default function DirectionsPage() {
                   padding: "3px 8px",
                 }}
               >
-                LIVE / SELECTED
+                {t.aBadge}
               </span>
             </div>
             <div
@@ -112,7 +114,7 @@ export default function DirectionsPage() {
                     marginBottom: 14,
                   }}
                 >
-                  THE AUTONOMOUS WORKFORCE
+                  {t.aEyebrow}
                 </div>
                 <div
                   style={{
@@ -124,9 +126,9 @@ export default function DirectionsPage() {
                     color: c.text,
                   }}
                 >
-                  Hire an AI employee,
+                  {t.aHeadline1}
                   <br />
-                  <span style={{ color: c.lime }}>not another app.</span>
+                  <span style={{ color: c.lime }}>{t.aHeadline2}</span>
                 </div>
                 <div
                   style={{
@@ -136,7 +138,7 @@ export default function DirectionsPage() {
                     maxWidth: 240,
                   }}
                 >
-                  Real agents on dedicated machines, working 24/7 across every channel.
+                  {t.aSub}
                 </div>
                 <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
                   <div
@@ -149,7 +151,7 @@ export default function DirectionsPage() {
                       padding: "8px 12px",
                     }}
                   >
-                    Hire your first agent →
+                    {t.aCtaPrimary}
                   </div>
                   <div
                     style={{
@@ -160,7 +162,7 @@ export default function DirectionsPage() {
                       padding: "8px 12px",
                     }}
                   >
-                    See a live agent
+                    {t.aCtaSecondary}
                   </div>
                 </div>
                 <div
@@ -179,15 +181,15 @@ export default function DirectionsPage() {
                 >
                   <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
                     <span style={{ color: c.faint }}>09:41</span>
-                    <span>Qualified lead → booked intro call</span>
+                    <span>{t.aLog1}</span>
                   </div>
                   <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
                     <span style={{ color: c.faint }}>09:38</span>
-                    <span>Replied to 3 tickets via WhatsApp</span>
+                    <span>{t.aLog2}</span>
                   </div>
                   <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
                     <span style={{ color: c.green }}>●</span>
-                    <span style={{ color: c.green }}>WORKING</span>
+                    <span style={{ color: c.green }}>{t.aStatus}</span>
                   </div>
                 </div>
               </div>
@@ -199,8 +201,7 @@ export default function DirectionsPage() {
                 margin: "12px 4px 0",
               }}
             >
-              Machine-room confidence. Mono data, hairline grid, lime as the single
-              signal color. Differentiates hard from pastel-gradient AI sites.
+              {t.aCaption}
             </p>
           </div>
 
@@ -214,7 +215,7 @@ export default function DirectionsPage() {
                   letterSpacing: ".08em",
                 }}
               >
-                B — IVORY STUDIO
+                {t.bLabel}
               </span>
             </div>
             <div
@@ -242,7 +243,7 @@ export default function DirectionsPage() {
                     marginBottom: 14,
                   }}
                 >
-                  ARKAGENT — THE AUTONOMOUS WORKFORCE
+                  {t.bEyebrow}
                 </div>
                 <div
                   style={{
@@ -254,9 +255,9 @@ export default function DirectionsPage() {
                     color: c.ivoryInk,
                   }}
                 >
-                  Your next hire
+                  {t.bHeadline1}
                   <br />
-                  isn&apos;t human.
+                  {t.bHeadline2}
                 </div>
                 <div
                   style={{
@@ -267,8 +268,7 @@ export default function DirectionsPage() {
                     fontFamily: font.sans,
                   }}
                 >
-                  Brief it like a person. It sells, supports and recruits — around the
-                  clock.
+                  {t.bSub}
                 </div>
                 <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
                   <div
@@ -281,7 +281,7 @@ export default function DirectionsPage() {
                       fontFamily: font.sans,
                     }}
                   >
-                    Meet the agents
+                    {t.bCtaPrimary}
                   </div>
                   <div
                     style={{
@@ -293,7 +293,7 @@ export default function DirectionsPage() {
                       fontFamily: font.sans,
                     }}
                   >
-                    How it works
+                    {t.bCtaSecondary}
                   </div>
                 </div>
                 <div
@@ -333,10 +333,10 @@ export default function DirectionsPage() {
                         color: c.ivoryInk,
                       }}
                     >
-                      Nova · Sales Prospector
+                      {t.bAgentName}
                     </div>
                     <div style={{ fontSize: 9.5, color: "#A89F90" }}>
-                      Booked 3 intro calls this morning
+                      {t.bAgentNote}
                     </div>
                   </div>
                   <div
@@ -347,7 +347,7 @@ export default function DirectionsPage() {
                       fontFamily: font.mono,
                     }}
                   >
-                    ● ON DUTY
+                    {t.bAgentStatus}
                   </div>
                 </div>
               </div>
@@ -359,9 +359,7 @@ export default function DirectionsPage() {
                 margin: "12px 4px 0",
               }}
             >
-              Warm, editorial, human. Serif voice + soft cards makes &quot;AI
-              employee&quot; feel trustworthy for non-technical SMB owners. Friendliest
-              for the China market.
+              {t.bCaption}
             </p>
           </div>
 
@@ -375,7 +373,7 @@ export default function DirectionsPage() {
                   letterSpacing: ".08em",
                 }}
               >
-                C — MIDNIGHT CONSOLE
+                {t.cLabel}
               </span>
             </div>
             <div
@@ -405,7 +403,7 @@ export default function DirectionsPage() {
                     marginBottom: 14,
                   }}
                 >
-                  ARKAGENT OS
+                  {t.cEyebrow}
                 </div>
                 <div
                   style={{
@@ -417,9 +415,9 @@ export default function DirectionsPage() {
                     color: "#EAF0FF",
                   }}
                 >
-                  The workforce,
+                  {t.cHeadline1}
                   <br />
-                  virtualized.
+                  {t.cHeadline2}
                 </div>
                 <div
                   style={{
@@ -429,7 +427,7 @@ export default function DirectionsPage() {
                     maxWidth: 240,
                   }}
                 >
-                  One console. Every agent, every channel, every machine.
+                  {t.cSub}
                 </div>
                 <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
                   <div
@@ -443,7 +441,7 @@ export default function DirectionsPage() {
                       borderRadius: 6,
                     }}
                   >
-                    Deploy an agent
+                    {t.cCtaPrimary}
                   </div>
                   <div
                     style={{
@@ -455,7 +453,7 @@ export default function DirectionsPage() {
                       borderRadius: 6,
                     }}
                   >
-                    View console
+                    {t.cCtaSecondary}
                   </div>
                 </div>
                 <div
@@ -481,7 +479,7 @@ export default function DirectionsPage() {
                         color: "#5A6B96",
                       }}
                     >
-                      ACTIVE AGENTS
+                      {t.cStatActiveLabel}
                     </div>
                     <div
                       style={{
@@ -509,7 +507,7 @@ export default function DirectionsPage() {
                         color: "#5A6B96",
                       }}
                     >
-                      TASKS / WK
+                      {t.cStatTasksLabel}
                     </div>
                     <div
                       style={{
@@ -532,8 +530,7 @@ export default function DirectionsPage() {
                 margin: "12px 4px 0",
               }}
             >
-              Enterprise ops-console energy. Blue glow, rounded surfaces,
-              dashboard-first. Safest, most conventional of the three.
+              {t.cCaption}
             </p>
           </div>
         </div>

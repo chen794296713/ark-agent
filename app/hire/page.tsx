@@ -6,6 +6,8 @@ import { c, font, r } from "@/lib/theme";
 import { api, ApiError, type RoleDTO } from "@/lib/client-api";
 import { ENGINE_LABEL, planLabel } from "@/lib/agent-display";
 import { Btn } from "@/components/ui";
+import { useApp } from "@/lib/store";
+import { hire } from "@/lib/i18n/hire";
 
 const LIME = c.lime;
 const ACCENT = c.accent;
@@ -25,6 +27,8 @@ const CHANNEL_OPTIONS: { label: string; type: string; on: boolean }[] = [
 function HireInner() {
   const router = useRouter();
   const params = useSearchParams();
+  const { lang } = useApp();
+  const t = hire[lang];
 
   const preRole = params.get("role");
 
@@ -38,12 +42,9 @@ function HireInner() {
   const [agentName, setAgentName] = useState("");
   const [instructions, setInstructions] = useState("");
   const [rules, setRules] = useState("");
-  const [remind, setRemind] = useState("Daily summary at 18:00 · Weekly report Friday");
+  const [remind, setRemind] = useState(t.remindDefault);
   const [taskDraft, setTaskDraft] = useState("");
-  const [tasks, setTasks] = useState<string[]>([
-    "Build a list of 50 target accounts",
-    "Send intro sequence to new leads",
-  ]);
+  const [tasks, setTasks] = useState<string[]>(() => [...t.tasksDefault]);
   const [engine, setEngine] = useState("auto");
   const [channels, setChannels] = useState<Record<string, boolean>>(() =>
     Object.fromEntries(CHANNEL_OPTIONS.map((o) => [o.type, o.on])),
@@ -84,7 +85,7 @@ function HireInner() {
           router.push("/auth");
           return;
         }
-        setRolesError(err instanceof ApiError ? err.message : "Couldn't load roles.");
+        setRolesError(err instanceof ApiError ? err.message : t.rolesLoadError);
       })
       .finally(() => {
         if (alive) setRolesLoading(false);
@@ -139,7 +140,7 @@ function HireInner() {
       : selRoleObj?.defaultEngine ?? "openclaw";
   const engineName =
     engine === "auto"
-      ? "Auto-match (we pick per brief)"
+      ? t.engineAuto
       : ENGINE_LABEL[engine] ?? "OpenClaw";
 
   const planTier: "associate" | "professional" | "director" =
@@ -207,7 +208,7 @@ function HireInner() {
           return;
         }
         setLaunchError(
-          err instanceof ApiError ? err.message : "Launch failed. Please try again.",
+          err instanceof ApiError ? err.message : t.launchFailed,
         );
       });
   };
@@ -226,10 +227,10 @@ function HireInner() {
 
   // ----- stepper rail -----
   const stepDefs = [
-    { num: "01", label: "Role", sub: "Pick the job" },
-    { num: "02", label: "Brief", sub: "Instructions & tasks" },
-    { num: "03", label: "Engine & channels", sub: "OpenClaw / Hermes" },
-    { num: "04", label: "Review & launch", sub: "Provision the VM" },
+    { num: "01", label: t.steps.role.label, sub: t.steps.role.sub },
+    { num: "02", label: t.steps.brief.label, sub: t.steps.brief.sub },
+    { num: "03", label: t.steps.engine.label, sub: t.steps.engine.sub },
+    { num: "04", label: t.steps.review.label, sub: t.steps.review.sub },
   ];
 
   // ----- engine cards -----
@@ -243,11 +244,11 @@ function HireInner() {
 
   // ----- launch rows -----
   const launchDefs = [
-    "Provisioning dedicated VM — sgp-07 (Singapore)",
-    "Installing " + (ENGINE_LABEL[resolvedEngine] ?? "OpenClaw") + " runtime",
-    "Loading job brief, rules & first tasks",
-    "Connecting " + (chanLabels.join(", ") || "web console"),
-    revName + " is live — first task started",
+    t.launchProvisioning,
+    t.launchInstalling(ENGINE_LABEL[resolvedEngine] ?? "OpenClaw"),
+    t.launchLoadingBrief,
+    t.launchConnecting(chanLabels.join(", ") || t.webConsole.toLowerCase()),
+    t.launchLive(revName),
   ];
   const launchRows = launchDefs.map((label, i) => {
     const done = launchStep > i;
@@ -288,7 +289,7 @@ function HireInner() {
           }}
           hoverStyle={{ color: c.text }}
         >
-          ← ArkAgent
+          {t.back}
         </Btn>
         <span
           style={{
@@ -298,7 +299,7 @@ function HireInner() {
             color: c.accent,
           }}
         >
-          NEW HIRE
+          {t.newHire}
         </span>
         <span
           style={{
@@ -308,7 +309,7 @@ function HireInner() {
             color: c.faint,
           }}
         >
-          STEP {hireStep} / 4
+          {t.stepCounter(hireStep)}
         </span>
       </div>
 
@@ -378,10 +379,9 @@ function HireInner() {
                 marginBottom: 8,
               }}
             >
-              TIP
+              {t.tipLabel}
             </div>
-            Write the brief like you're onboarding a sharp new hire on their first day. You can
-            always add tasks later.
+            {t.tipBody}
           </div>
         </div>
 
@@ -399,10 +399,10 @@ function HireInner() {
                   margin: "0 0 8px",
                 }}
               >
-                Choose the role
+                {t.s1Title}
               </h2>
               <p style={{ color: c.muted, margin: "0 0 32px" }}>
-                Pick a ready-made role, or describe your own from scratch.
+                {t.s1Sub}
               </p>
 
               {rolesLoading && (
@@ -422,7 +422,7 @@ function HireInner() {
                   <span style={{ color: ACCENT, animation: "spin 1s linear infinite", display: "inline-block" }}>
                     ◌
                   </span>
-                  Loading roles…
+                  {t.loadingRoles}
                 </div>
               )}
 
@@ -450,7 +450,7 @@ function HireInner() {
                     color: c.muted,
                   }}
                 >
-                  No roles are available right now.
+                  {t.noRoles}
                 </div>
               )}
 
@@ -525,11 +525,10 @@ function HireInner() {
                   margin: "0 0 8px",
                 }}
               >
-                Write the job brief
+                {t.s2Title}
               </h2>
               <p style={{ color: c.muted, margin: "0 0 32px" }}>
-                Hiring: <span style={{ color: c.accent }}>{selRoleObj?.name ?? "—"}</span> — plain
-                language is all it needs.
+                {t.s2Hiring(selRoleObj?.name ?? "—")}
               </p>
               <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
                 <div>
@@ -542,12 +541,12 @@ function HireInner() {
                       marginBottom: 8,
                     }}
                   >
-                    AGENT NAME
+                    {t.agentName}
                   </div>
                   <input
                     value={agentName}
                     onChange={(e) => setAgentName(e.target.value)}
-                    placeholder="e.g. Aria"
+                    placeholder={t.agentNamePlaceholder}
                     style={{
                       width: "100%",
                       maxWidth: 280,
@@ -578,7 +577,7 @@ function HireInner() {
                         color: c.muted,
                       }}
                     >
-                      INSTRUCTIONS
+                      {t.instructions}
                     </span>
                     <Btn
                       onClick={genInstr}
@@ -594,13 +593,13 @@ function HireInner() {
                       }}
                       hoverStyle={{ background: c.limeWash }}
                     >
-                      {genBusyI ? "✦ GENERATING…" : "✦ AUTO-GENERATE"}
+                      {genBusyI ? t.generating : t.autoGenerate}
                     </Btn>
                   </div>
                   <textarea
                     value={instructions}
                     onChange={(e) => setInstructions(e.target.value)}
-                    placeholder="Find logistics companies in Southeast Asia with 20–200 employees. Reach out on LinkedIn and email, qualify budget and timeline, then book intro calls on my calendar."
+                    placeholder={t.instructionsPlaceholder}
                     style={{
                       width: "100%",
                       minHeight: 110,
@@ -632,7 +631,7 @@ function HireInner() {
                         color: c.muted,
                       }}
                     >
-                      RULES &amp; BOUNDARIES
+                      {t.rules}
                     </span>
                     <Btn
                       onClick={genRules}
@@ -648,13 +647,13 @@ function HireInner() {
                       }}
                       hoverStyle={{ background: c.limeWash }}
                     >
-                      {genBusyR ? "✦ GENERATING…" : "✦ AUTO-GENERATE"}
+                      {genBusyR ? t.generating : t.autoGenerate}
                     </Btn>
                   </div>
                   <textarea
                     value={rules}
                     onChange={(e) => setRules(e.target.value)}
-                    placeholder="Never discount more than 10%. Escalate refund requests to me. Don't contact existing customers."
+                    placeholder={t.rulesPlaceholder}
                     style={{
                       width: "100%",
                       minHeight: 80,
@@ -679,7 +678,7 @@ function HireInner() {
                       marginBottom: 8,
                     }}
                   >
-                    FIRST TASKS
+                    {t.firstTasks}
                   </div>
                   <div
                     style={{
@@ -737,7 +736,7 @@ function HireInner() {
                       onKeyDown={(e) => {
                         if (e.key === "Enter") addTask();
                       }}
-                      placeholder="Add a task and press Enter…"
+                      placeholder={t.addTaskPlaceholder}
                       style={{
                         flex: 1,
                         background: c.panel,
@@ -761,7 +760,7 @@ function HireInner() {
                         cursor: "pointer",
                       }}
                     >
-                      + Add
+                      {t.addTask}
                     </button>
                   </div>
                 </div>
@@ -775,7 +774,7 @@ function HireInner() {
                       marginBottom: 8,
                     }}
                   >
-                    REMINDERS &amp; SCHEDULE
+                    {t.reminders}
                   </div>
                   <input
                     value={remind}
@@ -808,11 +807,10 @@ function HireInner() {
                   margin: "0 0 8px",
                 }}
               >
-                Engine &amp; channels
+                {t.s3Title}
               </h2>
               <p style={{ color: c.muted, margin: "0 0 32px" }}>
-                Pick the runtime — or let us match it to the brief. Add the channels you'll
-                manage it from.
+                {t.s3Sub}
               </p>
               <div
                 style={{
@@ -847,7 +845,7 @@ function HireInner() {
                         color: c.accent,
                       }}
                     >
-                      RECOMMENDED
+                      {t.recommended}
                     </span>
                     <span
                       style={{
@@ -867,10 +865,10 @@ function HireInner() {
                       marginBottom: 6,
                     }}
                   >
-                    Auto-match
+                    {t.autoMatch}
                   </div>
                   <div style={{ fontSize: 13, color: c.muted }}>
-                    We read the brief and pick. Switch anytime.
+                    {t.autoMatchBlurb}
                   </div>
                 </div>
                 <div
@@ -898,7 +896,7 @@ function HireInner() {
                         color: "#E8804F",
                       }}
                     >
-                      COMMUNITY
+                      {t.community}
                     </span>
                     <span
                       style={{
@@ -921,7 +919,7 @@ function HireInner() {
                     OpenClaw
                   </div>
                   <div style={{ fontSize: 13, color: c.muted }}>
-                    100+ skills, every chat channel, huge ecosystem.
+                    {t.openclawBlurb}
                   </div>
                 </div>
                 <div
@@ -949,7 +947,7 @@ function HireInner() {
                         color: c.blue,
                       }}
                     >
-                      PRECISION
+                      {t.precision}
                     </span>
                     <span
                       style={{
@@ -972,7 +970,7 @@ function HireInner() {
                     Hermes
                   </div>
                   <div style={{ fontSize: 13, color: c.muted }}>
-                    Deep reasoning, guardrails, full audit trail.
+                    {t.hermesBlurb}
                   </div>
                 </div>
               </div>
@@ -985,7 +983,7 @@ function HireInner() {
                   marginBottom: 12,
                 }}
               >
-                CHANNELS — WHERE YOU'LL TALK TO IT
+                {t.channelsLabel}
               </div>
               <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                 {CHANNEL_OPTIONS.map((opt) => {
@@ -1012,8 +1010,7 @@ function HireInner() {
                 })}
               </div>
               <div style={{ fontSize: 13, color: c.faint, marginTop: 14 }}>
-                Web console is always included. Tokens &amp; accounts are configured in Dashboard
-                → Channels after launch.
+                {t.channelsNote}
               </div>
             </>
           )}
@@ -1030,10 +1027,10 @@ function HireInner() {
                   margin: "0 0 8px",
                 }}
               >
-                Review &amp; launch
+                {t.s4Title}
               </h2>
               <p style={{ color: c.muted, margin: "0 0 32px" }}>
-                A dedicated machine will be provisioned for this agent.
+                {t.s4Sub}
               </p>
               <div
                 style={{
@@ -1043,21 +1040,23 @@ function HireInner() {
                 }}
               >
                 {[
-                  { k: "ROLE", v: selRoleObj?.name ?? "—", last: false },
-                  { k: "NAME", v: revName, last: false },
-                  { k: "ENGINE", v: engineName, last: false },
+                  { k: t.rowRole, v: selRoleObj?.name ?? "—", last: false },
+                  { k: t.rowName, v: revName, last: false },
+                  { k: t.rowEngine, v: engineName, last: false },
                   {
-                    k: "CHANNELS",
-                    v: chanLabels.length ? chanLabels.join(" · ") + " · Web" : "Web console",
+                    k: t.rowChannels,
+                    v: chanLabels.length
+                      ? chanLabels.join(" · ") + " · " + t.webSuffix
+                      : t.webConsole,
                     last: false,
                   },
                   {
-                    k: "FIRST TASKS",
-                    v: tasks.length + " queued · reminders: " + remind.toLowerCase(),
+                    k: t.rowFirstTasks,
+                    v: t.tasksQueued(tasks.length, remind.toLowerCase()),
                     last: false,
                   },
                   {
-                    k: "PLAN",
+                    k: t.rowPlan,
                     v: planLabel(planTier),
                     last: true,
                   },
@@ -1116,7 +1115,7 @@ function HireInner() {
                   }}
                   hoverStyle={{ background: c.limeHover }}
                 >
-                  ⏻ Launch {revName}
+                  {t.launchBtn(revName)}
                 </Btn>
               )}
 
@@ -1181,10 +1180,10 @@ function HireInner() {
                         color: c.green,
                       }}
                     >
-                      {revName} is live.
+                      {t.agentLive(revName)}
                     </div>
                     <div style={{ fontSize: 13.5, color: c.muted, marginTop: 3 }}>
-                      First task started. You'll get a summary at 18:00.
+                      {t.agentLiveSub}
                     </div>
                   </div>
                   <button
@@ -1201,7 +1200,7 @@ function HireInner() {
                       whiteSpace: "nowrap",
                     }}
                   >
-                    Open dashboard →
+                    {t.openDashboard}
                   </button>
                 </div>
               )}
@@ -1233,7 +1232,7 @@ function HireInner() {
                   padding: 0,
                 }}
               >
-                ← Back
+                {t.navBack}
               </button>
               <button
                 onClick={nextStep}
@@ -1249,7 +1248,7 @@ function HireInner() {
                   cursor: canNext ? "pointer" : "not-allowed",
                 }}
               >
-                {hireStep === 3 ? "Review →" : "Continue →"}
+                {hireStep === 3 ? t.reviewNext : t.continueNext}
               </button>
             </div>
           )}

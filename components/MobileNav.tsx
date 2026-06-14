@@ -10,9 +10,10 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { c, font, gridBg } from "@/lib/theme";
-import { dict } from "@/lib/i18n";
+import { common } from "@/lib/i18n/common";
 import { useApp } from "@/lib/store";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 
 const links = [
   { href: "#roles", key: "navAgents" },
@@ -23,8 +24,8 @@ const links = [
 
 export function MobileNav({ open, onClose }: { open: boolean; onClose: () => void }) {
   const router = useRouter();
-  const { lang, setLang } = useApp();
-  const t = dict[lang];
+  const { lang } = useApp();
+  const t = common[lang];
 
   // Lock body scroll while the drawer is open; always restore on close/unmount.
   useEffect(() => {
@@ -37,9 +38,6 @@ export function MobileNav({ open, onClose }: { open: boolean; onClose: () => voi
   }, [open]);
 
   if (!open) return null;
-
-  const langBg = (l: typeof lang) => (lang === l ? c.lime : "transparent");
-  const langC = (l: typeof lang) => (lang === l ? c.ink : c.muted);
 
   return (
     <div
@@ -135,31 +133,7 @@ export function MobileNav({ open, onClose }: { open: boolean; onClose: () => voi
 
       {/* Footer cluster: language + auth */}
       <div style={{ marginTop: "auto", display: "flex", flexDirection: "column", gap: 16 }}>
-        <div
-          style={{
-            display: "flex",
-            border: `1px solid ${c.border}`,
-            fontFamily: font.mono,
-            fontSize: 13,
-            alignSelf: "flex-start",
-          }}
-        >
-          {(["en", "zh", "zht"] as const).map((l) => (
-            <button
-              key={l}
-              onClick={() => setLang(l)}
-              style={{
-                border: "none",
-                cursor: "pointer",
-                padding: "10px 16px",
-                background: langBg(l),
-                color: langC(l),
-              }}
-            >
-              {l === "en" ? "EN" : l === "zh" ? "简" : "繁"}
-            </button>
-          ))}
-        </div>
+        <LanguageSwitcher compact={false} style={{ alignSelf: "stretch" }} />
 
         <ThemeToggle compact={false} style={{ alignSelf: "stretch" }} />
 

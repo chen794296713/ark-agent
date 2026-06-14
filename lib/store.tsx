@@ -18,7 +18,7 @@ import {
   useState,
 } from "react";
 import { agentsData } from "@/lib/data";
-import { detectLang } from "@/lib/i18n";
+import { detectLang, isLang, LANG_STORAGE_KEY } from "@/lib/i18n";
 import { api, type SessionUser, type WorkspaceDTO } from "@/lib/client-api";
 import type { Agent, Lang } from "@/lib/types";
 
@@ -63,11 +63,27 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [createdAgent, setCreatedAgent] = useState<Agent | null>(null);
   const [paused, setPaused] = useState<Record<string, boolean>>({});
 
-  // Default language from the browser locale (overridden by the user profile
-  // once auth loads).
+  // Pick the startup language: a previously persisted choice wins, otherwise
+  // fall back to the browser locale. (The user profile overrides this once auth
+  // loads for signed-in users.)
   useEffect(() => {
-    setLangState(detectLang(typeof navigator !== "undefined" ? navigator.language : "en"));
+    let stored: string | null = null;
+    try {
+      stored = localStorage.getItem(LANG_STORAGE_KEY);
+    } catch {
+      /* private mode / storage disabled */
+    }
+    if (stored && isLang(stored)) {
+      setLangState(stored);
+    } else {
+      setLangState(detectLang(typeof navigator !== "undefined" ? navigator.language : "en"));
+    }
   }, []);
+
+  // Keep the document language in sync for accessibility & the :lang() CSS hook.
+  useEffect(() => {
+    document.documentElement.lang = lang;
+  }, [lang]);
 
   const refreshAuth = useCallback(async () => {
     try {
@@ -118,7 +134,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const setLang = useCallback(
     (l: Lang) => {
       setLangState(l);
-      // Persist to the profile when signed in (best-effort).
+      // Persist the choice locally so it survives reloads even when signed out…
+      try {
+        localStorage.setItem(LANG_STORAGE_KEY, l);
+      } catch {
+        /* private mode / storage disabled */
+      }
+      // …and to the profile when signed in (best-effort).
       void api.setPrefs({ locale: l }).catch(() => {});
     },
     [],

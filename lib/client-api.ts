@@ -39,7 +39,7 @@ export interface SessionUser {
   id: string;
   email: string;
   name: string;
-  locale: "en" | "zh" | "zht";
+  locale: "en" | "zh" | "zht" | "ja";
 }
 export interface WorkspaceDTO {
   id: string;
@@ -57,7 +57,7 @@ export const api = {
     req<{ user: SessionUser; workspace: WorkspaceDTO | null }>("POST", "/api/auth/login", body),
   logout: () => req<{ ok: true }>("POST", "/api/auth/logout"),
   me: () => req<{ user: SessionUser; workspace: WorkspaceDTO }>("GET", "/api/auth/me"),
-  setPrefs: (body: { locale?: "en" | "zh" | "zht"; name?: string }) =>
+  setPrefs: (body: { locale?: "en" | "zh" | "zht" | "ja"; name?: string }) =>
     req<{ user: SessionUser }>("PATCH", "/api/me/preferences", body),
 
   // ---- reference ----

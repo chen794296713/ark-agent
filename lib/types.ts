@@ -1,6 +1,6 @@
 /** Shared domain types for the ArkAgent prototype. */
 
-export type Lang = "en" | "zh" | "zht";
+export type Lang = "en" | "zh" | "zht" | "ja";
 
 export type Screen =
   | "landing"

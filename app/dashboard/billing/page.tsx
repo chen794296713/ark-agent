@@ -17,13 +17,11 @@ import { getBillDatasets } from "@/lib/data";
 import { api, ApiError, type BillingDTO } from "@/lib/client-api";
 import { c, font, r } from "@/lib/theme";
 import { Btn } from "@/components/ui";
+import { useApp } from "@/lib/store";
+import { billing as billingI18n, type BillingDict } from "@/lib/i18n/billing";
 
-const billTabDefs: Array<[string, string]> = [
-  ["cycle", "THIS CYCLE"],
-  ["last", "LAST CYCLE"],
-  ["d90", "LAST 90 DAYS"],
-  ["custom", "CUSTOM"],
-];
+const billTabIds = ["cycle", "last", "d90", "custom"] as const;
+type BillTabId = (typeof billTabIds)[number];
 
 /** Avatar fallback hue when a seat has no role colour. */
 const SEAT_FALLBACK_HUE = c.muted;
@@ -46,6 +44,8 @@ const fmtInvoiceDate = (iso: string) =>
 
 export default function BillingPage() {
   const router = useRouter();
+  const { lang } = useApp();
+  const t: BillingDict = billingI18n[lang];
   const [billRange, setBillRange] = useState<string>("cycle");
   const [billFrom, setBillFrom] = useState("2026-06-01");
   const [billTo, setBillTo] = useState("2026-06-13");
@@ -65,7 +65,7 @@ export default function BillingPage() {
       })
       .catch((e) => {
         if (!cancelled) {
-          setError(e instanceof ApiError ? e.message : "Couldn’t load billing.");
+          setError(e instanceof ApiError ? e.message : t.loadError);
         }
       })
       .finally(() => {
@@ -109,11 +109,11 @@ export default function BillingPage() {
             margin: 0,
           }}
         >
-          Billing &amp; usage
+          {t.heading}
         </h2>
         <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
           <span style={{ fontFamily: font.mono, fontSize: 12, color: c.faint }}>
-            VISA ••4242 · OVERAGE $2 / 1K CREDITS
+            {t.paymentMeta("VISA ••4242 · OVERAGE $2 / 1K CREDITS")}
           </span>
           <Btn
             onClick={() => router.push("/payment")}
@@ -129,7 +129,7 @@ export default function BillingPage() {
               cursor: "pointer",
             }}
           >
-            UPDATE PAYMENT →
+            {t.updatePayment}
           </Btn>
         </div>
       </div>
@@ -153,7 +153,7 @@ export default function BillingPage() {
             width: "fit-content",
           }}
         >
-          {billTabDefs.map(([id, label]) => {
+          {billTabIds.map((id: BillTabId) => {
             const on = billRange === id;
             return (
               <button
@@ -170,7 +170,7 @@ export default function BillingPage() {
                   cursor: "pointer",
                 }}
               >
-                {label}
+                {t.tabs[id]}
               </button>
             );
           })}
@@ -239,7 +239,7 @@ export default function BillingPage() {
             textAlign: "center",
           }}
         >
-          LOADING BILLING…
+          {t.loading}
         </div>
       ) : (
         <>
@@ -276,7 +276,7 @@ export default function BillingPage() {
                 <span style={{ fontFamily: font.space, fontWeight: 700, fontSize: 22 }}>
                   {fmtCredits(creditsUsed)}{" "}
                   <span style={{ fontSize: 13, color: c.faint, fontWeight: 400 }}>
-                    / {fmtCredits(creditsIncluded)} included
+                    {t.included(fmtCredits(creditsIncluded))}
                   </span>
                 </span>
               </div>
@@ -346,7 +346,7 @@ export default function BillingPage() {
                   <span style={{ fontFamily: font.mono }}>{bd.over}</span>
                 </div>
                 <div style={{ display: "flex", justifyContent: "space-between" }}>
-                  <span style={{ color: c.muted }}>Annual discount</span>
+                  <span style={{ color: c.muted }}>{t.annualDiscount}</span>
                   <span style={{ fontFamily: font.mono, color: c.green }}>{bd.disc}</span>
                 </div>
               </div>
@@ -359,7 +359,7 @@ export default function BillingPage() {
                   marginTop: 14,
                 }}
               >
-                <span style={{ fontFamily: font.space, fontWeight: 700 }}>Total</span>
+                <span style={{ fontFamily: font.space, fontWeight: 700 }}>{t.total}</span>
                 <span style={{ fontFamily: font.space, fontWeight: 700, fontSize: 20 }}>
                   {bd.total}
                 </span>
@@ -386,7 +386,7 @@ export default function BillingPage() {
                   marginBottom: 12,
                 }}
               >
-                PER-AGENT USAGE
+                {t.perAgentUsage}
               </div>
               <div className="ark-scroll" style={{ overflowX: "auto" }}>
               <div style={{ minWidth: 440 }}>
@@ -401,7 +401,7 @@ export default function BillingPage() {
                       textAlign: "center",
                     }}
                   >
-                    NO AGENT SEATS YET
+                    {t.noSeats}
                   </div>
                 ) : (
                   billing!.seats.map((seat) => {
@@ -459,7 +459,7 @@ export default function BillingPage() {
                             textAlign: "right",
                           }}
                         >
-                          {fmtCredits(seat.creditsUsed)} cr
+                          {t.credits(fmtCredits(seat.creditsUsed))}
                         </span>
                         <span
                           style={{
@@ -491,7 +491,7 @@ export default function BillingPage() {
                   marginBottom: 12,
                 }}
               >
-                INVOICES
+                {t.invoices}
               </div>
               <div className="ark-scroll" style={{ overflowX: "auto" }}>
               <div style={{ minWidth: 360 }}>
@@ -506,7 +506,7 @@ export default function BillingPage() {
                       textAlign: "center",
                     }}
                   >
-                    NO INVOICES YET
+                    {t.noInvoices}
                   </div>
                 ) : (
                   billing!.invoices.map((v) => (
@@ -533,7 +533,11 @@ export default function BillingPage() {
                           color: v.status === "paid" ? c.green : c.amber,
                         }}
                       >
-                        {v.status.toUpperCase()}
+                        {v.status === "paid"
+                          ? t.status.paid
+                          : v.status === "due"
+                            ? t.status.due
+                            : t.statusFallback(v.status)}
                       </span>
                       <span
                         style={{
@@ -543,7 +547,7 @@ export default function BillingPage() {
                           cursor: "pointer",
                         }}
                       >
-                        PDF ↓
+                        {t.pdf}
                       </span>
                     </div>
                   ))

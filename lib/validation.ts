@@ -36,7 +36,7 @@ export const createAgentSchema = z.object({
 
 export const agentSettingsSchema = z.object({
   tone: z.enum(["professional", "friendly", "concise", "formal", "playful"]).optional(),
-  responseLanguage: z.enum(["auto", "en", "zh", "zht"]).optional(),
+  responseLanguage: z.enum(["auto", "en", "zh", "zht", "ja"]).optional(),
   timezone: z.string().max(64).optional(),
   autonomy: z.enum(["suggest", "ask", "auto"]).optional(),
   approvalAmount: z.number().min(0).max(1_000_000).optional(),
@@ -112,6 +112,6 @@ export const checkoutSchema = z.object({
 });
 
 export const prefsSchema = z.object({
-  locale: z.enum(["en", "zh", "zht"]).optional(),
+  locale: z.enum(["en", "zh", "zht", "ja"]).optional(),
   name: z.string().min(1).max(120).optional(),
 });

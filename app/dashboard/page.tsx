@@ -7,11 +7,13 @@ import { c, font, r } from "@/lib/theme";
 import { useApp } from "@/lib/store";
 import { api, ApiError, type DashboardDTO } from "@/lib/client-api";
 import { statusDisplay, clock } from "@/lib/agent-display";
+import { dashboard } from "@/lib/i18n/dashboard";
 import { HoverDiv } from "@/components/ui";
 
 export default function OverviewPage() {
   const router = useRouter();
-  const { user } = useApp();
+  const { user, lang } = useApp();
+  const t = dashboard[lang];
 
   const [data, setData] = useState<DashboardDTO | null>(null);
   const [loading, setLoading] = useState(true);
@@ -24,7 +26,7 @@ export default function OverviewPage() {
         const d = await api.dashboard();
         if (alive) setData(d);
       } catch (e) {
-        if (alive) setError(e instanceof ApiError ? e.message : "Failed to load dashboard");
+        if (alive) setError(e instanceof ApiError ? e.message : t.loadError);
       } finally {
         if (alive) setLoading(false);
       }
@@ -58,10 +60,10 @@ export default function OverviewPage() {
             margin: 0,
           }}
         >
-          Good morning, {firstName}
+          {t.greeting(firstName)}
         </h2>
         <span style={{ fontFamily: font.mono, fontSize: 12, color: c.faint }}>
-          {todayLabel} · ALL SYSTEMS NOMINAL
+          {todayLabel} · {t.systemsNominal}
         </span>
       </div>
 
@@ -77,7 +79,7 @@ export default function OverviewPage() {
       >
         <div style={{ background: c.panel, padding: 20 }}>
           <div style={{ fontFamily: font.mono, fontSize: 11, color: c.faint, marginBottom: 8 }}>
-            ACTIVE AGENTS
+            {t.statActiveAgents}
           </div>
           <div style={{ fontFamily: font.space, fontWeight: 700, fontSize: 30 }}>
             {data ? data.stats.activeAgents : "—"}
@@ -85,7 +87,7 @@ export default function OverviewPage() {
         </div>
         <div style={{ background: c.panel, padding: 20 }}>
           <div style={{ fontFamily: font.mono, fontSize: 11, color: c.faint, marginBottom: 8 }}>
-            TASKS THIS WEEK
+            {t.statTasksThisWeek}
           </div>
           <div style={{ fontFamily: font.space, fontWeight: 700, fontSize: 30 }}>
             {data ? data.stats.tasksThisWeek : "—"}
@@ -93,7 +95,7 @@ export default function OverviewPage() {
         </div>
         <div style={{ background: c.panel, padding: 20 }}>
           <div style={{ fontFamily: font.mono, fontSize: 11, color: c.faint, marginBottom: 8 }}>
-            CREDITS USED
+            {t.statCreditsUsed}
           </div>
           <div style={{ fontFamily: font.space, fontWeight: 700, fontSize: 30 }}>
             {data ? data.stats.creditsUsed.toLocaleString() : "—"}
@@ -101,7 +103,7 @@ export default function OverviewPage() {
         </div>
         <div style={{ background: c.panel, padding: 20 }}>
           <div style={{ fontFamily: font.mono, fontSize: 11, color: c.faint, marginBottom: 8 }}>
-            NEEDS YOUR REVIEW
+            {t.statNeedsReview}
           </div>
           <div style={{ fontFamily: font.space, fontWeight: 700, fontSize: 30, color: c.amber }}>
             {data ? data.stats.needsReview : "—"}
@@ -142,7 +144,7 @@ export default function OverviewPage() {
               marginBottom: 14,
             }}
           >
-            YOUR ROSTER
+            {t.rosterHeading}
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
             {loading && (
@@ -156,7 +158,7 @@ export default function OverviewPage() {
                   color: c.faint,
                 }}
               >
-                Loading roster…
+                {t.loadingRoster}
               </div>
             )}
 
@@ -170,7 +172,7 @@ export default function OverviewPage() {
                 }}
               >
                 <div style={{ fontSize: 13.5, color: c.muted, marginBottom: 14 }}>
-                  No agents yet.
+                  {t.noAgents}
                 </div>
                 <Link
                   href="/hire"
@@ -185,7 +187,7 @@ export default function OverviewPage() {
                     textDecoration: "none",
                   }}
                 >
-                  Hire your first agent
+                  {t.hireFirstAgent}
                 </Link>
               </div>
             )}
@@ -271,7 +273,7 @@ export default function OverviewPage() {
               marginBottom: 14,
             }}
           >
-            LIVE ACTIVITY
+            {t.activityHeading}
           </div>
           <div style={{ border: `1px solid ${c.border}`, background: c.panel, padding: "6px 0" }}>
             {loading && (
@@ -283,7 +285,7 @@ export default function OverviewPage() {
                   color: c.faint,
                 }}
               >
-                Loading activity…
+                {t.loadingActivity}
               </div>
             )}
 
@@ -295,7 +297,7 @@ export default function OverviewPage() {
                   color: c.muted,
                 }}
               >
-                No activity yet.
+                {t.noActivity}
               </div>
             )}
 

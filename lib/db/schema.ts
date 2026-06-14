@@ -33,7 +33,7 @@ import type { StoredAgentSettings } from "../agent-settings";
 // ---------------------------------------------------------------------------
 // Enums
 // ---------------------------------------------------------------------------
-export const localeEnum = pgEnum("locale", ["en", "zh", "zht"]);
+export const localeEnum = pgEnum("locale", ["en", "zh", "zht", "ja"]);
 export const memberRoleEnum = pgEnum("member_role", ["owner", "admin", "member"]);
 export const engineEnum = pgEnum("engine", ["openclaw", "hermes"]);
 export const agentStatusEnum = pgEnum("agent_status", [

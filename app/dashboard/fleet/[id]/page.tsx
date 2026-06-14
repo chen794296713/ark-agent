@@ -30,18 +30,16 @@ import {
   WEEKDAYS,
   type AgentSettings,
 } from "@/lib/agent-settings";
+import { useApp } from "@/lib/store";
+import { fleetDetail } from "@/lib/i18n/fleet-detail";
 
-const TABS = [
-  { id: "activity", label: "Activity" },
-  { id: "tasks", label: "Tasks" },
-  { id: "chat", label: "Chat" },
-  { id: "performance", label: "Performance" },
-  { id: "settings", label: "Settings" },
-];
+const TAB_IDS = ["activity", "tasks", "chat", "performance", "settings"] as const;
 
 const CHANNEL_OPTIONS = ["telegram", "whatsapp", "wechat", "line", "slack", "email", "web"];
 
 function ActivityTab({ cur }: { cur: AgentDetailDTO }) {
+  const { lang } = useApp();
+  const t = fleetDetail[lang];
   if (cur.activities.length === 0) {
     return (
       <div
@@ -54,7 +52,7 @@ function ActivityTab({ cur }: { cur: AgentDetailDTO }) {
           color: c.faint,
         }}
       >
-        No activity yet — this agent hasn’t logged anything.
+        {t.activityEmpty}
       </div>
     );
   }
@@ -100,6 +98,8 @@ function ActivityTab({ cur }: { cur: AgentDetailDTO }) {
 }
 
 function TasksTab({ cur }: { cur: AgentDetailDTO }) {
+  const { lang } = useApp();
+  const t = fleetDetail[lang];
   if (cur.tasks.length === 0) {
     return (
       <div
@@ -112,7 +112,7 @@ function TasksTab({ cur }: { cur: AgentDetailDTO }) {
           color: c.faint,
         }}
       >
-        No tasks queued for this agent.
+        {t.tasksEmpty}
       </div>
     );
   }
@@ -145,6 +145,8 @@ function TasksTab({ cur }: { cur: AgentDetailDTO }) {
 }
 
 function ChatTab({ cur }: { cur: AgentDetailDTO }) {
+  const { lang } = useApp();
+  const t = fleetDetail[lang];
   const [messages, setMessages] = useState<MessageDTO[]>([]);
   const [draft, setDraft] = useState("");
   const [loading, setLoading] = useState(true);
@@ -159,7 +161,7 @@ function ChatTab({ cur }: { cur: AgentDetailDTO }) {
         const res = await api.messages(cur.id);
         if (alive) setMessages(res.messages);
       } catch (e) {
-        if (alive) setError(e instanceof ApiError ? e.message : "Couldn’t load chat history.");
+        if (alive) setError(e instanceof ApiError ? e.message : t.chatLoadError);
       } finally {
         if (alive) setLoading(false);
       }
@@ -188,7 +190,7 @@ function ChatTab({ cur }: { cur: AgentDetailDTO }) {
       });
     } catch (e) {
       setDraft(body);
-      setError(e instanceof ApiError ? e.message : "Message failed to send.");
+      setError(e instanceof ApiError ? e.message : t.chatSendError);
     } finally {
       setSending(false);
     }
@@ -213,7 +215,7 @@ function ChatTab({ cur }: { cur: AgentDetailDTO }) {
           color: c.faint,
         }}
       >
-        WEB CONSOLE{channelsText(cur.channels) ? ` · ALSO ON ${channelsText(cur.channels)}` : ""}
+        {t.chatWebConsole}{channelsText(cur.channels) ? t.chatAlsoOn(channelsText(cur.channels)) : ""}
       </div>
       <div
         ref={scrollRef}
@@ -227,10 +229,10 @@ function ChatTab({ cur }: { cur: AgentDetailDTO }) {
         }}
       >
         {loading ? (
-          <div style={{ margin: "auto", fontSize: 13.5, color: c.faint }}>Loading conversation…</div>
+          <div style={{ margin: "auto", fontSize: 13.5, color: c.faint }}>{t.chatLoading}</div>
         ) : messages.length === 0 ? (
           <div style={{ margin: "auto", fontSize: 13.5, color: c.faint }}>
-            No messages yet. Say hello to {cur.name}.
+            {t.chatEmpty(cur.name)}
           </div>
         ) : (
           messages.map((m) => {
@@ -265,7 +267,7 @@ function ChatTab({ cur }: { cur: AgentDetailDTO }) {
                   }}
                 >
                   {m.meta ??
-                    `${(me ? "YOU" : cur.name.toUpperCase())} · ${clock(m.createdAt)}`}
+                    `${(me ? t.chatYou : cur.name.toUpperCase())} · ${clock(m.createdAt)}`}
                 </div>
               </div>
             );
@@ -299,7 +301,7 @@ function ChatTab({ cur }: { cur: AgentDetailDTO }) {
           onKeyDown={(e) => {
             if (e.key === "Enter") send();
           }}
-          placeholder={`Message ${cur.name}…`}
+          placeholder={t.chatPlaceholder(cur.name)}
           style={{
             flex: 1,
             background: c.bg,
@@ -326,7 +328,7 @@ function ChatTab({ cur }: { cur: AgentDetailDTO }) {
             opacity: sending ? 0.6 : 1,
           }}
         >
-          {sending ? "Sending…" : "Send"}
+          {sending ? t.chatSending : t.chatSend}
         </button>
       </div>
     </div>
@@ -334,6 +336,8 @@ function ChatTab({ cur }: { cur: AgentDetailDTO }) {
 }
 
 function PerformanceTab({ cur, onRefresh }: { cur: AgentDetailDTO; onRefresh: () => Promise<void> }) {
+  const { lang } = useApp();
+  const t = fleetDetail[lang];
   const [busy, setBusy] = useState<Record<string, boolean>>({});
   const [error, setError] = useState<string | null>(null);
 
@@ -347,7 +351,7 @@ function PerformanceTab({ cur, onRefresh }: { cur: AgentDetailDTO; onRefresh: ()
       await api.resolveImprovement(cur.id, improvementId, action);
       await onRefresh();
     } catch (e) {
-      setError(e instanceof ApiError ? e.message : "Couldn’t update the improvement.");
+      setError(e instanceof ApiError ? e.message : t.perfUpdateError);
     } finally {
       setBusy((s) => ({ ...s, [improvementId]: false }));
     }
@@ -372,10 +376,10 @@ function PerformanceTab({ cur, onRefresh }: { cur: AgentDetailDTO; onRefresh: ()
             marginBottom: 20,
           }}
         >
-          SELF-REVIEW
+          {t.perfSelfReview}
         </div>
         {cur.metrics.length === 0 ? (
-          <div style={{ fontSize: 14, color: c.faint }}>No metrics recorded yet.</div>
+          <div style={{ fontSize: 14, color: c.faint }}>{t.perfNoMetrics}</div>
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
             {cur.metrics.map((p) => (
@@ -411,7 +415,7 @@ function PerformanceTab({ cur, onRefresh }: { cur: AgentDetailDTO; onRefresh: ()
             color: c.muted,
           }}
         >
-          IMPROVEMENT QUEUE
+          {t.perfImprovementQueue}
         </div>
         {error && (
           <div style={{ fontFamily: font.mono, fontSize: 11, color: c.red }}>{error}</div>
@@ -426,7 +430,7 @@ function PerformanceTab({ cur, onRefresh }: { cur: AgentDetailDTO; onRefresh: ()
               color: c.faint,
             }}
           >
-            The agent has no proposed improvements right now.
+            {t.perfNoImprovements}
           </div>
         ) : (
           queue.map((q) => {
@@ -469,7 +473,7 @@ function PerformanceTab({ cur, onRefresh }: { cur: AgentDetailDTO; onRefresh: ()
                       whiteSpace: "nowrap",
                     }}
                   >
-                    {approved ? "✓ Approved" : "Dismissed"}
+                    {approved ? t.perfApproved : t.perfDismissed}
                   </span>
                 ) : (
                   <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
@@ -490,7 +494,7 @@ function PerformanceTab({ cur, onRefresh }: { cur: AgentDetailDTO; onRefresh: ()
                         opacity: busy[q.id] ? 0.6 : 1,
                       }}
                     >
-                      Approve
+                      {t.perfApprove}
                     </Btn>
                     <Btn
                       onClick={() => resolve(q.id, "dismiss")}
@@ -509,7 +513,7 @@ function PerformanceTab({ cur, onRefresh }: { cur: AgentDetailDTO; onRefresh: ()
                         opacity: busy[q.id] ? 0.6 : 1,
                       }}
                     >
-                      Dismiss
+                      {t.perfDismiss}
                     </Btn>
                   </div>
                 )}
@@ -525,7 +529,7 @@ function PerformanceTab({ cur, onRefresh }: { cur: AgentDetailDTO; onRefresh: ()
             color: c.faint,
           }}
         >
-          Approved changes apply at the next self-review cycle. The agent never changes its own rules.
+          {t.perfFootnote}
         </div>
       </div>
     </div>
@@ -756,6 +760,8 @@ function Chip({
 }
 
 function SettingsTab({ cur, onRefresh }: { cur: AgentDetailDTO; onRefresh: () => Promise<void> }) {
+  const { lang } = useApp();
+  const t = fleetDetail[lang];
   const router = useRouter();
   const [name, setName] = useState(cur.name);
   const [engine, setEngine] = useState<"openclaw" | "hermes">(
@@ -790,7 +796,7 @@ function SettingsTab({ cur, onRefresh }: { cur: AgentDetailDTO; onRefresh: () =>
   }, []);
 
   const toggleChannel = (type: string) =>
-    setChannels((prev) => (prev.includes(type) ? prev.filter((t) => t !== type) : [...prev, type]));
+    setChannels((prev) => (prev.includes(type) ? prev.filter((x) => x !== type) : [...prev, type]));
   const toggleSkill = (id: string) =>
     set("skills", s.skills.includes(id) ? s.skills.filter((x) => x !== id) : [...s.skills, id]);
   const toggleDay = (d: number) =>
@@ -824,7 +830,7 @@ function SettingsTab({ cur, onRefresh }: { cur: AgentDetailDTO; onRefresh: () =>
       if (saveTimer.current) clearTimeout(saveTimer.current);
       saveTimer.current = setTimeout(() => setSaved(false), 2200);
     } catch (e) {
-      setError(e instanceof ApiError ? e.message : "Couldn’t save changes.");
+      setError(e instanceof ApiError ? e.message : t.saveError);
     } finally {
       setSaving(false);
     }
@@ -842,7 +848,7 @@ function SettingsTab({ cur, onRefresh }: { cur: AgentDetailDTO; onRefresh: () =>
       }
       await onRefresh();
     } catch (e) {
-      setError(e instanceof ApiError ? e.message : "Lifecycle action failed.");
+      setError(e instanceof ApiError ? e.message : t.lifecycleError);
     } finally {
       setLifeBusy(false);
     }
@@ -854,47 +860,47 @@ function SettingsTab({ cur, onRefresh }: { cur: AgentDetailDTO; onRefresh: () =>
     <div style={{ display: "grid", gridTemplateColumns: r.detailSettings, gap: 20, alignItems: "start" }}>
       {/* ---- Form column ---- */}
       <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-        <SettingCard title="IDENTITY" desc="Who this agent is and what powers it.">
-          <Field label="AGENT NAME">
+        <SettingCard title={t.identityTitle} desc={t.identityDesc}>
+          <Field label={t.fieldAgentName}>
             <input value={name} onChange={(e) => setName(e.target.value)} style={sInput} />
           </Field>
-          <Field label="ROLE">
+          <Field label={t.fieldRole}>
             <input value={cur.role} disabled style={{ ...sInput, color: c.muted }} />
           </Field>
           <div style={{ display: "grid", gridTemplateColumns: r.split, gap: 14 }}>
-            <Field label="ENGINE" hint="Switching re-deploys the agent on its next cycle.">
+            <Field label={t.fieldEngine} hint={t.fieldEngineHint}>
               <SelectField
                 value={engine}
                 onChange={(v) => setEngine(v as "openclaw" | "hermes")}
                 options={[
-                  { id: "openclaw", label: "OpenClaw — open runtime" },
-                  { id: "hermes", label: "Hermes — precision" },
+                  { id: "openclaw", label: t.engineOpenclaw },
+                  { id: "hermes", label: t.engineHermes },
                 ]}
               />
             </Field>
-            <Field label="PLAN">
+            <Field label={t.fieldPlan}>
               <SelectField
                 value={planTier}
                 onChange={(v) => setPlanTier(v as "associate" | "professional" | "director")}
                 options={[
-                  { id: "associate", label: "Associate" },
-                  { id: "professional", label: "Professional" },
-                  { id: "director", label: "Director" },
+                  { id: "associate", label: t.planAssociate },
+                  { id: "professional", label: t.planProfessional },
+                  { id: "director", label: t.planDirector },
                 ]}
               />
             </Field>
           </div>
         </SettingCard>
 
-        <SettingCard title="BEHAVIOR" desc="How the agent works and talks.">
-          <Field label="INSTRUCTIONS" hint="The job brief — what this agent should do.">
+        <SettingCard title={t.behaviorTitle} desc={t.behaviorDesc}>
+          <Field label={t.fieldInstructions} hint={t.fieldInstructionsHint}>
             <textarea
               value={instr}
               onChange={(e) => setInstr(e.target.value)}
               style={{ ...sInput, minHeight: 100, resize: "vertical", fontFamily: font.sans }}
             />
           </Field>
-          <Field label="RULES & BOUNDARIES" hint="Hard limits the agent must never cross.">
+          <Field label={t.fieldRules} hint={t.fieldRulesHint}>
             <textarea
               value={rules}
               onChange={(e) => setRules(e.target.value)}
@@ -902,10 +908,10 @@ function SettingsTab({ cur, onRefresh }: { cur: AgentDetailDTO; onRefresh: () =>
             />
           </Field>
           <div style={{ display: "grid", gridTemplateColumns: r.split, gap: 14 }}>
-            <Field label="TONE">
+            <Field label={t.fieldTone}>
               <SelectField value={s.tone} onChange={(v) => set("tone", v as AgentSettings["tone"])} options={TONES} />
             </Field>
-            <Field label="REPLY LANGUAGE">
+            <Field label={t.fieldReplyLanguage}>
               <SelectField
                 value={s.responseLanguage}
                 onChange={(v) => set("responseLanguage", v as AgentSettings["responseLanguage"])}
@@ -915,12 +921,12 @@ function SettingsTab({ cur, onRefresh }: { cur: AgentDetailDTO; onRefresh: () =>
           </div>
         </SettingCard>
 
-        <SettingCard title="AUTONOMY & APPROVALS" desc="How much the agent can do on its own.">
-          <Field label="AUTONOMY" hint={autonomyDesc}>
+        <SettingCard title={t.autonomyTitle} desc={t.autonomyDesc}>
+          <Field label={t.fieldAutonomy} hint={autonomyDesc}>
             <Seg value={s.autonomy} onChange={(v) => set("autonomy", v)} options={AUTONOMY_LEVELS} />
           </Field>
           <div style={{ display: "grid", gridTemplateColumns: r.split, gap: 14 }}>
-            <Field label="APPROVAL OVER ($)" hint="Require sign-off for money/commitments at or above this.">
+            <Field label={t.fieldApprovalOver} hint={t.fieldApprovalOverHint}>
               <input
                 type="number"
                 min={0}
@@ -929,7 +935,7 @@ function SettingsTab({ cur, onRefresh }: { cur: AgentDetailDTO; onRefresh: () =>
                 style={sInput}
               />
             </Field>
-            <Field label="DAILY ACTION LIMIT" hint="0 = unlimited.">
+            <Field label={t.fieldDailyActionLimit} hint={t.fieldDailyActionLimitHint}>
               <input
                 type="number"
                 min={0}
@@ -942,29 +948,29 @@ function SettingsTab({ cur, onRefresh }: { cur: AgentDetailDTO; onRefresh: () =>
           <Toggle
             on={s.approveExternalSends}
             onChange={(v) => set("approveExternalSends", v)}
-            label="Approve external sends"
-            desc="Hold outbound messages/emails for your approval before sending."
+            label={t.toggleApproveExternal}
+            desc={t.toggleApproveExternalDesc}
           />
         </SettingCard>
 
-        <SettingCard title="SCHEDULE" desc="When the agent runs.">
+        <SettingCard title={t.scheduleTitle} desc={t.scheduleDesc}>
           <Toggle
             on={s.alwaysOn}
             onChange={(v) => set("alwaysOn", v)}
-            label="Always on (24/7)"
-            desc="Turn off to restrict the agent to working hours."
+            label={t.toggleAlwaysOn}
+            desc={t.toggleAlwaysOnDesc}
           />
           {!s.alwaysOn && (
             <>
               <div style={{ display: "grid", gridTemplateColumns: r.split, gap: 14 }}>
-                <Field label="START">
+                <Field label={t.fieldStart}>
                   <input type="time" value={s.workStart} onChange={(e) => set("workStart", e.target.value)} style={sInput} />
                 </Field>
-                <Field label="END">
+                <Field label={t.fieldEnd}>
                   <input type="time" value={s.workEnd} onChange={(e) => set("workEnd", e.target.value)} style={sInput} />
                 </Field>
               </div>
-              <Field label="WORKING DAYS">
+              <Field label={t.fieldWorkingDays}>
                 <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                   {WEEKDAYS.map((d, i) => (
                     <Chip key={i} label={d} on={s.workDays.includes(i)} onClick={() => toggleDay(i)} />
@@ -974,33 +980,33 @@ function SettingsTab({ cur, onRefresh }: { cur: AgentDetailDTO; onRefresh: () =>
             </>
           )}
           <div style={{ display: "grid", gridTemplateColumns: r.split, gap: 14 }}>
-            <Field label="TIMEZONE">
+            <Field label={t.fieldTimezone}>
               <SelectField
                 value={s.timezone}
                 onChange={(v) => set("timezone", v)}
-                options={TIMEZONES.map((t) => ({ id: t, label: t }))}
+                options={TIMEZONES.map((tz) => ({ id: tz, label: tz }))}
               />
             </Field>
-            <Field label="HEARTBEAT" hint="How often the agent wakes to check for work.">
+            <Field label={t.fieldHeartbeat} hint={t.fieldHeartbeatHint}>
               <SelectField
                 value={String(s.heartbeatMinutes)}
                 onChange={(v) => set("heartbeatMinutes", Number(v))}
                 options={[
-                  { id: "5", label: "Every 5 min" },
-                  { id: "15", label: "Every 15 min" },
-                  { id: "30", label: "Every 30 min" },
-                  { id: "60", label: "Hourly" },
+                  { id: "5", label: t.heartbeat5 },
+                  { id: "15", label: t.heartbeat15 },
+                  { id: "30", label: t.heartbeat30 },
+                  { id: "60", label: t.heartbeat60 },
                 ]}
               />
             </Field>
           </div>
         </SettingCard>
 
-        <SettingCard title="MODEL & REASONING" badge="LLM PROVIDER" desc="Both engines are model-agnostic.">
-          <Field label="MODEL">
+        <SettingCard title={t.modelTitle} badge={t.modelBadge} desc={t.modelDesc}>
+          <Field label={t.fieldModel}>
             <SelectField value={s.model} onChange={(v) => set("model", v)} options={MODELS} />
           </Field>
-          <Field label={`CREATIVITY (TEMPERATURE) · ${s.temperature.toFixed(1)}`}>
+          <Field label={t.fieldCreativity(s.temperature.toFixed(1))}>
             <input
               type="range"
               min={0}
@@ -1012,7 +1018,7 @@ function SettingsTab({ cur, onRefresh }: { cur: AgentDetailDTO; onRefresh: () =>
             />
           </Field>
           <div style={{ display: "grid", gridTemplateColumns: r.split, gap: 14 }}>
-            <Field label="MAX TOKENS">
+            <Field label={t.fieldMaxTokens}>
               <input
                 type="number"
                 min={256}
@@ -1022,34 +1028,34 @@ function SettingsTab({ cur, onRefresh }: { cur: AgentDetailDTO; onRefresh: () =>
                 style={sInput}
               />
             </Field>
-            <Field label="REASONING DEPTH">
+            <Field label={t.fieldReasoningDepth}>
               <Seg value={s.reasoningEffort} onChange={(v) => set("reasoningEffort", v)} options={REASONING_EFFORTS} />
             </Field>
           </div>
         </SettingCard>
 
         <SettingCard
-          title="SKILLS & TOOLS"
+          title={t.skillsTitle}
           badge="OPENCLAW"
           badgeColor="#E8804F"
-          desc="Plugins the agent can use and what it may execute."
+          desc={t.skillsDesc}
         >
-          <Field label="SKILLS">
+          <Field label={t.fieldSkills}>
             <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
               {SKILLS.map((sk) => (
                 <Chip key={sk.id} label={sk.label} on={s.skills.includes(sk.id)} onClick={() => toggleSkill(sk.id)} />
               ))}
             </div>
           </Field>
-          <Field label="LOCAL EXECUTION">
+          <Field label={t.fieldLocalExecution}>
             <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-              {TOOLS.map((t) => (
+              {TOOLS.map((tool) => (
                 <Toggle
-                  key={t.id}
-                  on={s.tools[t.id]}
-                  onChange={(v) => set("tools", { ...s.tools, [t.id]: v })}
-                  label={t.label}
-                  desc={t.desc}
+                  key={tool.id}
+                  on={s.tools[tool.id]}
+                  onChange={(v) => set("tools", { ...s.tools, [tool.id]: v })}
+                  label={tool.label}
+                  desc={tool.desc}
                 />
               ))}
             </div>
@@ -1057,33 +1063,33 @@ function SettingsTab({ cur, onRefresh }: { cur: AgentDetailDTO; onRefresh: () =>
         </SettingCard>
 
         <SettingCard
-          title="LEARNING LOOP"
+          title={t.learningTitle}
           badge="HERMES"
           badgeColor={c.blue}
-          desc="Self-improvement from experience."
+          desc={t.learningDesc}
         >
           <Toggle
             on={s.selfImprove}
             onChange={(v) => set("selfImprove", v)}
-            label="Self-improve from memory"
-            desc="Periodically review past work and refine its approach."
+            label={t.toggleSelfImprove}
+            desc={t.toggleSelfImproveDesc}
           />
           <Toggle
             on={s.autoCreateSkills}
             onChange={(v) => set("autoCreateSkills", v)}
-            label="Auto-create skills"
-            desc="Save reusable skills after completing complex tasks."
+            label={t.toggleAutoCreateSkills}
+            desc={t.toggleAutoCreateSkillsDesc}
           />
         </SettingCard>
 
-        <SettingCard title="MEMORY & KNOWLEDGE" desc="What the agent remembers and can reference.">
+        <SettingCard title={t.memoryTitle} desc={t.memoryDesc}>
           <Toggle
             on={s.memoryEnabled}
             onChange={(v) => set("memoryEnabled", v)}
-            label="Persistent memory"
-            desc="Remember context across runs and conversations."
+            label={t.togglePersistentMemory}
+            desc={t.togglePersistentMemoryDesc}
           />
-          <Field label="RETENTION (DAYS)">
+          <Field label={t.fieldRetention}>
             <input
               type="number"
               min={1}
@@ -1092,7 +1098,7 @@ function SettingsTab({ cur, onRefresh }: { cur: AgentDetailDTO; onRefresh: () =>
               style={{ ...sInput, maxWidth: 160 }}
             />
           </Field>
-          <Field label="KNOWLEDGE SOURCES" hint="URLs or docs the agent can ground its answers in.">
+          <Field label={t.fieldKnowledgeSources} hint={t.fieldKnowledgeSourcesHint}>
             <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
               <input
                 value={knowledgeDraft}
@@ -1103,7 +1109,7 @@ function SettingsTab({ cur, onRefresh }: { cur: AgentDetailDTO; onRefresh: () =>
                     addKnowledge();
                   }
                 }}
-                placeholder="https://docs.company.com/handbook"
+                placeholder={t.knowledgePlaceholder}
                 style={{ ...sInput, flex: 1, minWidth: 200 }}
               />
               <Btn
@@ -1119,7 +1125,7 @@ function SettingsTab({ cur, onRefresh }: { cur: AgentDetailDTO; onRefresh: () =>
                   cursor: "pointer",
                 }}
               >
-                + Add
+                {t.addBtn}
               </Btn>
             </div>
             {s.knowledgeUrls.length > 0 && (
@@ -1144,7 +1150,7 @@ function SettingsTab({ cur, onRefresh }: { cur: AgentDetailDTO; onRefresh: () =>
                     <button
                       onClick={() => set("knowledgeUrls", s.knowledgeUrls.filter((x) => x !== u))}
                       style={{ background: "none", border: "none", color: c.faint, cursor: "pointer", fontSize: 14 }}
-                      aria-label="Remove"
+                      aria-label={t.removeAria}
                     >
                       ✕
                     </button>
@@ -1155,7 +1161,7 @@ function SettingsTab({ cur, onRefresh }: { cur: AgentDetailDTO; onRefresh: () =>
           </Field>
         </SettingCard>
 
-        <SettingCard title="CHANNELS" desc="Where this agent talks to people.">
+        <SettingCard title={t.channelsTitle} desc={t.channelsDesc}>
           <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
             {CHANNEL_OPTIONS.map((type) => (
               <Chip
@@ -1168,29 +1174,29 @@ function SettingsTab({ cur, onRefresh }: { cur: AgentDetailDTO; onRefresh: () =>
           </div>
         </SettingCard>
 
-        <SettingCard title="ESCALATION & NOTIFICATIONS" desc="When and how the agent reaches you.">
-          <Field label="ESCALATE TO (EMAIL)">
+        <SettingCard title={t.escalationTitle} desc={t.escalationDesc}>
+          <Field label={t.fieldEscalateTo}>
             <input
               value={s.escalateTo}
               onChange={(e) => set("escalateTo", e.target.value)}
-              placeholder="you@company.com"
+              placeholder={t.escalateToPlaceholder}
               style={sInput}
             />
           </Field>
-          <Toggle on={s.notifyNeedsReview} onChange={(v) => set("notifyNeedsReview", v)} label="Notify when something needs review" />
-          <Toggle on={s.notifyErrors} onChange={(v) => set("notifyErrors", v)} label="Notify on errors" />
+          <Toggle on={s.notifyNeedsReview} onChange={(v) => set("notifyNeedsReview", v)} label={t.toggleNotifyReview} />
+          <Toggle on={s.notifyErrors} onChange={(v) => set("notifyErrors", v)} label={t.toggleNotifyErrors} />
           <div style={{ display: "flex", gap: 18, alignItems: "flex-end", flexWrap: "wrap" }}>
-            <Toggle on={s.dailyDigest} onChange={(v) => set("dailyDigest", v)} label="Daily digest" />
+            <Toggle on={s.dailyDigest} onChange={(v) => set("dailyDigest", v)} label={t.toggleDailyDigest} />
             {s.dailyDigest && (
-              <Field label="DIGEST TIME">
+              <Field label={t.fieldDigestTime}>
                 <input type="time" value={s.digestTime} onChange={(e) => set("digestTime", e.target.value)} style={{ ...sInput, width: 130 }} />
               </Field>
             )}
           </div>
         </SettingCard>
 
-        <SettingCard title="LIMITS" desc="Guard your spend.">
-          <Field label="MONTHLY CREDIT CAP" hint="0 = use the plan allowance. Agent pauses if exceeded.">
+        <SettingCard title={t.limitsTitle} desc={t.limitsDesc}>
+          <Field label={t.fieldMonthlyCap} hint={t.fieldMonthlyCapHint}>
             <input
               type="number"
               min={0}
@@ -1221,31 +1227,31 @@ function SettingsTab({ cur, onRefresh }: { cur: AgentDetailDTO; onRefresh: () =>
               opacity: saving ? 0.6 : 1,
             }}
           >
-            {saving ? "Saving…" : saved ? "✓ Saved" : "Save changes"}
+            {saving ? t.saving : saved ? t.saved : t.saveChanges}
           </button>
           <div style={{ fontSize: 12, color: c.faint }}>
-            Re-briefed to the agent on its next cycle — no restart needed.
+            {t.saveNote}
           </div>
           {error && <div style={{ fontFamily: font.mono, fontSize: 11, color: c.red }}>{error}</div>}
         </div>
 
         <div style={{ border: `1px solid ${c.border}`, background: c.panel, padding: 20 }}>
           <div style={{ fontFamily: font.mono, fontSize: 11, letterSpacing: ".12em", color: c.muted, marginBottom: 14 }}>
-            RUNTIME
+            {t.runtime}
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 10, fontSize: 13.5 }}>
             <div style={{ display: "flex", justifyContent: "space-between" }}>
-              <span style={{ color: c.faint }}>Engine</span>
+              <span style={{ color: c.faint }}>{t.runtimeEngine}</span>
               <span style={{ fontFamily: font.mono, fontSize: 12.5 }}>{ENGINE_LABEL[cur.engine] ?? cur.engine}</span>
             </div>
             <div style={{ display: "flex", justifyContent: "space-between" }}>
-              <span style={{ color: c.faint }}>Machine</span>
+              <span style={{ color: c.faint }}>{t.runtimeMachine}</span>
               <span style={{ fontFamily: font.mono, fontSize: 12.5 }}>
                 {cur.vmId}@{cur.vmRegion}
               </span>
             </div>
             <div style={{ display: "flex", justifyContent: "space-between" }}>
-              <span style={{ color: c.faint }}>Status</span>
+              <span style={{ color: c.faint }}>{t.runtimeStatus}</span>
               <span style={{ fontFamily: font.mono, fontSize: 12.5, color: display.color }}>{display.label}</span>
             </div>
           </div>
@@ -1267,7 +1273,7 @@ function SettingsTab({ cur, onRefresh }: { cur: AgentDetailDTO; onRefresh: () =>
             opacity: lifeBusy ? 0.6 : 1,
           }}
         >
-          {paused ? "Resume agent" : "Pause agent"}
+          {paused ? t.resumeAgent : t.pauseAgent}
         </Btn>
         <Btn
           onClick={() => runLifecycle("terminate")}
@@ -1284,10 +1290,10 @@ function SettingsTab({ cur, onRefresh }: { cur: AgentDetailDTO; onRefresh: () =>
             opacity: lifeBusy ? 0.6 : 1,
           }}
         >
-          Terminate agent
+          {t.terminateAgent}
         </Btn>
         <div style={{ border: `1px dashed ${c.border}`, padding: "12px 14px", fontSize: 12.5, color: c.faint }}>
-          Pausing keeps memory and state. Terminating archives the agent and its VM after 30 days.
+          {t.dangerNote}
         </div>
       </div>
     </div>
@@ -1295,6 +1301,8 @@ function SettingsTab({ cur, onRefresh }: { cur: AgentDetailDTO; onRefresh: () =>
 }
 
 function AgentDetailInner() {
+  const { lang } = useApp();
+  const t = fleetDetail[lang];
   const router = useRouter();
   const { id } = useParams<{ id: string }>();
   const search = useSearchParams();
@@ -1317,7 +1325,7 @@ function AgentDetailInner() {
       if (e instanceof ApiError && e.status === 404) {
         setNotFound(true);
       } else {
-        setError(e instanceof ApiError ? e.message : "Couldn’t load this agent.");
+        setError(e instanceof ApiError ? e.message : t.loadAgentError);
       }
     }
   }, [id]);
@@ -1336,7 +1344,7 @@ function AgentDetailInner() {
       } catch (e) {
         if (!alive) return;
         if (e instanceof ApiError && e.status === 404) setNotFound(true);
-        else setError(e instanceof ApiError ? e.message : "Couldn’t load this agent.");
+        else setError(e instanceof ApiError ? e.message : t.loadAgentError);
       } finally {
         if (alive) setLoading(false);
       }
@@ -1349,7 +1357,7 @@ function AgentDetailInner() {
   if (loading) {
     return (
       <div style={{ padding: `${r.contentPy} ${r.pagePx}`, color: c.faint, fontSize: 14 }}>
-        Loading agent…
+        {t.loadingAgent}
       </div>
     );
   }
@@ -1366,10 +1374,10 @@ function AgentDetailInner() {
           }}
         >
           <div style={{ fontFamily: font.space, fontWeight: 700, fontSize: 22, marginBottom: 8 }}>
-            Agent not found
+            {t.notFoundTitle}
           </div>
           <div style={{ fontSize: 14, color: c.muted, marginBottom: 24 }}>
-            This agent doesn’t exist or has been terminated.
+            {t.notFoundBody}
           </div>
           <Btn
             onClick={() => router.push("/dashboard/fleet")}
@@ -1385,7 +1393,7 @@ function AgentDetailInner() {
               cursor: "pointer",
             }}
           >
-            ← All agents
+            {t.allAgents}
           </Btn>
         </div>
       </div>
@@ -1405,7 +1413,7 @@ function AgentDetailInner() {
             color: c.text2,
           }}
         >
-          {error ?? "Couldn’t load this agent."}
+          {error ?? t.loadAgentError}
         </div>
       </div>
     );
@@ -1430,7 +1438,7 @@ function AgentDetailInner() {
           marginBottom: 20,
         }}
       >
-        ← All agents
+        {t.allAgents}
       </Btn>
       <div
         style={{
@@ -1482,19 +1490,19 @@ function AgentDetailInner() {
           }}
         >
           <div>
-            <div>UPTIME</div>
+            <div>{t.statUptime}</div>
             <div style={{ color: c.text2, fontSize: 14, marginTop: 4 }}>
               {uptimeText(cur.uptimeStartedAt ? String(cur.uptimeStartedAt) : null)}
             </div>
           </div>
           <div>
-            <div>CREDITS / MO</div>
+            <div>{t.statCredits}</div>
             <div style={{ color: c.text2, fontSize: 14, marginTop: 4 }}>
               {cur.creditsUsed.toLocaleString()}
             </div>
           </div>
           <div>
-            <div>STATUS</div>
+            <div>{t.statStatus}</div>
             <div style={{ color: display.color, fontSize: 14, marginTop: 4 }}>● {display.label}</div>
           </div>
         </div>
@@ -1511,12 +1519,22 @@ function AgentDetailInner() {
           flexWrap: "nowrap",
         }}
       >
-        {TABS.map((t) => {
-          const on = tab === t.id;
+        {TAB_IDS.map((id) => {
+          const on = tab === id;
+          const label =
+            id === "activity"
+              ? t.tabActivity
+              : id === "tasks"
+                ? t.tabTasks
+                : id === "chat"
+                  ? t.tabChat
+                  : id === "performance"
+                    ? t.tabPerformance
+                    : t.tabSettings;
           return (
             <button
-              key={t.id}
-              onClick={() => setTab(t.id)}
+              key={id}
+              onClick={() => setTab(id)}
               style={{
                 background: "none",
                 border: "none",
@@ -1530,7 +1548,7 @@ function AgentDetailInner() {
                 whiteSpace: "nowrap",
               }}
             >
-              {t.label}
+              {label}
             </button>
           );
         })}

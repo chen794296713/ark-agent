@@ -12,7 +12,7 @@
  */
 
 export type Tone = "professional" | "friendly" | "concise" | "formal" | "playful";
-export type ResponseLanguage = "auto" | "en" | "zh" | "zht";
+export type ResponseLanguage = "auto" | "en" | "zh" | "zht" | "ja";
 export type Autonomy = "suggest" | "ask" | "auto";
 export type ReasoningEffort = "low" | "medium" | "high";
 
@@ -139,6 +139,7 @@ export const LANGUAGES: { id: ResponseLanguage; label: string }[] = [
   { id: "en", label: "English" },
   { id: "zh", label: "简体中文" },
   { id: "zht", label: "繁體中文" },
+  { id: "ja", label: "日本語" },
 ];
 
 export const AUTONOMY_LEVELS: { id: Autonomy; label: string; desc: string }[] = [

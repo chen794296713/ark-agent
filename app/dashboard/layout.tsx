@@ -6,21 +6,25 @@ import { usePathname, useRouter } from "next/navigation";
 import { c, font, r } from "@/lib/theme";
 import { Btn } from "@/components/ui";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { useApp } from "@/lib/store";
+import { common } from "@/lib/i18n/common";
+import { dashLayout } from "@/lib/i18n/dashboard-layout";
 
 const navDefs = [
-  { id: "overview", label: "Overview", icon: "◫", href: "/dashboard" },
-  { id: "agents", label: "Fleet", icon: "◉", href: "/dashboard/fleet" },
-  { id: "channels", label: "Channels", icon: "⌁", href: "/dashboard/channels" },
-  { id: "billing", label: "Billing & usage", icon: "▤", href: "/dashboard/billing" },
-];
+  { id: "overview", key: "navOverview", icon: "◫", href: "/dashboard" },
+  { id: "agents", key: "navFleet", icon: "◉", href: "/dashboard/fleet" },
+  { id: "channels", key: "navChannels", icon: "⌁", href: "/dashboard/channels" },
+  { id: "billing", key: "navBilling", icon: "▤", href: "/dashboard/billing" },
+] as const;
 
 const fmt = (n: number) => n.toLocaleString("en-US");
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
-  const { user, workspace, authReady, logout } = useApp();
+  const { user, workspace, authReady, logout, lang } = useApp();
+  const t = dashLayout[lang];
   const [drawerOpen, setDrawerOpen] = useState(false);
 
   useEffect(() => {
@@ -60,7 +64,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           fontSize: 13,
         }}
       >
-        Loading…
+        {common[lang].loading}
       </div>
     );
   }
@@ -133,9 +137,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               marginBottom: 4,
             }}
           >
-            WORKSPACE
+            {t.workspace}
           </div>
-          <div style={{ fontSize: 14, color: c.text2 }}>{workspace?.name ?? "Workspace"}</div>
+          <div style={{ fontSize: 14, color: c.text2 }}>{workspace?.name ?? t.workspaceFallback}</div>
         </div>
 
         <div style={{ padding: "14px 12px", display: "flex", flexDirection: "column", gap: 2 }}>
@@ -163,7 +167,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 <span style={{ fontFamily: font.mono, fontSize: 12, color: on ? c.accent : c.faint }}>
                   {n.icon}
                 </span>
-                {n.label}
+                {t[n.key]}
               </button>
             );
           })}
@@ -184,7 +188,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             cursor: "pointer",
           }}
         >
-          + Hire new agent
+          {t.hireNew}
         </Btn>
 
         <div style={{ marginTop: "auto", padding: "18px 20px", borderTop: `1px solid ${c.line}` }}>
@@ -198,7 +202,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               marginBottom: 8,
             }}
           >
-            <span>CREDITS</span>
+            <span>{t.credits}</span>
             <span style={{ color: c.text2 }}>
               {fmt(creditsUsed)} / {fmt(creditsIncluded)}
             </span>
@@ -207,9 +211,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             <div style={{ height: 4, width: `${pct}%`, background: c.lime }} />
           </div>
           <div style={{ fontSize: 11.5, color: c.faint, marginTop: 8 }}>
-            {resetDays !== null ? `Resets in ${resetDays} days` : "Usage this cycle"} ·{" "}
-            <span style={{ color: c.muted }}>overage $2 / 1k</span>
+            {resetDays !== null ? t.resetsIn(resetDays) : t.usageThisCycle} ·{" "}
+            <span style={{ color: c.muted }}>{t.overage}</span>
           </div>
+          <LanguageSwitcher compact={false} style={{ marginTop: 16 }} />
           <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 18 }}>
             <div
               style={{
@@ -242,8 +247,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 6 }}>
               <button
                 onClick={doLogout}
-                title="Sign out"
-                aria-label="Sign out"
+                title={t.signOut}
+                aria-label={t.signOut}
                 style={{
                   width: 30,
                   height: 30,
@@ -330,6 +335,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           <span style={{ marginLeft: "auto", fontFamily: font.mono, fontSize: 11.5, color: c.muted }}>
             {creditsChip}
           </span>
+          <LanguageSwitcher />
           <ThemeToggle />
         </div>
         {children}

@@ -12,6 +12,7 @@ import { c, font, r } from "@/lib/theme";
 import { useApp } from "@/lib/store";
 import { api, ApiError } from "@/lib/client-api";
 import { Btn } from "@/components/ui";
+import { payment } from "@/lib/i18n/payment";
 
 type Region = "global" | "cn";
 type Cycle = "mo" | "yr";
@@ -24,6 +25,7 @@ const ACCENT = c.accent;
 export default function PaymentPage() {
   const router = useRouter();
   const { lang } = useApp();
+  const t = payment[lang];
 
   const defaultRegion: Region = lang === "zh" || lang === "zht" ? "cn" : "global";
   const [payRegion, setPayRegion] = useState<Region | null>(null);
@@ -44,7 +46,7 @@ export default function PaymentPage() {
   const [cardExp, setCardExp] = useState("");
   const [cardCvc, setCardCvc] = useState("");
   const [cardName, setCardName] = useState("");
-  const [cardCountry, setCardCountry] = useState("Singapore");
+  const [cardCountry, setCardCountry] = useState(t.countryDefault);
 
   const payBackBilling = () => router.push("/dashboard/billing");
 
@@ -67,34 +69,34 @@ export default function PaymentPage() {
   const sumRowsRaw: { l: string; v: string; c?: string }[] = isCN
     ? yrPay
       ? [
-          { l: "专业版坐席 × 1（年付）", v: "¥12,816.00" },
-          { l: "年付优惠 −20%", v: "−¥2,563.20", c: c.green },
-          { l: "每月 25,000 积分", v: "已包含" },
-          { l: "增值税", v: "已含" },
+          { l: t.seatAnnual, v: "¥12,816.00" },
+          { l: t.annualDiscount, v: "−¥2,563.20", c: c.green },
+          { l: t.creditsPerMonth, v: t.included },
+          { l: t.taxLabel, v: t.taxIncluded },
         ]
       : [
-          { l: "专业版坐席 × 1", v: "¥1,068.00" },
-          { l: "每月 25,000 积分", v: "已包含" },
-          { l: "增值税", v: "已含" },
+          { l: t.seatMonthly, v: "¥1,068.00" },
+          { l: t.creditsPerMonth, v: t.included },
+          { l: t.taxLabel, v: t.taxIncluded },
         ]
     : yrPay
     ? [
-        { l: "Professional seat × 1 · annual", v: "$1,788.00" },
-        { l: "Annual discount −20%", v: "−$357.60", c: c.green },
-        { l: "25,000 credits / mo", v: "Included" },
-        { l: "Tax", v: "$0.00" },
+        { l: t.seatAnnual, v: "$1,788.00" },
+        { l: t.annualDiscount, v: "−$357.60", c: c.green },
+        { l: t.creditsPerMonth, v: t.included },
+        { l: t.taxLabel, v: "$0.00" },
       ]
     : [
-        { l: "Professional seat × 1", v: "$149.00" },
-        { l: "25,000 credits / mo", v: "Included" },
-        { l: "Tax", v: "$0.00" },
+        { l: t.seatMonthly, v: "$149.00" },
+        { l: t.creditsPerMonth, v: t.included },
+        { l: t.taxLabel, v: "$0.00" },
       ];
   const sumRows = sumRowsRaw.map((r) => ({ l: r.l, v: r.v, c: r.c || c.text2 }));
 
   const regionTabs = (
     [
-      { id: "global", label: "GLOBAL · STRIPE" },
-      { id: "cn", label: "中国大陆 · 支付宝" },
+      { id: "global", label: t.regionGlobal },
+      { id: "cn", label: t.regionCN },
     ] as { id: Region; label: string }[]
   ).map((rt) => ({
     label: rt.label,
@@ -105,8 +107,8 @@ export default function PaymentPage() {
 
   const cycleTabs = (
     [
-      { id: "mo", label: isCN ? "月付" : "MONTHLY" },
-      { id: "yr", label: isCN ? "年付 −20%" : "ANNUAL −20%" },
+      { id: "mo", label: t.cycleMonthly },
+      { id: "yr", label: t.cycleAnnual },
     ] as { id: Cycle; label: string }[]
   ).map((cy) => ({
     label: cy.label,
@@ -165,27 +167,17 @@ export default function PaymentPage() {
     ? "AMEX"
     : "CARD";
 
-  const payEyebrow = isCN ? "安全收银台" : "SECURE CHECKOUT";
-  const payTitle = isCN ? "确认订单" : "Complete your order";
-  const paySub = isCN
-    ? "为 Nova（销售开拓）开通专业版坐席，通过支付宝安全付款。"
-    : "Professional seat for Nova — Sales Prospector. Processed securely by Stripe.";
-  const planName = isCN
-    ? "专业版 — AI 员工坐席"
-    : "Professional — AI employee seat";
-  const planFor = isCN
-    ? "适用：Nova · 销售开拓"
-    : "For: Nova · Sales Prospector";
-  const payRegionNote = isCN
-    ? "已根据您的语言设置自动选择，可随时切换。"
-    : "Detected from your language setting — switch anytime.";
-  const sumTotalLabel = isCN ? "应付金额" : "Due today";
-  const sumTotal = amt + (isCN ? (yrPay ? " /年" : " /月") : yrPay ? " /yr" : " /mo");
-  const payNote = isCN
-    ? "随时取消 · 超额按量计费 · 支持增值税发票"
-    : "CANCEL ANYTIME · OVERAGE METERED · VAT INVOICE ON REQUEST";
+  const payEyebrow = t.eyebrow;
+  const payTitle = t.title;
+  const paySub = t.sub;
+  const planName = t.planName;
+  const planFor = t.planFor;
+  const payRegionNote = t.regionNote;
+  const sumTotalLabel = t.dueToday;
+  const sumTotal = amt + t.perCycle(yrPay);
+  const payNote = t.footnote;
 
-  const payBtnLabel = payState === "processing" ? "Processing…" : "Pay " + amt;
+  const payBtnLabel = payState === "processing" ? t.processing : t.payAmount(amt);
 
   // Shared checkout call. On 401 -> /auth. On other ApiError -> surface message.
   const runCheckout = async (provider: "stripe" | "alipay"): Promise<boolean> => {
@@ -204,7 +196,7 @@ export default function PaymentPage() {
         return false;
       }
       setPayError(
-        err instanceof ApiError ? err.message : "Payment failed. Please try again.",
+        err instanceof ApiError ? err.message : t.paymentFailed,
       );
       return false;
     }
@@ -271,7 +263,7 @@ export default function PaymentPage() {
             padding: 0,
           }}
         >
-          ← Billing
+          {t.backBilling}
         </Btn>
         <span
           style={{
@@ -281,7 +273,7 @@ export default function PaymentPage() {
             color: c.accent,
           }}
         >
-          CHECKOUT
+          {t.checkout}
         </span>
         <span
           style={{
@@ -292,7 +284,7 @@ export default function PaymentPage() {
             letterSpacing: ".06em",
           }}
         >
-          ⬡ ENCRYPTED · TLS 1.3
+          {t.encrypted}
         </span>
       </div>
 
@@ -505,7 +497,7 @@ export default function PaymentPage() {
                       cursor: "pointer",
                     }}
                   >
-                    Apple Pay
+                    {t.applePay}
                   </Btn>
                   <Btn
                     hoverStyle={{ borderColor: c.borderMute }}
@@ -520,7 +512,7 @@ export default function PaymentPage() {
                       cursor: "pointer",
                     }}
                   >
-                    Google Pay
+                    {t.googlePay}
                   </Btn>
                 </div>
                 <div
@@ -535,12 +527,12 @@ export default function PaymentPage() {
                   }}
                 >
                   <span style={{ flex: 1, height: "1px", background: c.line }} />
-                  OR PAY WITH CARD
+                  {t.orPayWithCard}
                   <span style={{ flex: 1, height: "1px", background: c.line }} />
                 </div>
                 <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
                   <div>
-                    <div style={labelStyle}>EMAIL</div>
+                    <div style={labelStyle}>{t.email}</div>
                     <input
                       value={cardEmail}
                       onChange={(e) => setCardEmail(e.target.value)}
@@ -558,7 +550,7 @@ export default function PaymentPage() {
                           color: c.muted,
                         }}
                       >
-                        CARD NUMBER
+                        {t.cardNumber}
                       </span>
                       <span style={{ fontFamily: font.mono, fontSize: "10.5px", color: c.faint }}>
                         {cardBrand}
@@ -577,7 +569,7 @@ export default function PaymentPage() {
                   </div>
                   <div style={{ display: "grid", gridTemplateColumns: r.split, gap: "14px" }}>
                     <div>
-                      <div style={labelStyle}>EXPIRY</div>
+                      <div style={labelStyle}>{t.expiry}</div>
                       <input
                         value={cardExp}
                         onChange={(e) => {
@@ -590,7 +582,7 @@ export default function PaymentPage() {
                       />
                     </div>
                     <div>
-                      <div style={labelStyle}>CVC</div>
+                      <div style={labelStyle}>{t.cvc}</div>
                       <input
                         value={cardCvc}
                         onChange={(e) => setCardCvc(e.target.value.replace(/\D/g, "").slice(0, 4))}
@@ -601,7 +593,7 @@ export default function PaymentPage() {
                   </div>
                   <div style={{ display: "grid", gridTemplateColumns: r.split, gap: "14px" }}>
                     <div>
-                      <div style={labelStyle}>NAME ON CARD</div>
+                      <div style={labelStyle}>{t.nameOnCard}</div>
                       <input
                         value={cardName}
                         onChange={(e) => setCardName(e.target.value)}
@@ -610,7 +602,7 @@ export default function PaymentPage() {
                       />
                     </div>
                     <div>
-                      <div style={labelStyle}>COUNTRY</div>
+                      <div style={labelStyle}>{t.country}</div>
                       <input
                         value={cardCountry}
                         onChange={(e) => setCardCountry(e.target.value)}
@@ -659,7 +651,7 @@ export default function PaymentPage() {
                     letterSpacing: ".06em",
                   }}
                 >
-                  POWERED BY STRIPE · PCI DSS LEVEL 1 · 3-D SECURE
+                  {t.stripeFootnote}
                 </div>
               </div>
             ) : (
@@ -696,10 +688,10 @@ export default function PaymentPage() {
                     marginBottom: "6px",
                   }}
                 >
-                  Payment successful
+                  {t.paymentSuccessful}
                 </div>
                 <div style={{ fontSize: "14px", color: c.muted }}>
-                  {sumTotal} charged. Receipt sent to {payReceiptEmail}.
+                  {t.chargedReceipt(sumTotal, payReceiptEmail)}
                 </div>
                 <div
                   style={{
@@ -709,7 +701,7 @@ export default function PaymentPage() {
                     margin: "14px 0 22px",
                   }}
                 >
-                  {invoiceNo ? `INVOICE ${invoiceNo}` : "REF ch_3PqXk2LkdIwHu7ix"} · VISA ••4242
+                  {t.invoiceRef(invoiceNo)} · VISA ••4242
                 </div>
                 <button
                   onClick={payBackBilling}
@@ -724,7 +716,7 @@ export default function PaymentPage() {
                     cursor: "pointer",
                   }}
                 >
-                  Back to billing →
+                  {t.backToBilling}
                 </button>
               </div>
             ))}
@@ -743,7 +735,7 @@ export default function PaymentPage() {
                 }}
               >
                 <span style={{ fontFamily: font.space, fontWeight: 700, fontSize: "16px" }}>
-                  支付宝 · Alipay
+                  {t.alipayTitle}
                 </span>
                 <span style={{ fontFamily: font.mono, fontSize: "15px", fontWeight: 500 }}>
                   {amt}
@@ -756,7 +748,7 @@ export default function PaymentPage() {
                       {qrEl}
                     </div>
                     <div style={{ fontSize: "15px", color: c.text, marginBottom: "6px" }}>
-                      请使用支付宝 App 扫一扫付款
+                      {t.scanToPay}
                     </div>
                     <div
                       style={{
@@ -766,7 +758,7 @@ export default function PaymentPage() {
                         marginBottom: "22px",
                       }}
                     >
-                      二维码将于 04:32 后失效 · 订单号 ARK-20260613-0042
+                      {t.qrExpires}
                     </div>
                     <Btn
                       onClick={simAli}
@@ -781,7 +773,7 @@ export default function PaymentPage() {
                         cursor: "pointer",
                       }}
                     >
-                      模拟扫码支付（演示）
+                      {t.simulatePay}
                     </Btn>
                     {payError && (
                       <div
@@ -813,9 +805,9 @@ export default function PaymentPage() {
                       }}
                     />
                     <div style={{ fontSize: "15px", color: c.text, marginBottom: "6px" }}>
-                      正在确认支付…
+                      {t.confirmingPay}
                     </div>
-                    <div style={{ fontSize: "13px", color: c.muted }}>请在手机上完成支付验证</div>
+                    <div style={{ fontSize: "13px", color: c.muted }}>{t.completeOnPhone}</div>
                   </div>
                 )}
                 {aliState === "done" && (
@@ -845,10 +837,10 @@ export default function PaymentPage() {
                         marginBottom: "6px",
                       }}
                     >
-                      支付成功
+                      {t.alipaySuccess}
                     </div>
                     <div style={{ fontSize: "14px", color: c.muted }}>
-                      已开通：专业版坐席 × 1 · {amt}
+                      {t.alipayActivated(amt)}
                     </div>
                     <div
                       style={{
@@ -858,7 +850,7 @@ export default function PaymentPage() {
                         margin: "14px 0 22px",
                       }}
                     >
-                      {invoiceNo ? `订单号 ${invoiceNo}` : "订单号 ARK-20260613-0042"} · 电子发票可在账单页申请
+                      {t.alipayInvoiceRef(invoiceNo)}
                     </div>
                     <button
                       onClick={payBackBilling}
@@ -873,7 +865,7 @@ export default function PaymentPage() {
                         cursor: "pointer",
                       }}
                     >
-                      返回账单 →
+                      {t.backToBilling}
                     </button>
                   </div>
                 )}
@@ -889,7 +881,7 @@ export default function PaymentPage() {
                   letterSpacing: ".06em",
                 }}
               >
-                由支付宝提供安全支付 · SECURED BY ALIPAY
+                {t.alipaySecured}
               </div>
             </div>
           )}

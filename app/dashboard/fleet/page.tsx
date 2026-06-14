@@ -8,6 +8,8 @@ import { api, ApiError } from "@/lib/client-api";
 import type { AgentDTO } from "@/lib/serializers";
 import { statusDisplay, ENGINE_LABEL, channelsText } from "@/lib/agent-display";
 import { Btn, HoverDiv } from "@/components/ui";
+import { useApp } from "@/lib/store";
+import { fleet } from "@/lib/i18n/fleet";
 
 function FleetCard({
   a,
@@ -16,6 +18,8 @@ function FleetCard({
   a: AgentDTO;
   onToggle: (a: AgentDTO) => void;
 }) {
+  const { lang } = useApp();
+  const t = fleet[lang];
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   const st = statusDisplay(a.status);
@@ -69,17 +73,17 @@ function FleetCard({
         }}
       >
         <div style={{ padding: "10px 14px", borderRight: `1px solid ${c.line}`, flex: 1 }}>
-          ENGINE
+          {t.labelEngine}
           <div style={{ color: c.text2, fontSize: 12.5, marginTop: 3 }}>
             {ENGINE_LABEL[a.engine] ?? a.engine}
           </div>
         </div>
         <div style={{ padding: "10px 14px", borderRight: `1px solid ${c.line}`, flex: 1 }}>
-          CREDITS
+          {t.labelCredits}
           <div style={{ color: c.text2, fontSize: 12.5, marginTop: 3 }}>{a.creditsUsed}</div>
         </div>
         <div style={{ padding: "10px 14px", flex: 1 }}>
-          CHANNELS
+          {t.labelChannels}
           <div style={{ color: c.text2, fontSize: 12.5, marginTop: 3 }}>{chans}</div>
         </div>
       </div>
@@ -102,7 +106,7 @@ function FleetCard({
             cursor: "pointer",
           }}
         >
-          Manage
+          {t.manage}
         </Btn>
         <Btn
           disabled={busy}
@@ -132,7 +136,7 @@ function FleetCard({
             opacity: busy ? 0.6 : 1,
           }}
         >
-          {busy ? "…" : paused ? "Resume" : "Pause"}
+          {busy ? "…" : paused ? t.resume : t.pause}
         </Btn>
         <Btn
           onClick={(e) => {
@@ -151,7 +155,7 @@ function FleetCard({
             cursor: "pointer",
           }}
         >
-          Chat
+          {t.chat}
         </Btn>
       </div>
     </HoverDiv>
@@ -159,6 +163,8 @@ function FleetCard({
 }
 
 export default function FleetPage() {
+  const { lang } = useApp();
+  const t = fleet[lang];
   const [agents, setAgents] = useState<AgentDTO[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -172,7 +178,7 @@ export default function FleetPage() {
         const { agents: list } = await api.listAgents();
         if (alive) setAgents(list);
       } catch (e) {
-        if (alive) setError(e instanceof ApiError ? e.message : "Failed to load fleet.");
+        if (alive) setError(e instanceof ApiError ? e.message : t.loadError);
       } finally {
         if (alive) setLoading(false);
       }
@@ -198,7 +204,7 @@ export default function FleetPage() {
           marginBottom: 28,
         }}
       >
-        <h2 style={{ fontFamily: font.space, fontWeight: 700, fontSize: 26, margin: 0 }}>Fleet</h2>
+        <h2 style={{ fontFamily: font.space, fontWeight: 700, fontSize: 26, margin: 0 }}>{t.heading}</h2>
         <Link href="/hire" style={{ textDecoration: "none" }}>
           <button
             style={{
@@ -212,7 +218,7 @@ export default function FleetPage() {
               cursor: "pointer",
             }}
           >
-            + Hire new agent
+            {t.hireNewAgent}
           </button>
         </Link>
       </div>
@@ -230,7 +236,7 @@ export default function FleetPage() {
             color: c.faint,
           }}
         >
-          LOADING FLEET…
+          {t.loadingFleet}
         </div>
       ) : error ? (
         <div
@@ -256,10 +262,10 @@ export default function FleetPage() {
           }}
         >
           <div style={{ fontFamily: font.space, fontWeight: 700, fontSize: 18, marginBottom: 8 }}>
-            No agents yet
+            {t.noAgentsTitle}
           </div>
           <div style={{ fontSize: 13.5, color: c.muted, marginBottom: 20 }}>
-            Hire your first agent to start building your fleet.
+            {t.noAgentsBody}
           </div>
           <Link href="/hire" style={{ textDecoration: "none" }}>
             <button
@@ -274,7 +280,7 @@ export default function FleetPage() {
                 cursor: "pointer",
               }}
             >
-              + Hire new agent
+              {t.hireNewAgent}
             </button>
           </Link>
         </div>

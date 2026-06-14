@@ -6,18 +6,19 @@ import { c, font, gridBg, r } from "@/lib/theme";
 import { Btn } from "@/components/ui";
 import { useApp } from "@/lib/store";
 import { ApiError } from "@/lib/client-api";
+import { auth } from "@/lib/i18n/auth";
 
 type AuthMode = "login" | "signup" | "forgot";
 
-const authTitles: Record<AuthMode, [string, string]> = {
-  login: ["Welcome back", "Sign in to manage your workforce."],
-  signup: ["Create your workspace", "Your first agent can be live in four minutes."],
-  forgot: ["Reset your password", "Enter your email and we’ll send a secure reset link."],
-};
-
 export default function AuthPage() {
   const router = useRouter();
-  const { user, authReady, login, register } = useApp();
+  const { user, authReady, login, register, lang } = useApp();
+  const t = auth[lang];
+  const authTitles: Record<AuthMode, [string, string]> = {
+    login: [t.loginTitle, t.loginSub],
+    signup: [t.signupTitle, t.signupSub],
+    forgot: [t.forgotTitle, t.forgotSub],
+  };
   const [authMode, setAuthMode] = useState<AuthMode>("login");
   const [resetSent, setResetSent] = useState(false);
   const [email, setEmail] = useState("");
@@ -44,11 +45,11 @@ export default function AuthPage() {
       return;
     }
     if (!email.trim() || !pw) {
-      setError("Please enter your email and password.");
+      setError(t.errEmailPassword);
       return;
     }
     if (am === "signup" && !name.trim()) {
-      setError("Please enter your name.");
+      setError(t.errName);
       return;
     }
     setBusy(true);
@@ -57,11 +58,11 @@ export default function AuthPage() {
       else await register(name.trim(), email.trim(), pw);
       router.push("/dashboard");
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Something went wrong. Please try again.");
+      setError(err instanceof ApiError ? err.message : t.errGeneric);
       setBusy(false);
     }
   };
-  const ssoUnavailable = () => setError("Social sign-in is coming soon — please use email.");
+  const ssoUnavailable = () => setError(t.errSsoSoon);
 
   const aLogin = am === "login";
   const aSignup = am === "signup";
@@ -72,15 +73,15 @@ export default function AuthPage() {
   const showPw = am !== "forgot";
   const authTitle = authTitles[am][0];
   const authSub = authTitles[am][1];
-  const authEmailShown = email.trim() || "your inbox";
+  const authEmailShown = email.trim() || t.inboxFallback;
   const authBtnLabel =
     am === "login"
-      ? "Sign in →"
+      ? t.btnSignIn
       : am === "signup"
-        ? "Create account →"
+        ? t.btnCreateAccount
         : resetSent
-          ? "Resend link"
-          : "Send reset link";
+          ? t.btnResendLink
+          : t.btnSendResetLink;
 
   return (
     <div
@@ -145,7 +146,7 @@ export default function AuthPage() {
               marginBottom: 18,
             }}
           >
-            YOUR WORKFORCE IS WAITING
+            {t.heroEyebrow}
           </div>
           <div
             style={{
@@ -157,7 +158,7 @@ export default function AuthPage() {
               marginBottom: 28,
             }}
           >
-            While you were away, your agents kept working.
+            {t.heroHeadline}
           </div>
           <div
             style={{
@@ -172,18 +173,16 @@ export default function AuthPage() {
             }}
           >
             <div style={{ display: "flex", gap: 10 }}>
-              <span style={{ color: c.faint }}>09:41</span>
-              <span style={{ color: c.text2 }}>
-                Nova booked an intro call with Meridian Logistics
-              </span>
+              <span style={{ color: c.faint }}>{t.feedTime0941}</span>
+              <span style={{ color: c.text2 }}>{t.feed0930}</span>
             </div>
             <div style={{ display: "flex", gap: 10 }}>
-              <span style={{ color: c.faint }}>09:21</span>
-              <span style={{ color: c.text2 }}>Atlas escalated a refund for your approval</span>
+              <span style={{ color: c.faint }}>{t.feedTime0921}</span>
+              <span style={{ color: c.text2 }}>{t.feed0921}</span>
             </div>
             <div style={{ display: "flex", gap: 10 }}>
-              <span style={{ color: c.faint }}>08:30</span>
-              <span style={{ color: c.text2 }}>Juno submitted 2 drafts for review</span>
+              <span style={{ color: c.faint }}>{t.feedTime0830}</span>
+              <span style={{ color: c.text2 }}>{t.feed0830}</span>
             </div>
           </div>
         </div>
@@ -195,7 +194,7 @@ export default function AuthPage() {
             letterSpacing: ".08em",
           }}
         >
-          ARKAGENT.AI — GLOBAL · IAGENT.CC — 中国大陆
+          {t.regions}
         </div>
       </div>
       </div>
@@ -251,11 +250,10 @@ export default function AuthPage() {
                   color: c.green,
                 }}
               >
-                Reset link sent
+                {t.resetSentTitle}
               </div>
               <div style={{ fontSize: 13.5, color: c.muted, marginTop: 4 }}>
-                Check {authEmailShown} — the link expires in 30 minutes. No email? Check spam or
-                resend below.
+                {t.resetSentBody(authEmailShown)}
               </div>
             </div>
           )}
@@ -276,7 +274,7 @@ export default function AuthPage() {
                       cursor: "pointer",
                     }}
                   >
-                    G · Google
+                    {t.ssoGoogle}
                   </Btn>
                   <Btn
                     onClick={ssoUnavailable}
@@ -291,7 +289,7 @@ export default function AuthPage() {
                       cursor: "pointer",
                     }}
                   >
-                    微信 WeChat
+                    {t.ssoWeChat}
                   </Btn>
                 </div>
                 <div
@@ -304,7 +302,8 @@ export default function AuthPage() {
                     fontSize: 11,
                   }}
                 >
-                  <span style={{ flex: 1, height: 1, background: c.line }}></span>OR
+                  <span style={{ flex: 1, height: 1, background: c.line }}></span>
+                  {t.orDivider}
                   <span style={{ flex: 1, height: 1, background: c.line }}></span>
                 </div>
               </>
@@ -320,12 +319,12 @@ export default function AuthPage() {
                     marginBottom: 7,
                   }}
                 >
-                  FULL NAME
+                  {t.labelName}
                 </div>
                 <input
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  placeholder="Wei Zhang"
+                  placeholder={t.placeholderName}
                   style={{
                     width: "100%",
                     background: c.panel,
@@ -349,12 +348,12 @@ export default function AuthPage() {
                   marginBottom: 7,
                 }}
               >
-                WORK EMAIL
+                {t.labelEmail}
               </div>
               <input
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="wei@company.com"
+                placeholder={t.placeholderEmail}
                 style={{
                   width: "100%",
                   background: c.panel,
@@ -378,13 +377,13 @@ export default function AuthPage() {
                     marginBottom: 7,
                   }}
                 >
-                  PASSWORD
+                  {t.labelPassword}
                 </div>
                 <input
                   type="password"
                   value={pw}
                   onChange={(e) => setPw(e.target.value)}
-                  placeholder="••••••••••"
+                  placeholder={t.placeholderPassword}
                   style={{
                     width: "100%",
                     background: c.panel,
@@ -415,7 +414,7 @@ export default function AuthPage() {
                 marginTop: 4,
               }}
             >
-              {busy ? "Please wait…" : authBtnLabel}
+              {busy ? t.btnPleaseWait : authBtnLabel}
             </Btn>
           </div>
           <div
@@ -441,7 +440,7 @@ export default function AuthPage() {
                     padding: 0,
                   }}
                 >
-                  Forgot password?
+                  {t.forgotPassword}
                 </Btn>
                 <Btn
                   onClick={() => setAuth("signup")}
@@ -455,14 +454,14 @@ export default function AuthPage() {
                     padding: 0,
                   }}
                 >
-                  New here? Create account
+                  {t.newHere}
                 </Btn>
               </>
             )}
             {aSignup && (
               <>
                 <span style={{ color: c.faint, fontSize: 12.5 }}>
-                  By signing up you agree to the Terms.
+                  {t.termsNotice}
                 </span>
                 <Btn
                   onClick={() => setAuth("login")}
@@ -476,7 +475,7 @@ export default function AuthPage() {
                     padding: 0,
                   }}
                 >
-                  Have an account? Sign in
+                  {t.haveAccount}
                 </Btn>
               </>
             )}
@@ -494,7 +493,7 @@ export default function AuthPage() {
                   padding: 0,
                 }}
               >
-                ← Back to sign in
+                {t.backToSignIn}
               </Btn>
             )}
           </div>

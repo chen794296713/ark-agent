@@ -3,17 +3,20 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { c, font, r } from "@/lib/theme";
-import { dict } from "@/lib/i18n";
+import { common } from "@/lib/i18n/common";
+import { landing } from "@/lib/i18n/landing";
 import { useApp } from "@/lib/store";
 import { landingRoles, heroFeed } from "@/lib/data";
 import { Btn, HoverDiv } from "@/components/ui";
 import { MobileNav } from "@/components/MobileNav";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 
 export default function LandingPage() {
   const router = useRouter();
-  const { lang, setLang } = useApp();
-  const t = dict[lang];
+  const { lang } = useApp();
+  const t = landing[lang];
+  const nav = common[lang];
 
   const [tick, setTick] = useState(0);
   const [approved, setApproved] = useState(false);
@@ -27,9 +30,6 @@ export default function LandingPage() {
   const len = heroFeed.length;
   const off = tick % len;
   const feedLines = [0, 1, 2, 3].map((i) => heroFeed[(off + i) % len]);
-
-  const langBg = (l: typeof lang) => (lang === l ? c.lime : "transparent");
-  const langC = (l: typeof lang) => (lang === l ? c.ink : c.muted);
 
   return (
     <div style={{ minHeight: "100vh" }}>
@@ -92,16 +92,16 @@ export default function LandingPage() {
             }}
           >
             <a href="#roles" style={{ color: c.muted, textDecoration: "none" }}>
-              {t.navAgents}
+              {nav.navAgents}
             </a>
             <a href="#how" style={{ color: c.muted, textDecoration: "none" }}>
-              {t.navHow}
+              {nav.navHow}
             </a>
             <a href="#engines" style={{ color: c.muted, textDecoration: "none" }}>
-              {t.navEngines}
+              {nav.navEngines}
             </a>
             <a href="#pricing" style={{ color: c.muted, textDecoration: "none" }}>
-              {t.navPricing}
+              {nav.navPricing}
             </a>
           </div>
           <div
@@ -112,51 +112,7 @@ export default function LandingPage() {
               gap: 16,
             }}
           >
-            <div
-              style={{
-                display: "flex",
-                border: `1px solid ${c.border}`,
-                fontFamily: font.mono,
-                fontSize: 12,
-              }}
-            >
-              <button
-                onClick={() => setLang("en")}
-                style={{
-                  border: "none",
-                  cursor: "pointer",
-                  padding: "6px 12px",
-                  background: langBg("en"),
-                  color: langC("en"),
-                }}
-              >
-                EN
-              </button>
-              <button
-                onClick={() => setLang("zh")}
-                style={{
-                  border: "none",
-                  cursor: "pointer",
-                  padding: "6px 12px",
-                  background: langBg("zh"),
-                  color: langC("zh"),
-                }}
-              >
-                简
-              </button>
-              <button
-                onClick={() => setLang("zht")}
-                style={{
-                  border: "none",
-                  cursor: "pointer",
-                  padding: "6px 12px",
-                  background: langBg("zht"),
-                  color: langC("zht"),
-                }}
-              >
-                繁
-              </button>
-            </div>
+            <LanguageSwitcher />
             <ThemeToggle />
             <button
               onClick={() => router.push("/auth")}
@@ -169,7 +125,7 @@ export default function LandingPage() {
                 fontFamily: font.sans,
               }}
             >
-              {t.signin}
+              {nav.signin}
             </button>
             <Btn
               onClick={() => router.push("/hire")}
@@ -185,12 +141,12 @@ export default function LandingPage() {
               }}
               hoverStyle={{ background: c.limeHover }}
             >
-              {t.hire}
+              {nav.hire}
             </Btn>
           </div>
           {/* Mobile hamburger — shown only ≤640px via --r-mobile-nav */}
           <button
-            aria-label="Open menu"
+            aria-label={t.openMenu}
             onClick={() => setNavOpen(true)}
             style={{
               display: r.mobileNav,
@@ -351,7 +307,7 @@ export default function LandingPage() {
               </div>
               <div>
                 <div style={{ fontFamily: font.space, fontWeight: 700, fontSize: 17 }}>Nova</div>
-                <div style={{ fontSize: 13, color: c.muted }}>Sales Prospector</div>
+                <div style={{ fontSize: 13, color: c.muted }}>{t.cardRole}</div>
               </div>
               <div
                 style={{
@@ -381,7 +337,7 @@ export default function LandingPage() {
                     letterSpacing: ".08em",
                   }}
                 >
-                  WORKING
+                  {t.cardStatus}
                 </span>
               </div>
             </div>
@@ -475,7 +431,7 @@ export default function LandingPage() {
                   color: c.accent,
                 }}
               >
-                2,180 credits this week
+                {t.cardCredits}
               </span>
             </div>
           </div>
@@ -493,7 +449,7 @@ export default function LandingPage() {
             marginBottom: 16,
           }}
         >
-          THE ROSTER
+          {t.rosterEyebrow}
         </div>
         <div
           style={{
@@ -514,11 +470,10 @@ export default function LandingPage() {
               margin: 0,
             }}
           >
-            Every seat you can&apos;t fill yet.
+            {t.rosterTitle}
           </h2>
           <p style={{ color: c.muted, maxWidth: 380, margin: 0, fontSize: 15 }}>
-            Eight ready-made roles — or describe your own. Each agent ships with a job-specific skill
-            set and learns your business from day one.
+            {t.rosterSub}
           </p>
         </div>
         <div
@@ -583,7 +538,7 @@ export default function LandingPage() {
                 }}
               >
                 <span>{r.price}</span>
-                <span style={{ color: c.accent }}>HIRE →</span>
+                <span style={{ color: c.accent }}>{t.rosterHire}</span>
               </div>
             </HoverDiv>
           ))}
@@ -609,7 +564,7 @@ export default function LandingPage() {
               marginBottom: 16,
             }}
           >
-            HOW IT WORKS
+            {t.howEyebrow}
           </div>
           <h2
             style={{
@@ -621,9 +576,9 @@ export default function LandingPage() {
               maxWidth: 640,
             }}
           >
-            Brief it like a person.
+            {t.howTitleL1}
             <br />
-            Deploy it like software.
+            {t.howTitleL2}
           </h2>
           <div style={{ display: "grid", gridTemplateColumns: r.col3, gap: r.gapMd }}>
             <div style={{ borderTop: `1px solid ${c.borderStrong}`, paddingTop: 24 }}>
@@ -640,11 +595,10 @@ export default function LandingPage() {
                   marginBottom: 10,
                 }}
               >
-                Describe the job
+                {t.how1Title}
               </div>
               <p style={{ color: c.muted, fontSize: 15, margin: 0 }}>
-                Role, instructions, rules, first tasks, reminders. Plain language — no flowcharts to
-                build, nothing to integrate.
+                {t.how1Body}
               </p>
             </div>
             <div style={{ borderTop: `1px solid ${c.borderStrong}`, paddingTop: 24 }}>
@@ -661,11 +615,10 @@ export default function LandingPage() {
                   marginBottom: 10,
                 }}
               >
-                We spin up the machine
+                {t.how2Title}
               </div>
               <p style={{ color: c.muted, fontSize: 15, margin: 0 }}>
-                A dedicated VM boots with OpenClaw or Hermes loaded, briefed on your business and
-                connected to your channels — in minutes.
+                {t.how2Body}
               </p>
             </div>
             <div style={{ borderTop: `1px solid ${c.borderStrong}`, paddingTop: 24 }}>
@@ -682,11 +635,10 @@ export default function LandingPage() {
                   marginBottom: 10,
                 }}
               >
-                Manage from anywhere
+                {t.how3Title}
               </div>
               <p style={{ color: c.muted, fontSize: 15, margin: 0 }}>
-                Telegram, WhatsApp, WeChat, LINE or the web console. Assign tasks, review work,
-                approve improvements.
+                {t.how3Body}
               </p>
             </div>
           </div>
@@ -707,7 +659,7 @@ export default function LandingPage() {
                 letterSpacing: ".1em",
               }}
             >
-              ONE AGENT, EVERY CHANNEL
+              {t.channelsLabel}
             </span>
             {["Telegram", "WhatsApp", "WeChat 微信", "LINE", "Slack", "Email", "Web chat"].map(
               (ch) => (
@@ -739,7 +691,7 @@ export default function LandingPage() {
             marginBottom: 16,
           }}
         >
-          PICK YOUR ENGINE
+          {t.enginesEyebrow}
         </div>
         <h2
           style={{
@@ -750,7 +702,7 @@ export default function LandingPage() {
             margin: "0 0 48px",
           }}
         >
-          Two engines. One workforce.
+          {t.enginesTitle}
         </h2>
         <div style={{ display: "grid", gridTemplateColumns: r.col3, gap: r.gapSm }}>
           <div style={{ border: `1px solid ${c.border}`, background: c.panel, padding: "32px 28px" }}>
@@ -763,7 +715,7 @@ export default function LandingPage() {
                 marginBottom: 18,
               }}
             >
-              COMMUNITY ENGINE
+              {t.engCommunityKicker}
             </div>
             <div
               style={{
@@ -776,13 +728,10 @@ export default function LandingPage() {
               OpenClaw
             </div>
             <p style={{ color: c.muted, fontSize: 14.5, margin: "0 0 22px" }}>
-              The open agent runtime. 100+ skills, every major messaging channel, and a massive
-              plugin ecosystem that grows weekly.
+              {t.engCommunityBody}
             </p>
-            <div style={{ fontFamily: font.mono, fontSize: 12, color: c.faint }}>
-              BEST FOR → outreach, support,
-              <br />
-              channel-heavy roles
+            <div style={{ fontFamily: font.mono, fontSize: 12, color: c.faint, whiteSpace: "pre-line" }}>
+              {t.engCommunityBest}
             </div>
           </div>
           <div style={{ border: `1px solid ${c.border}`, background: c.panel, padding: "32px 28px" }}>
@@ -795,7 +744,7 @@ export default function LandingPage() {
                 marginBottom: 18,
               }}
             >
-              PRECISION ENGINE
+              {t.engPrecisionKicker}
             </div>
             <div
               style={{
@@ -808,13 +757,10 @@ export default function LandingPage() {
               Hermes
             </div>
             <p style={{ color: c.muted, fontSize: 14.5, margin: "0 0 22px" }}>
-              A deep-reasoning operator built for long-horizon work, with strict guardrails,
-              approvals and a full audit trail.
+              {t.engPrecisionBody}
             </p>
-            <div style={{ fontFamily: font.mono, fontSize: 12, color: c.faint }}>
-              BEST FOR → legal, finance,
-              <br />
-              research, OPC operations
+            <div style={{ fontFamily: font.mono, fontSize: 12, color: c.faint, whiteSpace: "pre-line" }}>
+              {t.engPrecisionBest}
             </div>
           </div>
           <div
@@ -833,7 +779,7 @@ export default function LandingPage() {
                 marginBottom: 18,
               }}
             >
-              RECOMMENDED
+              {t.engRecommendedKicker}
             </div>
             <div
               style={{
@@ -843,14 +789,13 @@ export default function LandingPage() {
                 marginBottom: 12,
               }}
             >
-              Auto-match
+              {t.engRecommendedName}
             </div>
             <p style={{ color: c.muted, fontSize: 14.5, margin: "0 0 22px" }}>
-              We read the job brief and assign the engine that fits. Switch anytime — no migration,
-              no downtime, same memory.
+              {t.engRecommendedBody}
             </p>
-            <div style={{ fontFamily: font.mono, fontSize: 12, color: c.faint }}>
-              BEST FOR → everyone else
+            <div style={{ fontFamily: font.mono, fontSize: 12, color: c.faint, whiteSpace: "pre-line" }}>
+              {t.engRecommendedBest}
             </div>
           </div>
         </div>
@@ -879,7 +824,7 @@ export default function LandingPage() {
                 marginBottom: 16,
               }}
             >
-              SELF-REVIEW
+              {t.learnEyebrow}
             </div>
             <h2
               style={{
@@ -890,18 +835,13 @@ export default function LandingPage() {
                 margin: "0 0 24px",
               }}
             >
-              Agents that get better every week.
+              {t.learnTitle}
             </h2>
             <p style={{ color: c.muted, fontSize: 17, margin: "0 0 32px" }}>
-              Every ArkAgent runs a scheduled self-review: what worked, what didn&apos;t, what to
-              change next. It does the learning — you approve the changes.
+              {t.learnBody}
             </p>
             <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-              {[
-                "Feedback loop from your replies, ratings and corrections",
-                "Persistent memory of your business, tone and rules",
-                "An improvement queue you approve with one tap",
-              ].map((txt) => (
+              {[t.learnPoint1, t.learnPoint2, t.learnPoint3].map((txt) => (
                 <div key={txt} style={{ display: "flex", gap: 14, alignItems: "baseline" }}>
                   <span style={{ fontFamily: font.mono, color: c.accent, fontSize: 13 }}>→</span>
                   <span style={{ color: c.text2, fontSize: 15 }}>{txt}</span>
@@ -926,7 +866,7 @@ export default function LandingPage() {
                   color: c.muted,
                 }}
               >
-                SELF-REVIEW · WEEK OF JUN 8
+                {t.reviewHeader}
               </div>
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                 <div
@@ -961,7 +901,7 @@ export default function LandingPage() {
                 <div
                   style={{ fontFamily: font.mono, fontSize: 11, color: c.faint, marginBottom: 6 }}
                 >
-                  REPLY RATE
+                  {t.reviewReplyRate}
                 </div>
                 <div style={{ fontFamily: font.space, fontWeight: 700, fontSize: 22 }}>
                   31% <span style={{ fontSize: 13, color: c.green }}>+4</span>
@@ -971,7 +911,7 @@ export default function LandingPage() {
                 <div
                   style={{ fontFamily: font.mono, fontSize: 11, color: c.faint, marginBottom: 6 }}
                 >
-                  MEETINGS
+                  {t.reviewMeetings}
                 </div>
                 <div style={{ fontFamily: font.space, fontWeight: 700, fontSize: 22 }}>
                   9 <span style={{ fontSize: 13, color: c.green }}>+2</span>
@@ -981,7 +921,7 @@ export default function LandingPage() {
                 <div
                   style={{ fontFamily: font.mono, fontSize: 11, color: c.faint, marginBottom: 6 }}
                 >
-                  LEAD SCORE
+                  {t.reviewLeadScore}
                 </div>
                 <div style={{ fontFamily: font.space, fontWeight: 700, fontSize: 22 }}>
                   8.2<span style={{ fontSize: 13, color: c.faint }}>/10</span>
@@ -989,11 +929,10 @@ export default function LandingPage() {
               </div>
             </div>
             <div style={{ fontSize: 14, color: c.text2, marginBottom: 8 }}>
-              “Tuesday 10–11am is the best send window for logistics ICP. Case-study openers
-              outperform intro blurbs 2:1.”
+              {t.reviewQuote}
             </div>
             <div style={{ fontFamily: font.mono, fontSize: 12, color: c.faint, marginBottom: 20 }}>
-              LEARNED FROM 142 INTERACTIONS
+              {t.reviewLearnedFrom}
             </div>
             <div
               style={{
@@ -1006,12 +945,12 @@ export default function LandingPage() {
             >
               <div>
                 <div style={{ fontSize: 14, color: c.text }}>
-                  Queued change: shorten follow-up #2 to three lines
+                  {t.reviewQueued}
                 </div>
                 <div
                   style={{ fontFamily: font.mono, fontSize: 11, color: c.faint, marginTop: 3 }}
                 >
-                  EXPECTED IMPACT +6% REPLY RATE
+                  {t.reviewImpact}
                 </div>
               </div>
               <button
@@ -1027,7 +966,7 @@ export default function LandingPage() {
                   cursor: "pointer",
                 }}
               >
-                {approved ? "✓ Approved" : "Approve"}
+                {approved ? t.reviewApproved : t.reviewApprove}
               </button>
             </div>
           </div>
@@ -1045,7 +984,7 @@ export default function LandingPage() {
             marginBottom: 16,
           }}
         >
-          PRICING
+          {t.pricingEyebrow}
         </div>
         <div
           style={{
@@ -1066,13 +1005,12 @@ export default function LandingPage() {
               margin: 0,
             }}
           >
-            Pay like payroll.
+            {t.pricingTitleL1}
             <br />
-            Scale like software.
+            {t.pricingTitleL2}
           </h2>
           <p style={{ color: c.muted, maxWidth: 380, margin: 0, fontSize: 15 }}>
-            Per-agent monthly plans with included credits. Usage beyond the allowance is metered at
-            $2 per 1,000 credits.
+            {t.pricingSub}
           </p>
         </div>
         <div
@@ -1093,7 +1031,7 @@ export default function LandingPage() {
               flexDirection: "column",
             }}
           >
-            <div style={{ fontFamily: font.space, fontWeight: 700, fontSize: 22 }}>Associate</div>
+            <div style={{ fontFamily: font.space, fontWeight: 700, fontSize: 22 }}>{t.planAssociate}</div>
             <div
               style={{
                 fontFamily: font.mono,
@@ -1102,7 +1040,7 @@ export default function LandingPage() {
                 margin: "4px 0 24px",
               }}
             >
-              YOUR FIRST HIRE
+              {t.planAssociateTag}
             </div>
             <div
               style={{
@@ -1113,7 +1051,7 @@ export default function LandingPage() {
               }}
             >
               $49
-              <span style={{ fontSize: 15, color: c.faint, fontWeight: 400 }}> /agent/mo</span>
+              <span style={{ fontSize: 15, color: c.faint, fontWeight: 400 }}>{t.perMonth}</span>
             </div>
             <div
               style={{
@@ -1127,16 +1065,16 @@ export default function LandingPage() {
               }}
             >
               <div style={{ display: "flex", gap: 10 }}>
-                <span style={{ color: c.accent }}>✓</span>5,000 credits included monthly
+                <span style={{ color: c.accent }}>✓</span>{t.associateF1}
               </div>
               <div style={{ display: "flex", gap: 10 }}>
-                <span style={{ color: c.accent }}>✓</span>1 messaging channel
+                <span style={{ color: c.accent }}>✓</span>{t.associateF2}
               </div>
               <div style={{ display: "flex", gap: 10 }}>
-                <span style={{ color: c.accent }}>✓</span>Weekly self-review
+                <span style={{ color: c.accent }}>✓</span>{t.associateF3}
               </div>
               <div style={{ display: "flex", gap: 10 }}>
-                <span style={{ color: c.accent }}>✓</span>OpenClaw engine
+                <span style={{ color: c.accent }}>✓</span>{t.associateF4}
               </div>
             </div>
             <Btn
@@ -1153,7 +1091,7 @@ export default function LandingPage() {
               }}
               hoverStyle={{ borderColor: c.accent, color: c.accent }}
             >
-              Start hiring
+              {t.startHiring}
             </Btn>
           </div>
 
@@ -1181,9 +1119,9 @@ export default function LandingPage() {
                 padding: "5px 10px",
               }}
             >
-              MOST HIRED
+              {t.mostHired}
             </div>
-            <div style={{ fontFamily: font.space, fontWeight: 700, fontSize: 22 }}>Professional</div>
+            <div style={{ fontFamily: font.space, fontWeight: 700, fontSize: 22 }}>{t.planProfessional}</div>
             <div
               style={{
                 fontFamily: font.mono,
@@ -1192,7 +1130,7 @@ export default function LandingPage() {
                 margin: "4px 0 24px",
               }}
             >
-              A REAL TEAMMATE
+              {t.planProfessionalTag}
             </div>
             <div
               style={{
@@ -1203,7 +1141,7 @@ export default function LandingPage() {
               }}
             >
               $149
-              <span style={{ fontSize: 15, color: c.faint, fontWeight: 400 }}> /agent/mo</span>
+              <span style={{ fontSize: 15, color: c.faint, fontWeight: 400 }}>{t.perMonth}</span>
             </div>
             <div
               style={{
@@ -1217,19 +1155,19 @@ export default function LandingPage() {
               }}
             >
               <div style={{ display: "flex", gap: 10 }}>
-                <span style={{ color: c.accent }}>✓</span>25,000 credits included monthly
+                <span style={{ color: c.accent }}>✓</span>{t.professionalF1}
               </div>
               <div style={{ display: "flex", gap: 10 }}>
-                <span style={{ color: c.accent }}>✓</span>All channels — Telegram to WeChat
+                <span style={{ color: c.accent }}>✓</span>{t.professionalF2}
               </div>
               <div style={{ display: "flex", gap: 10 }}>
-                <span style={{ color: c.accent }}>✓</span>Daily self-review + persistent memory
+                <span style={{ color: c.accent }}>✓</span>{t.professionalF3}
               </div>
               <div style={{ display: "flex", gap: 10 }}>
-                <span style={{ color: c.accent }}>✓</span>Both engines + auto-match
+                <span style={{ color: c.accent }}>✓</span>{t.professionalF4}
               </div>
               <div style={{ display: "flex", gap: 10 }}>
-                <span style={{ color: c.accent }}>✓</span>Priority compute
+                <span style={{ color: c.accent }}>✓</span>{t.professionalF5}
               </div>
             </div>
             <Btn
@@ -1246,7 +1184,7 @@ export default function LandingPage() {
               }}
               hoverStyle={{ background: c.limeHover }}
             >
-              Start hiring
+              {t.startHiring}
             </Btn>
           </div>
 
@@ -1260,7 +1198,7 @@ export default function LandingPage() {
               flexDirection: "column",
             }}
           >
-            <div style={{ fontFamily: font.space, fontWeight: 700, fontSize: 22 }}>Director</div>
+            <div style={{ fontFamily: font.space, fontWeight: 700, fontSize: 22 }}>{t.planDirector}</div>
             <div
               style={{
                 fontFamily: font.mono,
@@ -1269,7 +1207,7 @@ export default function LandingPage() {
                 margin: "4px 0 24px",
               }}
             >
-              OPC &amp; HEAVY ROLES
+              {t.planDirectorTag}
             </div>
             <div
               style={{
@@ -1280,7 +1218,7 @@ export default function LandingPage() {
               }}
             >
               $399
-              <span style={{ fontSize: 15, color: c.faint, fontWeight: 400 }}> /agent/mo</span>
+              <span style={{ fontSize: 15, color: c.faint, fontWeight: 400 }}>{t.perMonth}</span>
             </div>
             <div
               style={{
@@ -1294,19 +1232,19 @@ export default function LandingPage() {
               }}
             >
               <div style={{ display: "flex", gap: 10 }}>
-                <span style={{ color: c.accent }}>✓</span>100,000 credits included monthly
+                <span style={{ color: c.accent }}>✓</span>{t.directorF1}
               </div>
               <div style={{ display: "flex", gap: 10 }}>
-                <span style={{ color: c.accent }}>✓</span>Dedicated VM resources
+                <span style={{ color: c.accent }}>✓</span>{t.directorF2}
               </div>
               <div style={{ display: "flex", gap: 10 }}>
-                <span style={{ color: c.accent }}>✓</span>OPC mode — one agent, many hats
+                <span style={{ color: c.accent }}>✓</span>{t.directorF3}
               </div>
               <div style={{ display: "flex", gap: 10 }}>
-                <span style={{ color: c.accent }}>✓</span>Audit log &amp; approval workflows
+                <span style={{ color: c.accent }}>✓</span>{t.directorF4}
               </div>
               <div style={{ display: "flex", gap: 10 }}>
-                <span style={{ color: c.accent }}>✓</span>White-glove onboarding
+                <span style={{ color: c.accent }}>✓</span>{t.directorF5}
               </div>
             </div>
             <Btn
@@ -1323,7 +1261,7 @@ export default function LandingPage() {
               }}
               hoverStyle={{ borderColor: c.accent, color: c.accent }}
             >
-              Start hiring
+              {t.startHiring}
             </Btn>
           </div>
         </div>
@@ -1336,7 +1274,7 @@ export default function LandingPage() {
             textAlign: "center",
           }}
         >
-          ANNUAL −20% · 14-DAY TRIAL ON EVERY SEAT · UNUSED CREDITS ROLL OVER ONE CYCLE
+          {t.pricingFoot}
         </div>
       </div>
 
@@ -1382,9 +1320,9 @@ export default function LandingPage() {
                 ARK_AGENT
               </span>
             </div>
-            <div style={{ color: c.muted, fontSize: 14 }}>Autonomous employees for everyone.</div>
+            <div style={{ color: c.muted, fontSize: 14 }}>{t.footTagline}</div>
             <div style={{ fontFamily: font.mono, fontSize: 12, color: c.faint, marginTop: 20 }}>
-              © 2026 ARKAGENT INC.
+              {t.footCopyright}
             </div>
           </div>
           <div
@@ -1405,16 +1343,16 @@ export default function LandingPage() {
                 marginBottom: 4,
               }}
             >
-              PRODUCT
+              {t.footProduct}
             </div>
             <a href="#roles" style={{ color: c.muted, textDecoration: "none" }}>
-              Agents
+              {t.footProductAgents}
             </a>
             <a href="#engines" style={{ color: c.muted, textDecoration: "none" }}>
-              Engines
+              {t.footProductEngines}
             </a>
             <a href="#pricing" style={{ color: c.muted, textDecoration: "none" }}>
-              Pricing
+              {t.footProductPricing}
             </a>
           </div>
           <div
@@ -1435,11 +1373,11 @@ export default function LandingPage() {
                 marginBottom: 4,
               }}
             >
-              COMPANY
+              {t.footCompany}
             </div>
-            <span>About</span>
-            <span>Security</span>
-            <span>Careers</span>
+            <span>{t.footAbout}</span>
+            <span>{t.footSecurity}</span>
+            <span>{t.footCareers}</span>
           </div>
           <div
             style={{
@@ -1459,13 +1397,13 @@ export default function LandingPage() {
                 marginBottom: 4,
               }}
             >
-              REGIONS
+              {t.footRegions}
             </div>
             <span style={{ fontFamily: font.mono, fontSize: 13 }}>
-              arkagent.ai <span style={{ color: c.faint }}>— GLOBAL</span>
+              arkagent.ai <span style={{ color: c.faint }}>{t.footRegionGlobal}</span>
             </span>
             <span style={{ fontFamily: font.mono, fontSize: 13 }}>
-              iagent.cc <span style={{ color: c.faint }}>— 中国大陆</span>
+              iagent.cc <span style={{ color: c.faint }}>{t.footRegionChina}</span>
             </span>
             <Btn
               onClick={() => router.push("/directions")}
@@ -1483,7 +1421,7 @@ export default function LandingPage() {
               }}
               hoverStyle={{ color: c.accent, borderColor: c.limeBorder }}
             >
-              ⌥ DESIGN DIRECTIONS
+              {t.footDirections}
             </Btn>
           </div>
         </div>

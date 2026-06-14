@@ -5,6 +5,8 @@ import { c, font, r } from "@/lib/theme";
 import { channelDefs } from "@/lib/data";
 import { Btn } from "@/components/ui";
 import { api, ApiError, type ChannelDTO } from "@/lib/client-api";
+import { useApp } from "@/lib/store";
+import { channels as channelsI18n, type ChannelsDict } from "@/lib/i18n/channels";
 
 /** Map a channelDefs display name → the API channel `type` enum. */
 const TYPE_BY_NAME: Record<string, string> = {
@@ -17,20 +19,22 @@ const TYPE_BY_NAME: Record<string, string> = {
 };
 
 /** statusDisplay-style mapping for channel connection state. */
-function channelStatusDisplay(status: string | undefined): { label: string; color: string; dot: string } {
+function channelStatusDisplay(status: string | undefined, t: ChannelsDict): { label: string; color: string; dot: string } {
   switch (status) {
     case "connected":
-      return { label: "CONNECTED", color: c.green, dot: c.green };
+      return { label: t.statusConnected, color: c.green, dot: c.green };
     case "pending":
-      return { label: "PENDING", color: c.amber, dot: c.amber };
+      return { label: t.statusPending, color: c.amber, dot: c.amber };
     case "error":
-      return { label: "ERROR", color: c.red, dot: c.red };
+      return { label: t.statusError, color: c.red, dot: c.red };
     default:
-      return { label: "NOT CONNECTED", color: c.faint, dot: c.faint };
+      return { label: t.statusNotConnected, color: c.faint, dot: c.faint };
   }
 }
 
 export default function ChannelsPage() {
+  const { lang } = useApp();
+  const t = channelsI18n[lang];
   const [chanOpen, setChanOpen] = useState<string>("Telegram");
   // Local edits keyed by `${name}.${fieldKey}` — seeded from each channel's config.
   const [chanCfg, setChanCfg] = useState<Record<string, string>>({});
@@ -69,11 +73,11 @@ export default function ChannelsPage() {
       setByType(map);
       seedConfig(channels);
     } catch (e) {
-      setError(e instanceof ApiError ? e.message : "Could not load channels.");
+      setError(e instanceof ApiError ? e.message : t.loadError);
     } finally {
       setLoading(false);
     }
-  }, [seedConfig]);
+  }, [seedConfig, t]);
 
   useEffect(() => {
     void load();
@@ -96,7 +100,7 @@ export default function ChannelsPage() {
       setSavedFlash((s) => ({ ...s, [name]: true }));
       window.setTimeout(() => setSavedFlash((s) => ({ ...s, [name]: false })), 1800);
     } catch (e) {
-      setRowError((s) => ({ ...s, [name]: e instanceof ApiError ? e.message : "Could not save." }));
+      setRowError((s) => ({ ...s, [name]: e instanceof ApiError ? e.message : t.saveError }));
     } finally {
       setBusy((s) => ({ ...s, [name]: false }));
     }
@@ -113,7 +117,7 @@ export default function ChannelsPage() {
       const { channel } = await api.disconnectChannel(ch.id);
       setByType((s) => ({ ...s, [channel.type]: channel }));
     } catch (e) {
-      setRowError((s) => ({ ...s, [name]: e instanceof ApiError ? e.message : "Could not disconnect." }));
+      setRowError((s) => ({ ...s, [name]: e instanceof ApiError ? e.message : t.disconnectError }));
     } finally {
       setBusy((s) => ({ ...s, [name]: false }));
     }
@@ -122,13 +126,13 @@ export default function ChannelsPage() {
   return (
     <div data-screen-label="Channels" style={{ padding: `${r.contentPy} ${r.pagePx}` }}>
       <div style={{ marginBottom: 28 }}>
-        <h2 style={{ fontFamily: font.space, fontWeight: 700, fontSize: "clamp(20px, 5vw, 26px)", margin: "0 0 6px" }}>Channels</h2>
-        <p style={{ color: c.muted, margin: 0, fontSize: 14.5 }}>Where you — and your customers — talk to your agents. Connect once; every agent can use it.</p>
+        <h2 style={{ fontFamily: font.space, fontWeight: 700, fontSize: "clamp(20px, 5vw, 26px)", margin: "0 0 6px" }}>{t.heading}</h2>
+        <p style={{ color: c.muted, margin: 0, fontSize: 14.5 }}>{t.intro}</p>
       </div>
 
       {loading ? (
         <div style={{ maxWidth: 780, border: `1px solid ${c.border}`, background: c.panel, padding: "40px 20px", textAlign: "center", fontFamily: font.mono, fontSize: 12.5, letterSpacing: ".08em", color: c.faint }}>
-          LOADING CHANNELS…
+          {t.loading}
         </div>
       ) : error ? (
         <div style={{ maxWidth: 780, border: `1px solid ${c.redBorder}`, background: c.redWash, padding: "20px", display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap" }}>
@@ -138,7 +142,7 @@ export default function ChannelsPage() {
             style={{ background: "transparent", border: `1px solid ${c.borderStrong}`, color: c.muted, padding: "9px 16px", fontFamily: font.space, fontSize: 13, cursor: "pointer" }}
             hoverStyle={{ borderColor: c.borderMute, color: c.text }}
           >
-            Retry
+            {t.retry}
           </Btn>
         </div>
       ) : (
@@ -147,12 +151,12 @@ export default function ChannelsPage() {
             const type = TYPE_BY_NAME[d.name];
             const ch = byType[type];
             const isOpen = chanOpen === d.name;
-            const st = channelStatusDisplay(ch?.status);
+            const st = channelStatusDisplay(ch?.status, t);
             const conn = ch?.status === "connected";
             const chev = isOpen ? "▾" : "▸";
             const rowBusy = !!busy[d.name];
             const flash = !!savedFlash[d.name];
-            const saveLabel = rowBusy ? "Saving…" : flash ? "✓ Saved" : conn ? "Save changes" : "Connect";
+            const saveLabel = rowBusy ? t.saving : flash ? t.saved : conn ? t.saveChanges : t.connect;
             const note = ch?.label || d.note;
             const rErr = rowError[d.name];
             return (
@@ -205,7 +209,7 @@ export default function ChannelsPage() {
                           style={{ background: "transparent", border: `1px solid ${c.borderStrong}`, color: c.muted, padding: "9px 16px", fontFamily: font.space, fontSize: 13, cursor: "pointer" }}
                           hoverStyle={{ borderColor: c.redBorder, color: c.red }}
                         >
-                          Disconnect
+                          {t.disconnect}
                         </Btn>
                       )}
                       <span style={{ marginLeft: "auto", fontFamily: font.mono, fontSize: 11, color: c.faint }}>{note}</span>
@@ -215,7 +219,7 @@ export default function ChannelsPage() {
               </div>
             );
           })}
-          <div style={{ border: `1px dashed ${c.border}`, padding: "14px 18px", fontSize: 13, color: c.faint }}>Credentials are encrypted and scoped to this workspace. Agents request channel access per role — you approve once.</div>
+          <div style={{ border: `1px dashed ${c.border}`, padding: "14px 18px", fontSize: 13, color: c.faint }}>{t.footnote}</div>
         </div>
       )}
     </div>
