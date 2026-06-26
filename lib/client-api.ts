@@ -200,7 +200,7 @@ async function streamMessage(
   agentId: string,
   body: string,
   options: { onDelta: (delta: string) => void; signal?: AbortSignal }
-): Promise<{ conversationId: string; replyMessage: MessageDTO }> {
+): Promise<{ conversationId: string; replyMessage: MessageDTO; userMessage?: MessageDTO }> {
   const res = await fetch(`/api/agents/${agentId}/messages`, {
     method: "POST",
     headers: { "content-type": "application/json", accept: "text/event-stream" },
@@ -214,7 +214,7 @@ async function streamMessage(
 async function consumeSse(
   res: Response,
   onDelta: (delta: string) => void
-): Promise<{ conversationId: string; replyMessage: MessageDTO }> {
+): Promise<{ conversationId: string; replyMessage: MessageDTO; userMessage?: MessageDTO }> {
   if (!res.ok || !res.body) {
     let payload: { error?: string } | null = null;
     try { payload = (await res.json()) as { error?: string }; } catch {}
@@ -225,6 +225,7 @@ async function consumeSse(
   let buffer = "";
   let conversationId = "";
   let replyMessage: MessageDTO | null = null;
+  let userMessage: MessageDTO | undefined;
   while (true) {
     const { done, value } = await reader.read();
     if (done) break;
@@ -239,18 +240,20 @@ async function consumeSse(
         replyMessage = result.replyMessage;
       } else if (result.kind === "error") {
         throw new ApiError(result.message, 500);
+      } else if (result.kind === "user" && result.userMessage) {
+        userMessage = result.userMessage;
       }
     }
   }
   if (!replyMessage) throw new ApiError("Stream ended without a final reply", 500);
-  return { conversationId, replyMessage };
+  return { conversationId, replyMessage, userMessage };
 }
 
 function parseSseEvent(
   raw: string,
   onDelta: (delta: string) => void
 ):
-  | { kind: "user" }
+  | { kind: "user"; userMessage?: MessageDTO }
   | { kind: "delta" }
   | { kind: "done"; conversationId: string; replyMessage: MessageDTO }
   | { kind: "error"; message: string }
@@ -266,7 +269,7 @@ function parseSseEvent(
   } catch {
     return { kind: "ignore" };
   }
-  if (parsed.type === "user_message") return { kind: "user" };
+  if (parsed.type === "user_message") return { kind: "user", userMessage: parsed.message };
   if (parsed.type === "delta") {
     onDelta(parsed.delta);
     return { kind: "delta" };

@@ -216,12 +216,14 @@ function ChatTab({ cur }: { cur: AgentDetailDTO }) {
     try {
       const res = await api.streamMessage(cur.id, body, { onDelta: applyDelta });
       setMessages((prev) => {
-        const withoutTemp = prev.filter((m) => m.id !== tempId);
-        const replaced = withoutTemp.map((m) =>
-          m.id === streamId ? res.replyMessage : m
-        );
-        if (replaced.some((m) => m.id === res.replyMessage.id)) return replaced;
-        return replaced;
+        // Replace both temp entries: use server-persisted user message (if any)
+        // and the final assistant reply.
+        const updated = prev.map((m) => {
+          if (m.id === tempId && res.userMessage) return res.userMessage;
+          if (m.id === streamId) return res.replyMessage;
+          return m;
+        });
+        return updated;
       });
     } catch (e) {
       // Roll back the optimistic bubbles so the input + history stay consistent.
