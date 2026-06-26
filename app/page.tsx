@@ -138,6 +138,7 @@ export default function LandingPage() {
                 fontWeight: 500,
                 fontSize: 14,
                 cursor: "pointer",
+                borderRadius: r.radiusSm,
               }}
               hoverStyle={{ background: c.limeHover }}
             >
@@ -239,6 +240,7 @@ export default function LandingPage() {
                   fontWeight: 700,
                   fontSize: 16,
                   cursor: "pointer",
+                  borderRadius: r.radiusMd,
                 }}
                 hoverStyle={{ background: c.limeHover }}
               >
@@ -255,6 +257,7 @@ export default function LandingPage() {
                   fontWeight: 500,
                   fontSize: 16,
                   cursor: "pointer",
+                  borderRadius: r.radiusMd,
                 }}
                 hoverStyle={{ borderColor: c.accent, color: c.accent }}
               >
@@ -279,6 +282,7 @@ export default function LandingPage() {
               border: `1px solid ${c.border}`,
               background: c.panel,
               boxShadow: "0 24px 60px rgba(0,0,0,.5)",
+              borderRadius: r.radiusMd,
             }}
           >
             <div
@@ -483,6 +487,8 @@ export default function LandingPage() {
             gap: 1,
             background: c.line,
             border: `1px solid ${c.line}`,
+            borderRadius: r.radiusMd,
+            overflow: "hidden",
           }}
         >
           {landingRoles.map((r) => (
@@ -670,6 +676,7 @@ export default function LandingPage() {
                     border: `1px solid ${c.border}`,
                     padding: "6px 14px",
                     color: c.text2,
+                    borderRadius: r.radiusSm,
                   }}
                 >
                   {ch}
@@ -705,7 +712,7 @@ export default function LandingPage() {
           {t.enginesTitle}
         </h2>
         <div style={{ display: "grid", gridTemplateColumns: r.col3, gap: r.gapSm }}>
-          <div style={{ border: `1px solid ${c.border}`, background: c.panel, padding: "32px 28px" }}>
+          <div style={{ border: `1px solid ${c.border}`, background: c.panel, padding: "32px 28px", borderRadius: r.radiusMd }}>
             <div
               style={{
                 fontFamily: font.mono,
@@ -734,7 +741,7 @@ export default function LandingPage() {
               {t.engCommunityBest}
             </div>
           </div>
-          <div style={{ border: `1px solid ${c.border}`, background: c.panel, padding: "32px 28px" }}>
+          <div style={{ border: `1px solid ${c.border}`, background: c.panel, padding: "32px 28px", borderRadius: r.radiusMd }}>
             <div
               style={{
                 fontFamily: font.mono,
@@ -768,6 +775,7 @@ export default function LandingPage() {
               border: `1px solid ${c.limeBorder}`,
               background: c.limeWash,
               padding: "32px 28px",
+              borderRadius: r.radiusMd,
             }}
           >
             <div
@@ -849,7 +857,7 @@ export default function LandingPage() {
               ))}
             </div>
           </div>
-          <div style={{ border: `1px solid ${c.border}`, background: c.panelDeep, padding: 28 }}>
+          <div style={{ border: `1px solid ${c.border}`, background: c.panelDeep, padding: 28, borderRadius: r.radiusMd }}>
             <div
               style={{
                 display: "flex",
@@ -894,6 +902,8 @@ export default function LandingPage() {
                 gap: 1,
                 background: c.line,
                 border: `1px solid ${c.line}`,
+                borderRadius: r.radiusSm,
+                overflow: "hidden",
                 marginBottom: 20,
               }}
             >
@@ -1029,6 +1039,7 @@ export default function LandingPage() {
               padding: "32px 28px",
               display: "flex",
               flexDirection: "column",
+              borderRadius: r.radiusMd,
             }}
           >
             <div style={{ fontFamily: font.space, fontWeight: 700, fontSize: 22 }}>{t.planAssociate}</div>
@@ -1088,6 +1099,7 @@ export default function LandingPage() {
                 fontWeight: 500,
                 fontSize: 15,
                 cursor: "pointer",
+                borderRadius: r.radiusSm,
               }}
               hoverStyle={{ borderColor: c.accent, color: c.accent }}
             >
@@ -1104,6 +1116,7 @@ export default function LandingPage() {
               display: "flex",
               flexDirection: "column",
               position: "relative",
+              borderRadius: r.radiusMd,
             }}
           >
             <div
@@ -1181,6 +1194,7 @@ export default function LandingPage() {
                 fontWeight: 700,
                 fontSize: 15,
                 cursor: "pointer",
+                borderRadius: r.radiusSm,
               }}
               hoverStyle={{ background: c.limeHover }}
             >
@@ -1196,6 +1210,7 @@ export default function LandingPage() {
               padding: "32px 28px",
               display: "flex",
               flexDirection: "column",
+              borderRadius: r.radiusMd,
             }}
           >
             <div style={{ fontFamily: font.space, fontWeight: 700, fontSize: 22 }}>{t.planDirector}</div>
@@ -1258,6 +1273,7 @@ export default function LandingPage() {
                 fontWeight: 500,
                 fontSize: 15,
                 cursor: "pointer",
+                borderRadius: r.radiusSm,
               }}
               hoverStyle={{ borderColor: c.accent, color: c.accent }}
             >

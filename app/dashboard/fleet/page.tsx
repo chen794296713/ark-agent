@@ -35,6 +35,7 @@ function FleetCard({
         background: c.panel,
         padding: 22,
         cursor: "pointer",
+        borderRadius: r.radiusMd,
       }}
     >
       <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 16 }}>
@@ -104,6 +105,7 @@ function FleetCard({
             fontSize: 13,
             fontWeight: 500,
             cursor: "pointer",
+            borderRadius: r.radiusSm,
           }}
         >
           {t.manage}
@@ -134,6 +136,7 @@ function FleetCard({
             fontSize: 13,
             cursor: busy ? "default" : "pointer",
             opacity: busy ? 0.6 : 1,
+            borderRadius: r.radiusSm,
           }}
         >
           {busy ? "…" : paused ? t.resume : t.pause}
@@ -153,6 +156,7 @@ function FleetCard({
             fontFamily: font.space,
             fontSize: 13,
             cursor: "pointer",
+            borderRadius: r.radiusSm,
           }}
         >
           {t.chat}
@@ -216,6 +220,7 @@ export default function FleetPage() {
               fontWeight: 700,
               fontSize: 13.5,
               cursor: "pointer",
+              borderRadius: r.radiusSm,
             }}
           >
             {t.hireNewAgent}
@@ -234,6 +239,7 @@ export default function FleetPage() {
             fontSize: 12,
             letterSpacing: ".06em",
             color: c.faint,
+            borderRadius: r.radiusMd,
           }}
         >
           {t.loadingFleet}
@@ -259,6 +265,7 @@ export default function FleetPage() {
             background: c.panel,
             padding: "48px 32px",
             textAlign: "center",
+            borderRadius: r.radiusMd,
           }}
         >
           <div style={{ fontFamily: font.space, fontWeight: 700, fontSize: 18, marginBottom: 8 }}>
@@ -278,6 +285,7 @@ export default function FleetPage() {
                 fontWeight: 700,
                 fontSize: 13.5,
                 cursor: "pointer",
+                borderRadius: r.radiusSm,
               }}
             >
               {t.hireNewAgent}

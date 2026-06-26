@@ -496,6 +496,7 @@ function HireInner() {
                           display: "flex",
                           gap: 14,
                           alignItems: "center",
+                          borderRadius: r.radiusMd,
                         }}
                       >
                         <div
@@ -577,6 +578,7 @@ function HireInner() {
                       fontSize: 15,
                       fontFamily: font.sans,
                       outline: "none",
+                      borderRadius: r.radiusSm,
                     }}
                   />
                 </div>
@@ -631,6 +633,7 @@ function HireInner() {
                       fontFamily: font.sans,
                       outline: "none",
                       resize: "vertical",
+                      borderRadius: r.radiusSm,
                     }}
                   />
                 </div>
@@ -685,6 +688,7 @@ function HireInner() {
                       fontFamily: font.sans,
                       outline: "none",
                       resize: "vertical",
+                      borderRadius: r.radiusSm,
                     }}
                   />
                 </div>
@@ -718,6 +722,7 @@ function HireInner() {
                           border: `1px solid ${c.border}`,
                           background: c.panel,
                           padding: "10px 14px",
+                          borderRadius: r.radiusSm,
                         }}
                       >
                         <span
@@ -766,6 +771,7 @@ function HireInner() {
                         fontSize: 14.5,
                         fontFamily: font.sans,
                         outline: "none",
+                        borderRadius: r.radiusSm,
                       }}
                     />
                     <button
@@ -778,6 +784,7 @@ function HireInner() {
                         fontFamily: font.space,
                         fontSize: 14,
                         cursor: "pointer",
+                        borderRadius: r.radiusSm,
                       }}
                     >
                       {t.addTask}
@@ -808,6 +815,7 @@ function HireInner() {
                       fontSize: 15,
                       fontFamily: font.sans,
                       outline: "none",
+                      borderRadius: r.radiusSm,
                     }}
                   />
                 </div>
@@ -847,6 +855,7 @@ function HireInner() {
                     background: ec.auto.bg,
                     padding: "22px 20px",
                     cursor: "pointer",
+                    borderRadius: r.radiusMd,
                   }}
                 >
                   <div
@@ -898,6 +907,7 @@ function HireInner() {
                     background: ec.open.bg,
                     padding: "22px 20px",
                     cursor: "pointer",
+                    borderRadius: r.radiusMd,
                   }}
                 >
                   <div
@@ -949,6 +959,7 @@ function HireInner() {
                     background: ec.hermes.bg,
                     padding: "22px 20px",
                     cursor: "pointer",
+                    borderRadius: r.radiusMd,
                   }}
                 >
                   <div
@@ -1022,6 +1033,7 @@ function HireInner() {
                         fontSize: 14,
                         fontFamily: font.sans,
                         cursor: "pointer",
+                        borderRadius: r.radiusSm,
                       }}
                     >
                       {getChannelLabel(type)}
@@ -1057,6 +1069,8 @@ function HireInner() {
                   border: `1px solid ${c.border}`,
                   background: c.panel,
                   marginBottom: 24,
+                  borderRadius: r.radiusMd,
+                  overflow: "hidden",
                 }}
               >
                 {[
@@ -1132,6 +1146,7 @@ function HireInner() {
                     fontSize: 16,
                     cursor: "pointer",
                     width: "100%",
+                    borderRadius: r.radiusMd,
                   }}
                   hoverStyle={{ background: c.limeHover }}
                 >
@@ -1150,6 +1165,7 @@ function HireInner() {
                     display: "flex",
                     flexDirection: "column",
                     gap: 14,
+                    borderRadius: r.radiusMd,
                   }}
                 >
                   {launchRows.map((l, i) => (
@@ -1189,6 +1205,7 @@ function HireInner() {
                     alignItems: "center",
                     justifyContent: "space-between",
                     gap: 20,
+                    borderRadius: r.radiusMd,
                   }}
                 >
                   <div>
@@ -1218,6 +1235,7 @@ function HireInner() {
                       fontSize: 14,
                       cursor: "pointer",
                       whiteSpace: "nowrap",
+                      borderRadius: r.radiusSm,
                     }}
                   >
                     {t.openDashboard}
@@ -1266,6 +1284,7 @@ function HireInner() {
                   fontWeight: 700,
                   fontSize: 15,
                   cursor: canNext ? "pointer" : "not-allowed",
+                  borderRadius: r.radiusSm,
                 }}
               >
                 {hireStep === 3 ? t.reviewNext : t.continueNext}

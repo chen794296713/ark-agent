@@ -168,6 +168,11 @@ summary {
   --r-hero-py: 88px;
   --r-content-py: 36px;
 
+  /* border radius */
+  --r-radius-sm: 6px;
+  --r-radius-md: 8px;
+  --r-radius-lg: 12px;
+
   /* reusable grid templates (shared across pages) */
   --r-col-1: 1fr;
   --r-col-2: repeat(2, 1fr);
@@ -232,6 +237,10 @@ summary {
     --r-section-py: 56px;
     --r-hero-py: 40px;
     --r-content-py: 20px;
+
+    --r-radius-sm: 4px;
+    --r-radius-md: 6px;
+    --r-radius-lg: 8px;
 
     --r-col-2: 1fr;
     --r-col-3: 1fr;

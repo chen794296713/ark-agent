@@ -228,6 +228,7 @@ export default function PaymentPage() {
     fontSize: "14.5px",
     fontFamily: mono ? font.mono : font.sans,
     outline: "none",
+    borderRadius: r.radiusSm,
   });
   const labelStyle: React.CSSProperties = {
     fontFamily: font.mono,
@@ -334,6 +335,7 @@ export default function PaymentPage() {
               maxWidth: "100%",
               flexWrap: "wrap",
               marginBottom: "20px",
+              borderRadius: r.radiusSm,
             }}
           >
             {cycleTabs.map((cy, i) => (
@@ -349,13 +351,14 @@ export default function PaymentPage() {
                   fontSize: "11px",
                   letterSpacing: ".04em",
                   cursor: "pointer",
+                  borderRadius: r.radiusSm,
                 }}
               >
                 {cy.label}
               </button>
             ))}
           </div>
-          <div style={{ border: `1px solid ${c.border}`, background: c.panel }}>
+          <div style={{ border: `1px solid ${c.border}`, background: c.panel, borderRadius: r.radiusMd, overflow: "hidden" }}>
             <div
               style={{
                 display: "flex",
@@ -447,6 +450,7 @@ export default function PaymentPage() {
               maxWidth: "100%",
               flexWrap: "wrap",
               marginBottom: "8px",
+              borderRadius: r.radiusSm,
             }}
           >
             {regionTabs.map((rt, i) => (
@@ -462,6 +466,7 @@ export default function PaymentPage() {
                   fontSize: "11.5px",
                   letterSpacing: ".04em",
                   cursor: "pointer",
+                  borderRadius: r.radiusSm,
                 }}
               >
                 {rt.label}
@@ -475,7 +480,7 @@ export default function PaymentPage() {
           {/* Stripe (global) */}
           {!isCN &&
             (payState !== "done" ? (
-              <div style={{ border: `1px solid ${c.border}`, background: c.panel, padding: "26px" }}>
+              <div style={{ border: `1px solid ${c.border}`, background: c.panel, padding: "26px", borderRadius: r.radiusMd }}>
                 <div
                   style={{
                     display: "grid",
@@ -495,6 +500,7 @@ export default function PaymentPage() {
                       fontWeight: 600,
                       fontSize: "14px",
                       cursor: "pointer",
+                      borderRadius: r.radiusSm,
                     }}
                   >
                     {t.applePay}
@@ -510,6 +516,7 @@ export default function PaymentPage() {
                       fontWeight: 600,
                       fontSize: "14px",
                       cursor: "pointer",
+                      borderRadius: r.radiusSm,
                     }}
                   >
                     {t.googlePay}
@@ -623,6 +630,7 @@ export default function PaymentPage() {
                       fontSize: "15.5px",
                       cursor: "pointer",
                       marginTop: "4px",
+                      borderRadius: r.radiusSm,
                     }}
                   >
                     {payBtnLabel}
@@ -661,6 +669,7 @@ export default function PaymentPage() {
                   background: c.greenWash,
                   padding: "32px",
                   textAlign: "center",
+                  borderRadius: r.radiusMd,
                 }}
               >
                 <div
@@ -723,7 +732,7 @@ export default function PaymentPage() {
 
           {/* Alipay (China) */}
           {isCN && (
-            <div style={{ border: `1px solid ${c.border}`, background: c.panel }}>
+            <div style={{ border: `1px solid ${c.border}`, background: c.panel, borderRadius: r.radiusMd }}>
               <div
                 style={{
                   background: c.alipay,
@@ -732,6 +741,7 @@ export default function PaymentPage() {
                   display: "flex",
                   justifyContent: "space-between",
                   alignItems: "center",
+                  borderRadius: `${r.radiusMd} ${r.radiusMd} 0 0`,
                 }}
               >
                 <span style={{ fontFamily: font.space, fontWeight: 700, fontSize: "16px" }}>

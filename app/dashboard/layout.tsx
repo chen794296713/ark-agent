@@ -162,6 +162,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                   cursor: "pointer",
                   textAlign: "left",
                   width: "100%",
+                  borderRadius: r.radiusSm,
                 }}
               >
                 <span style={{ fontFamily: font.mono, fontSize: 12, color: on ? c.accent : c.faint }}>
@@ -186,6 +187,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             fontWeight: 500,
             fontSize: 13.5,
             cursor: "pointer",
+            borderRadius: r.radiusSm,
           }}
         >
           {t.hireNew}
@@ -260,6 +262,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                   cursor: "pointer",
                   fontFamily: font.mono,
                   fontSize: 13,
+                  borderRadius: r.radiusSm,
                 }}
               >
                 ⎋
@@ -300,6 +303,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               fontFamily: font.mono,
               fontSize: 18,
               cursor: "pointer",
+              borderRadius: r.radiusSm,
             }}
           >
             ≡

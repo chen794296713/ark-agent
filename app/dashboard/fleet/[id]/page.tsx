@@ -50,6 +50,7 @@ function ActivityTab({ cur }: { cur: AgentDetailDTO }) {
           textAlign: "center",
           fontSize: 14,
           color: c.faint,
+          borderRadius: r.radiusMd,
         }}
       >
         {t.activityEmpty}
@@ -57,7 +58,7 @@ function ActivityTab({ cur }: { cur: AgentDetailDTO }) {
     );
   }
   return (
-    <div style={{ border: `1px solid ${c.border}`, background: c.panel }}>
+    <div style={{ border: `1px solid ${c.border}`, background: c.panel, borderRadius: r.radiusMd, overflow: "hidden" }}>
       {cur.activities.map((e) => (
         <div
           key={e.id}
@@ -110,6 +111,7 @@ function TasksTab({ cur }: { cur: AgentDetailDTO }) {
           textAlign: "center",
           fontSize: 14,
           color: c.faint,
+          borderRadius: r.radiusMd,
         }}
       >
         {t.tasksEmpty}
@@ -117,7 +119,7 @@ function TasksTab({ cur }: { cur: AgentDetailDTO }) {
     );
   }
   return (
-    <div style={{ border: `1px solid ${c.border}`, background: c.panel }}>
+    <div style={{ border: `1px solid ${c.border}`, background: c.panel, borderRadius: r.radiusMd, overflow: "hidden" }}>
       {cur.tasks.map((k) => {
         const sym = TASK_SYMBOL[k.status] ?? TASK_SYMBOL.queued;
         const done = k.status === "done";
@@ -245,6 +247,8 @@ function ChatTab({ cur }: { cur: AgentDetailDTO }) {
         display: "flex",
         flexDirection: "column",
         height: r.chatH,
+        borderRadius: r.radiusMd,
+        overflow: "hidden",
       }}
     >
       <div
@@ -295,6 +299,7 @@ function ChatTab({ cur }: { cur: AgentDetailDTO }) {
                     padding: "11px 15px",
                     fontSize: 14.5,
                     border: `1px solid ${me ? c.accent : c.border}`,
+                    borderRadius: r.radiusMd,
                   }}
                 >
                   {m.body}
@@ -352,6 +357,7 @@ function ChatTab({ cur }: { cur: AgentDetailDTO }) {
             fontSize: 14.5,
             fontFamily: font.sans,
             outline: "none",
+            borderRadius: r.radiusSm,
           }}
         />
         <button
@@ -367,6 +373,7 @@ function ChatTab({ cur }: { cur: AgentDetailDTO }) {
             fontSize: 14,
             cursor: sending ? "default" : "pointer",
             opacity: sending ? 0.6 : 1,
+            borderRadius: r.radiusSm,
           }}
         >
           {sending ? t.chatSending : t.chatSend}
@@ -407,7 +414,7 @@ function PerformanceTab({ cur, onRefresh }: { cur: AgentDetailDTO; onRefresh: ()
         alignItems: "start",
       }}
     >
-      <div style={{ border: `1px solid ${c.border}`, background: c.panel, padding: 24 }}>
+      <div style={{ border: `1px solid ${c.border}`, background: c.panel, padding: 24, borderRadius: r.radiusMd }}>
         <div
           style={{
             fontFamily: font.mono,
@@ -439,7 +446,7 @@ function PerformanceTab({ cur, onRefresh }: { cur: AgentDetailDTO; onRefresh: ()
                     {p.delta && <span style={{ color: c.green, fontSize: 11 }}>{p.delta}</span>}
                   </span>
                 </div>
-                <div style={{ height: 4, background: c.line }}>
+                <div style={{ height: 4, background: c.line, borderRadius: 2, overflow: "hidden" }}>
                   <div style={{ height: 4, width: `${p.weight}%`, background: c.lime }} />
                 </div>
               </div>
@@ -469,6 +476,7 @@ function PerformanceTab({ cur, onRefresh }: { cur: AgentDetailDTO; onRefresh: ()
               padding: "16px 18px",
               fontSize: 14,
               color: c.faint,
+              borderRadius: r.radiusMd,
             }}
           >
             {t.perfNoImprovements}
@@ -488,6 +496,7 @@ function PerformanceTab({ cur, onRefresh }: { cur: AgentDetailDTO; onRefresh: ()
                   justifyContent: "space-between",
                   alignItems: "center",
                   gap: 16,
+                  borderRadius: r.radiusMd,
                 }}
               >
                 <div>
@@ -533,6 +542,7 @@ function PerformanceTab({ cur, onRefresh }: { cur: AgentDetailDTO; onRefresh: ()
                         cursor: busy[q.id] ? "default" : "pointer",
                         whiteSpace: "nowrap",
                         opacity: busy[q.id] ? 0.6 : 1,
+                        borderRadius: r.radiusSm,
                       }}
                     >
                       {t.perfApprove}
@@ -552,6 +562,7 @@ function PerformanceTab({ cur, onRefresh }: { cur: AgentDetailDTO; onRefresh: ()
                         cursor: busy[q.id] ? "default" : "pointer",
                         whiteSpace: "nowrap",
                         opacity: busy[q.id] ? 0.6 : 1,
+                        borderRadius: r.radiusSm,
                       }}
                     >
                       {t.perfDismiss}
@@ -2143,6 +2154,7 @@ function AgentDetailInner() {
                 fontWeight: 500,
                 cursor: "pointer",
                 whiteSpace: "nowrap",
+                borderRadius: r.radiusSm,
               }}
             >
               {label}

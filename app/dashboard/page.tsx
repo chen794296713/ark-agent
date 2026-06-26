@@ -75,6 +75,8 @@ export default function OverviewPage() {
           background: c.line,
           border: `1px solid ${c.line}`,
           marginBottom: 32,
+          borderRadius: r.radiusMd,
+          overflow: "hidden",
         }}
       >
         <div style={{ background: c.panel, padding: 20 }}>
@@ -169,6 +171,7 @@ export default function OverviewPage() {
                   background: c.panel,
                   padding: "28px 18px",
                   textAlign: "center",
+                  borderRadius: r.radiusMd,
                 }}
               >
                 <div style={{ fontSize: 13.5, color: c.muted, marginBottom: 14 }}>
@@ -185,6 +188,7 @@ export default function OverviewPage() {
                     fontSize: 13.5,
                     padding: "10px 18px",
                     textDecoration: "none",
+                    borderRadius: r.radiusSm,
                   }}
                 >
                   {t.hireFirstAgent}
@@ -209,6 +213,7 @@ export default function OverviewPage() {
                       alignItems: "center",
                       gap: 14,
                       cursor: "pointer",
+                      borderRadius: r.radiusSm,
                     }}
                   >
                     <div
@@ -275,7 +280,7 @@ export default function OverviewPage() {
           >
             {t.activityHeading}
           </div>
-          <div style={{ border: `1px solid ${c.border}`, background: c.panel, padding: "6px 0" }}>
+          <div style={{ border: `1px solid ${c.border}`, background: c.panel, padding: "6px 0", borderRadius: r.radiusMd, overflow: "hidden" }}>
             {loading && (
               <div
                 style={{

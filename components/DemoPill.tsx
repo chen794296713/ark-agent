@@ -71,6 +71,7 @@ export function DemoPill() {
         flexWrap: r.pillWrap,
         overflowX: r.pillOverflow,
         justifyContent: "center",
+        borderRadius: r.radiusLg,
       }}
     >
       {PILLS.map((p) => {
@@ -91,6 +92,7 @@ export function DemoPill() {
               textDecoration: "none",
               whiteSpace: "nowrap",
               flex: "0 0 auto",
+              borderRadius: r.radiusSm,
             }}
           >
             {t[p.labelKey]}
