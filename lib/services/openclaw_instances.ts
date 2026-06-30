@@ -1,7 +1,7 @@
 import "server-only";
 import { and, eq } from "drizzle-orm";
 import { db } from "@/lib/db";
-import { agentManagerConfig } from "@/lib/db/schema";
+import { agentManagerConfig, agents } from "@/lib/db/schema";
 import {
   createInstance,
   getInstanceEvents,
@@ -10,6 +10,9 @@ import {
   streamChat,
   chat,
   streamHandleToMessage,
+  stopInstance,
+  startInstance,
+  getInstance,
   type PreprocessedInstance,
   type PreprocessedEvent,
   type PreprocessedChatHistory,
@@ -179,3 +182,99 @@ export async function chatOpenclaw(
 }
 
 export { streamHandleToMessage };
+
+/**
+ * 停止 OpenClaw 实例
+ */
+export async function stopOpenclawInstance(externalId: string): Promise<PreprocessedInstance> {
+  return stopInstance(externalId);
+}
+
+/**
+ * 启动 OpenClaw 实例
+ */
+export async function startOpenclawInstance(externalId: string): Promise<PreprocessedInstance> {
+  return startInstance(externalId);
+}
+
+/**
+ * 获取 OpenClaw 实例详细信息（实时）
+ */
+export async function getOpenclawInstance(externalId: string): Promise<PreprocessedInstance> {
+  return getInstance(externalId);
+}
+
+/**
+ * 同步 OpenClaw 实例最新状态到 DB。
+ * 1. 更新 agentManagerConfig 表（status / config / lastError）
+ *    status 列直接存储 OpenClaw 返回的 status（running/stopped/provisioning 等）
+ * 2. 如果 status 发生变化，同步更新 agents 表的 status
+ *    status -> agents.status 映射：
+ *    "running" -> "working"
+ *    "provisioning" -> "provisioning"
+ *    "stopped" | "stopping" -> "paused"
+ *    其他/失败 -> "error"
+ * 3. 如果 status 从非 running 变为 running，
+ *    自动调用 /stop 将实例暂停（符合"查看即暂停"的产品行为）
+ */
+export async function syncOpenclawInstanceToDb(
+  externalId: string
+): Promise<{ statusChanged: boolean; newStatus: string; autoStopped: boolean }> {
+  const latest = await getInstance(externalId);
+  const existing = await getOpenclawConfigByExternalId(externalId);
+  if (!existing) return { statusChanged: false, newStatus: latest.status, autoStopped: false };
+
+  const oldStatus = existing.status;
+  const newStatus = latest.status;
+
+  await db
+    .update(agentManagerConfig)
+    .set({
+      status: newStatus,
+      lastError: latest.provisioningError,
+      config: latest as unknown as Record<string, unknown>,
+      updatedAt: new Date(),
+    })
+    .where(eq(agentManagerConfig.id, existing.id));
+
+  const statusChanged = oldStatus !== newStatus;
+  let autoStopped = false;
+
+  // Map upstream status to agent status
+  if (statusChanged && existing.agentId) {
+    let agentStatus: "working" | "provisioning" | "paused" | "error" = "error";
+    if (newStatus === "running") {
+      agentStatus = "working";
+    } else if (newStatus === "provisioning") {
+      agentStatus = "provisioning";
+    } else if (newStatus === "stopped" || newStatus === "stopping") {
+      agentStatus = "paused";
+    }
+    await db
+      .update(agents)
+      .set({ status: agentStatus, updatedAt: new Date() })
+      .where(eq(agents.id, existing.agentId));
+
+    // Auto-pause: if upstream just became running, stop the running instance.
+    // This matches the "view info → instance pauses" product behaviour.
+    if (agentStatus === "working" && (oldStatus === "provisioning" || oldStatus === "pending" || oldStatus === null)) {
+      try {
+        const stopped = await stopInstance(externalId);
+        // Update DB immediately so the UI reflects the paused state.
+        await db
+          .update(agentManagerConfig)
+          .set({ status: stopped.status, updatedAt: new Date() })
+          .where(eq(agentManagerConfig.id, existing.id));
+        await db
+          .update(agents)
+          .set({ status: "paused", updatedAt: new Date() })
+          .where(eq(agents.id, existing.agentId));
+        autoStopped = true;
+      } catch {
+        /* best-effort; will reconcile on next sync */
+      }
+    }
+  }
+
+  return { statusChanged, newStatus, autoStopped };
+}

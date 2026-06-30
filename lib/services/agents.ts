@@ -26,6 +26,9 @@ import {
 } from "@/lib/serializers";
 import {
   createOpenclawInstance,
+  getOpenclawConfigByAgentId,
+  stopOpenclawInstance,
+  startOpenclawInstance,
 } from "@/lib/services/openclaw_instances";
 
 type ChannelType = typeof channels.$inferInsert["type"];
@@ -272,8 +275,20 @@ export async function setLifecycle(
   if (!row) return null;
   const am = getAgentManager();
   let status: Agent["status"] = row.status;
+
   try {
     if (row.agentManagerId) {
+      // OpenClaw agents: also call the /stop or /start API
+      if (row.engine === "openclaw") {
+        const openclawConfig = await getOpenclawConfigByAgentId(agentId);
+        if (openclawConfig) {
+          if (action === "pause") {
+            await stopOpenclawInstance(openclawConfig.externalId);
+          } else if (action === "resume") {
+            await startOpenclawInstance(openclawConfig.externalId);
+          }
+        }
+      }
       const res = await am.setLifecycle(row.agentManagerId, action);
       status = res.status as Agent["status"];
     } else {

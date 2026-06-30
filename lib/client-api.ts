@@ -105,7 +105,7 @@ export const api = {
 
   // ---- agent runtime / instance info ----
   getAgentInstanceInfo: (agentId: string) =>
-    req<{ providers: AgentManagerProviderInfo[] }>(
+    req<{ providers: AgentManagerProviderInfo[]; autoStopped: boolean }>(
       "GET",
       `/api/agents/${agentId}/instance-info`
     ),

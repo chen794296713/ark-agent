@@ -202,3 +202,235 @@ data: {"type":"response.completed","response":{"id":"resp_575b1fec-9122-4793-be4
 
 data: [DONE]
 
+
+
+停止智能体
+
+curl 'http://10.21.27.155:18090/api/instances/9fe1fd20-b934-41d6-b35c-e07453d04e36/stop' \
+  -X 'POST' \
+  -H 'Authorization: Bearer MToxNzgyODk0NTQx.8JH-VR05EM8Xn2-UPX174BmuWexMmN_OFaE9ghYzzVw' \
+  -H 'Accept: application/json, text/plain, */*'
+
+响应
+
+  {
+    "id": 100,
+    "uuid": "9fe1fd20-b934-41d6-b35c-e07453d04e36",
+    "user_id": 13,
+    "name": "test",
+    "base_image_id": null,
+    "base_image_name": null,
+    "slug": "inst-bh86369s",
+    "status": "stopped"
+}
+启动智能体
+
+curl 'http://10.21.27.155:18090/api/instances/9fe1fd20-b934-41d6-b35c-e07453d04e36/start' \
+  -X 'POST' \
+  -H 'Accept: application/json, text/plain, */*' \
+  -H 'Accept-Language: zh-CN,zh;q=0.9' \
+  -H 'Authorization: Bearer MToxNzgyODk0NTQx.8JH-VR05EM8Xn2-UPX174BmuWexMmN_OFaE9ghYzzVw' \
+  --insecure
+响应
+  {
+    "id": 100,
+    "uuid": "9fe1fd20-b934-41d6-b35c-e07453d04e36",
+    "user_id": 13,
+    "name": "test",
+    "base_image_id": null,
+    "base_image_name": null,
+    "slug": "inst-bh86369s",
+    "status": "running", 
+}
+
+查看智能体信息
+curl 'http://10.21.27.155:18090/api/instances/17da714a-835a-481d-a7dc-2158c7f6d4a7' \
+  -H 'Accept: application/json, text/plain, */*' \
+  -H 'Accept-Language: zh-CN,zh;q=0.9' \
+  -H 'Authorization: Bearer MToxNzgyODk0NTQx.8JH-VR05EM8Xn2-UPX174BmuWexMmN_OFaE9ghYzzVw' \
+  -H 'Connection: keep-alive' \
+  --insecure
+响应
+
+  {
+    "id": 117,
+    "uuid": "17da714a-835a-481d-a7dc-2158c7f6d4a7",
+    "user_id": 1,
+    "name": "test-22222",
+    "base_image_id": 47,
+    "base_image_name": "hermes-agent-vnc:v20260625-7",
+    "slug": "inst-pllgm0ys",
+    "status": "running",
+    "docker_container_name": "lobster-1-17da714a835a",
+    "docker_image": "harbor.lightark.cc/infra/hermes-agent-vnc:v20260625-7",
+    "access_url": "http://10.21.27.155:18090/17da714a-835a-481d-a7dc-2158c7f6d4a7/login",
+    "access_urls": [
+        "http://10.21.27.155:18090/17da714a-835a-481d-a7dc-2158c7f6d4a7/login",
+        "http://10.21.27.155:18090/17da714a-835a-481d-a7dc-2158c7f6d4a7/p/6080/vnc.html"
+    ],
+    "auto_stop_seconds": 900,
+    "cpu_limit": 4,
+    "memory_limit": "4g",
+    "auto_update": true,
+    "env_vars": {},
+    "other": null,
+    "model_config": {
+        "agents": {
+            "defaults": {
+                "model": {
+                    "primary": "new-api/minimax/minimax-m2.7",
+                    "fallbacks": [
+                        "new-api/minimax/minimax-m2.7"
+                    ]
+                },
+                "models": {
+                    "new-api/minimax/minimax-m3": {
+                        "alias": "minimax/minimax-m3"
+                    },
+                    "new-api/minimax/minimax-m2.7": {
+                        "alias": "minimax/minimax-m2.7"
+                    }
+                }
+            }
+        }
+    },
+    "model_level_ids": [
+        2
+    ],
+    "model_feature_description": null,
+    "last_active_at": "2026-06-26T12:56:57.732070",
+    "last_started_at": "2026-06-26T12:56:57.732054",
+    "stopped_at": null,
+    "created_at": "2026-06-26T12:56:56.680261",
+    "updated_at": "2026-06-30T08:29:03.910353",
+    "error_message": null,
+    "direct_access_url": null,
+    "direct_access_urls": [],
+    "instance_type": "hermes",
+    "category_name": "hermes",
+    "agent_id": null,
+    "agent_name": null,
+    "external_api_url": "http://10.21.27.155:18090/oc/17da714a-835a-481d-a7dc-2158c7f6d4a7/login",
+    "external_api_urls": [
+        "http://10.21.27.155:18090/oc/17da714a-835a-481d-a7dc-2158c7f6d4a7/login",
+        "http://10.21.27.155:18090/oc/17da714a-835a-481d-a7dc-2158c7f6d4a7/p/6080/vnc.html"
+    ],
+    "default_api_key": "ocm_Pb4HyMs8IADquloRgcBeHiCfH-6nmBCmXuKuQ2l3BO4",
+    "provisioning_status": "done",
+    "provisioning_error": null,
+    "traefik_router_name": "lobster-inst-pllgm0ys-router",
+    "traefik_service_name": "lobster-inst-pllgm0ys-svc",
+    "host_root_path": "/root/server/openclaw-manager/infra/openclaw_instances/17da714a-835a-481d-a7dc-2158c7f6d4a7",
+    "events": [
+        {
+            "id": 2394,
+            "instance_uuid": "17da714a-835a-481d-a7dc-2158c7f6d4a7",
+            "action": "model_config_applied",
+            "result": "success",
+            "message": "model config applied (type=hermes)",
+            "metadata_json": null,
+            "created_at": "2026-06-29T09:42:13.977831"
+        },
+        {
+            "id": 2389,
+            "instance_uuid": "17da714a-835a-481d-a7dc-2158c7f6d4a7",
+            "action": "model_config_applied",
+            "result": "success",
+            "message": "model config applied (type=hermes)",
+            "metadata_json": null,
+            "created_at": "2026-06-29T07:59:09.722691"
+        },
+        {
+            "id": 2387,
+            "instance_uuid": "17da714a-835a-481d-a7dc-2158c7f6d4a7",
+            "action": "model_config_applied",
+            "result": "success",
+            "message": "model config applied (type=hermes)",
+            "metadata_json": null,
+            "created_at": "2026-06-29T06:56:16.484738"
+        },
+        {
+            "id": 2384,
+            "instance_uuid": "17da714a-835a-481d-a7dc-2158c7f6d4a7",
+            "action": "model_config_applied",
+            "result": "success",
+            "message": "model config applied (type=hermes)",
+            "metadata_json": null,
+            "created_at": "2026-06-29T06:43:20.266023"
+        },
+        {
+            "id": 2383,
+            "instance_uuid": "17da714a-835a-481d-a7dc-2158c7f6d4a7",
+            "action": "provision_completed",
+            "result": "success",
+            "message": "全部步骤执行完毕，实例已就绪",
+            "metadata_json": null,
+            "created_at": "2026-06-26T12:56:57.753130"
+        },
+        {
+            "id": 2382,
+            "instance_uuid": "17da714a-835a-481d-a7dc-2158c7f6d4a7",
+            "action": "step3_skipped",
+            "result": "success",
+            "message": "无 Agent，跳过解压步骤",
+            "metadata_json": null,
+            "created_at": "2026-06-26T12:56:57.748710"
+        },
+        {
+            "id": 2381,
+            "instance_uuid": "17da714a-835a-481d-a7dc-2158c7f6d4a7",
+            "action": "step2_model_applied",
+            "result": "success",
+            "message": "model config applied (type=hermes)",
+            "metadata_json": null,
+            "created_at": "2026-06-26T12:56:57.745230"
+        },
+        {
+            "id": 2380,
+            "instance_uuid": "17da714a-835a-481d-a7dc-2158c7f6d4a7",
+            "action": "step2_starting_model",
+            "result": "success",
+            "message": "开始配置模型",
+            "metadata_json": null,
+            "created_at": "2026-06-26T12:56:57.738809"
+        },
+        {
+            "id": 2379,
+            "instance_uuid": "17da714a-835a-481d-a7dc-2158c7f6d4a7",
+            "action": "step1_docker_ready",
+            "result": "success",
+            "message": "Docker 容器创建并启动成功",
+            "metadata_json": null,
+            "created_at": "2026-06-26T12:56:57.735420"
+        },
+        {
+            "id": 2378,
+            "instance_uuid": "17da714a-835a-481d-a7dc-2158c7f6d4a7",
+            "action": "step1_image_pulled",
+            "result": "success",
+            "message": "Status: Image is up to date for harbor.lightark.cc/infra/hermes-agent-vnc:v20260625-7",
+            "metadata_json": {
+                "image": "harbor.lightark.cc/infra/hermes-agent-vnc:v20260625-7"
+            },
+            "created_at": "2026-06-26T12:56:57.132125"
+        },
+        {
+            "id": 2377,
+            "instance_uuid": "17da714a-835a-481d-a7dc-2158c7f6d4a7",
+            "action": "step1_starting_docker",
+            "result": "success",
+            "message": "开始拉取镜像并创建容器",
+            "metadata_json": null,
+            "created_at": "2026-06-26T12:56:56.717562"
+        },
+        {
+            "id": 2376,
+            "instance_uuid": "17da714a-835a-481d-a7dc-2158c7f6d4a7",
+            "action": "provision_requested",
+            "result": "success",
+            "message": "Instance record created, provisioning task queued",
+            "metadata_json": null,
+            "created_at": "2026-06-26T12:56:56.699055"
+        }
+    ]
+}

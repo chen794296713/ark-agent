@@ -546,3 +546,36 @@ export async function chat(
   const handle = await streamChat(instanceUuid, params, options);
   return streamHandleToMessage(handle);
 }
+
+/**
+ * 停止智能体
+ * POST /api/instances/:uuid/stop
+ * 返回预处理后的实例数据
+ */
+export async function stopInstance(instanceUuid: string): Promise<PreprocessedInstance> {
+  const url = `${BASE_URL}/api/instances/${instanceUuid}/stop`;
+  const raw = await request<Record<string, unknown>>(url, { method: "POST" });
+  return preprocessInstance(raw);
+}
+
+/**
+ * 启动智能体
+ * POST /api/instances/:uuid/start
+ * 返回预处理后的实例数据
+ */
+export async function startInstance(instanceUuid: string): Promise<PreprocessedInstance> {
+  const url = `${BASE_URL}/api/instances/${instanceUuid}/start`;
+  const raw = await request<Record<string, unknown>>(url, { method: "POST" });
+  return preprocessInstance(raw);
+}
+
+/**
+ * 获取智能体详细信息（实时）
+ * GET /api/instances/:uuid
+ * 返回预处理后的实例数据（包含最新状态）
+ */
+export async function getInstance(instanceUuid: string): Promise<PreprocessedInstance> {
+  const url = `${BASE_URL}/api/instances/${instanceUuid}`;
+  const raw = await request<Record<string, unknown>>(url, { method: "GET" });
+  return preprocessInstance(raw);
+}

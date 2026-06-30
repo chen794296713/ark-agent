@@ -1370,6 +1370,7 @@ function SettingsTab({ cur, onRefresh }: { cur: AgentDetailDTO; onRefresh: () =>
           <InstanceInfoDrawer
             agentId={cur.id}
             onClose={closeDrawer}
+            onAfterSync={onRefresh}
           />
         )}
       </div>
@@ -1377,7 +1378,7 @@ function SettingsTab({ cur, onRefresh }: { cur: AgentDetailDTO; onRefresh: () =>
   );
 }
 
-function InstanceInfoDrawer({ agentId, onClose }: { agentId: string; onClose: () => void }) {
+function InstanceInfoDrawer({ agentId, onClose, onAfterSync }: { agentId: string; onClose: () => void; onAfterSync?: () => void }) {
   const { lang } = useApp();
   const t = fleetDetail[lang];
   const [data, setData] = useState<{ providers: AgentManagerProviderInfo[] } | null>(null);
@@ -1391,6 +1392,9 @@ function InstanceInfoDrawer({ agentId, onClose }: { agentId: string; onClose: ()
       try {
         const res = await api.getAgentInstanceInfo(agentId);
         if (alive) setData(res);
+        // Only ask parent to re-fetch when an auto-stop actually happened,
+        // so the badge reflects the paused state.
+        if (alive && res.autoStopped && onAfterSync) onAfterSync();
       } catch (e) {
         if (alive) setError(e instanceof ApiError ? e.message : t.instanceInfoLoadError);
       } finally {
@@ -1400,7 +1404,7 @@ function InstanceInfoDrawer({ agentId, onClose }: { agentId: string; onClose: ()
     return () => {
       alive = false;
     };
-  }, [agentId, t.instanceInfoLoadError]);
+  }, [agentId, t.instanceInfoLoadError, onAfterSync]);
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
