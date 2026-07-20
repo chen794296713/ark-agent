@@ -4,7 +4,7 @@
  */
 
 const BASE_URL = process.env.OPENCLAW_MANAGER_API_URL || "http://10.21.27.155:18090";
-const API_KEY = process.env.OPENCLAW_MANAGER_API_KEY || "MToxNzgyMjA1NzY4.1DyMW7eTT0x95QgCGlZfNBBWlmsua_YfuVQg5WM8VOo";
+const API_KEY = process.env.OPENCLAW_MANAGER_API_KEY || "MToxNzg0NjAzNjUz.Jehh4lQZx3YufgkE8L-QF7oQluyKxNkt2hbl6vzCvEU";
 
 function getHeaders(): HeadersInit {
   return {
@@ -680,4 +680,68 @@ export async function getTokenReport(
     `&instance_uuid=${encodeURIComponent(params.instanceId)}`;
   const raw = await request<Record<string, unknown>>(url, { method: "GET" });
   return preprocessTokenReport(raw);
+}
+
+// ============ 渠道管理 ============
+
+export interface WechatLoginResponse {
+  status: string;
+  qrcodeUrl: string | null;
+  qrcodeImage: string | null;
+  expiresIn: number;
+  message: string;
+}
+
+export interface ChannelConfig {
+  type: string;
+  enabled: boolean;
+  config: Record<string, unknown>;
+}
+
+/**
+ * 获取渠道配置列表
+ * GET /api/channels?instance_uuid=<uuid>
+ */
+export async function getChannels(instanceUuid: string): Promise<ChannelConfig[]> {
+  const url = `${BASE_URL}/api/channels?instance_uuid=${encodeURIComponent(instanceUuid)}`;
+  const raw = await request<{ channels?: ChannelConfig[] }>(url, { method: "GET" });
+  return raw.channels ?? [];
+}
+
+/**
+ * 渠道配置 upsert（飞书/钉钉/微信/企微）
+ * POST /api/channels/upsert
+ */
+export async function upsertChannel(params: {
+  instanceUuid: string;
+  channelType: string;
+  enabled: boolean;
+  config: Record<string, unknown>;
+}): Promise<void> {
+  const url = `${BASE_URL}/api/channels/upsert`;
+  await request<void>(url, {
+    method: "POST",
+    body: JSON.stringify({
+      instance_uuid: params.instanceUuid,
+      channel_type: params.channelType,
+      enabled: params.enabled,
+      config: params.config,
+    }),
+  });
+}
+
+/**
+ * 微信扫码登录 — 获取二维码
+ * POST /api/channels/wechat/login
+ */
+export async function wechatLogin(instanceUuid: string): Promise<WechatLoginResponse> {
+  const url = `${BASE_URL}/api/channels/wechat/login?instance_uuid=${encodeURIComponent(instanceUuid)}`;
+  const raw = await request<Record<string, unknown>>(url, { method: "POST" });
+  return {
+    status: (raw.status as string) ?? "pending",
+    qrcodeUrl: (raw.qrcodeUrl as string | null) ?? null,
+    qrcodeImage: (raw.qrcodeImage as string | null) ?? null,
+    expiresIn: (raw.expiresIn as number) ?? 120,
+    message: (raw.message as string) ?? "",
+  };
 }

@@ -93,6 +93,21 @@ export const api = {
     },
   ) => streamMessage(agentId, body, options),
 
+  // ---- channel management (per-agent, instance-uuid scoped) ----
+  upsertChannel: (body: {
+    instanceUuid: string;
+    channelType: string;
+    enabled: boolean;
+    config: Record<string, unknown>;
+  }) => req<ChannelDTO>("POST", "/api/channels/upsert", body),
+  getChannels: (instanceUuid: string) =>
+    req<{ channels: ChannelDTO[] }>("GET", `/api/channels?instance_uuid=${instanceUuid}`),
+  getWechatLoginQrcode: (instanceUuid: string) =>
+    req<{ status: string; qrcodeUrl: string | null; qrcodeImage: string | null; expiresIn: number; message: string }>(
+      "POST",
+      `/api/channels/wechat/login?instance_uuid=${instanceUuid}`
+    ),
+
   // ---- dashboard / channels / billing ----
   dashboard: () => req<DashboardDTO>("GET", "/api/dashboard"),
   channels: () => req<{ channels: ChannelDTO[] }>("GET", "/api/channels"),

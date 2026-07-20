@@ -132,24 +132,27 @@ export async function getAgentRow(agentId: string, workspaceId: string): Promise
 export async function getAgentDetail(agentId: string, workspaceId: string) {
   const row = await getAgentRow(agentId, workspaceId);
   if (!row) return null;
-  const [roleNames, chans, lines, tasks, activities, metrics, improvements] = await Promise.all([
-    roleNameMap([row.roleId]),
-    channelsForAgents([agentId]),
-    latestLines([agentId]),
-    db.select().from(agentTasks).where(eq(agentTasks.agentId, agentId)).orderBy(asc(agentTasks.sortOrder)),
-    db.select().from(agentActivities).where(eq(agentActivities.agentId, agentId)).orderBy(desc(agentActivities.occurredAt)),
-    db.select().from(agentMetrics).where(eq(agentMetrics.agentId, agentId)),
-    db
-      .select()
-      .from(agentImprovements)
-      .where(and(eq(agentImprovements.agentId, agentId), eq(agentImprovements.status, "pending")))
-      .orderBy(desc(agentImprovements.createdAt)),
-  ]);
+  const [roleNames, chans, lines, tasks, activities, metrics, improvements, openclawCfg] =
+    await Promise.all([
+      roleNameMap([row.roleId]),
+      channelsForAgents([agentId]),
+      latestLines([agentId]),
+      db.select().from(agentTasks).where(eq(agentTasks.agentId, agentId)).orderBy(asc(agentTasks.sortOrder)),
+      db.select().from(agentActivities).where(eq(agentActivities.agentId, agentId)).orderBy(desc(agentActivities.occurredAt)),
+      db.select().from(agentMetrics).where(eq(agentMetrics.agentId, agentId)),
+      db
+        .select()
+        .from(agentImprovements)
+        .where(and(eq(agentImprovements.agentId, agentId), eq(agentImprovements.status, "pending")))
+        .orderBy(desc(agentImprovements.createdAt)),
+      getOpenclawConfigByAgentId(agentId),
+    ]);
   return {
     ...serializeAgent(row, {
       roleName: roleNames.get(row.roleId),
       channels: chans.get(agentId) ?? [],
       line: lines.get(agentId) ?? null,
+      instanceUuid: openclawCfg?.externalId ?? undefined,
     }),
     tasks: tasks.map(serializeTask),
     activities: activities.map(serializeActivity),

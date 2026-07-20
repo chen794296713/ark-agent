@@ -1,7 +1,7 @@
 /**
- * Live Agent Manager client — talks to the real service over HTTP using a
- * bearer API key. Enabled when AGENT_MANAGER_MODE === "live". The endpoint
- * shapes match docs/API.md.
+ * Live Agent Manager client — delegates to the OpenClaw Manager API.
+ * Enabled when AGENT_MANAGER_MODE === "live".
+ * Channel operations (upsertChannel, wechatLogin) are handled via openclaw_manager_api.ts.
  */
 import type {
   AgentManagerClient,
@@ -46,4 +46,9 @@ export const liveClient: AgentManagerClient = {
     call<SendMessageResult>(`/v1/agents/${id}/messages`, "POST", input),
   setLifecycle: (id: string, action: LifecycleAction) =>
     call<LifecycleResult>(`/v1/agents/${id}/lifecycle`, "POST", { action }),
+  // Channel operations are handled by openclaw_manager_api.ts directly
+  upsertChannel: async (_id: string, _channelType: string, _enabled: boolean, _config: Record<string, unknown>) => {
+    // No-op for the generic Agent Manager interface;
+    // the channel API routes call openclaw_manager_api directly.
+  },
 };

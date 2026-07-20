@@ -1,16 +1,56 @@
 import { and, asc, eq } from "drizzle-orm";
 import { db } from "@/lib/db";
-import { channels } from "@/lib/db/schema";
+import { channels, agents, agentManagerConfig } from "@/lib/db/schema";
 import { requireAuth, parseBody, json } from "@/lib/api";
 import { connectChannelSchema } from "@/lib/validation";
 import { serializeChannel } from "@/lib/serializers";
+import { getChannels } from "@/app/lib/openclaw_manager_api";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-export async function GET() {
+export async function GET(req: Request) {
   const auth = await requireAuth();
   if (auth.res) return auth.res;
+
+  const url = new URL(req.url);
+  const instanceUuid = url.searchParams.get("instance_uuid");
+
+  if (instanceUuid) {
+    // Agent-level channels: verify ownership and resolve externalId
+    const [agentRow] = await db
+      .select({ workspaceId: agents.workspaceId })
+      .from(agents)
+      .where(eq(agents.id, instanceUuid))
+      .limit(1);
+
+    if (!agentRow || agentRow.workspaceId !== auth.ctx.workspace.id) {
+      return json({ channels: [] });
+    }
+
+    // Look up OpenClaw externalId
+    const [cfg] = await db
+      .select({ externalId: agentManagerConfig.externalId })
+      .from(agentManagerConfig)
+      .where(eq(agentManagerConfig.agentId, instanceUuid))
+      .limit(1);
+
+    if (!cfg?.externalId) {
+      return json({ channels: [] });
+    }
+
+    // Fetch from OpenClaw Manager API
+    const openclawChannels = await getChannels(cfg.externalId);
+    return json({
+      channels: openclawChannels.map((ch) => ({
+        type: ch.type,
+        enabled: ch.enabled,
+        config: ch.config,
+      })),
+    });
+  }
+
+  // Workspace-level channels (legacy)
   const rows = await db
     .select()
     .from(channels)

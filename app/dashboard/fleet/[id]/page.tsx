@@ -31,9 +31,9 @@ import {
   type AgentSettings,
 } from "@/lib/agent-settings";
 import { useApp } from "@/lib/store";
-import { fleetDetail } from "@/lib/i18n/fleet-detail";
+import { fleetDetail, type FleetDetailDict } from "@/lib/i18n/fleet-detail";
 
-const TAB_IDS = ["activity", "tasks", "chat", "performance", "usage", "settings"] as const;
+const TAB_IDS = ["activity", "tasks", "chat", "performance", "usage", "settings", "channels"] as const;
 
 const CHANNEL_OPTIONS = ["telegram", "whatsapp", "wechat", "line", "slack", "email", "web"];
 
@@ -2459,6 +2459,607 @@ function InfoField({
   );
 }
 
+
+// ---------------------------------------------------------------------------
+// Channel Management Tab
+// ---------------------------------------------------------------------------
+
+type ChannelType = "feishu" | "dingtalk" | "wechat" | "wecom";
+
+interface ChannelState {
+  feishu: { enabled: boolean; appId: string; appSecret: string; dmPolicy: string; groupPolicy: string };
+  dingtalk: { enabled: boolean; clientId: string; clientSecret: string; robotCode: string; corpId: string; agentId: string; messageType: string; allowFrom: string };
+  wechat: { enabled: boolean };
+  wecom: { enabled: boolean; botId: string; secret: string };
+}
+
+interface ChannelModalProps {
+  type: ChannelType;
+  channel: ChannelState[ChannelType];
+  onChange: (type: ChannelType, patch: Partial<ChannelState[ChannelType]>) => void;
+  onSave: (type: ChannelType) => void;
+  onCancel: () => void;
+  saving: boolean;
+  t: FleetDetailDict;
+  qrcode?: { qrcodeUrl: string | null; qrcodeImage: string | null; expiresIn: number; message: string; status: string } | null;
+  qrcodeLoading: boolean;
+  onFetchQrcode: () => void;
+}
+
+function ChannelModal({ type, channel, onChange, onSave, onCancel, saving, t }: ChannelModalProps) {
+  const [draft, setDraft] = useState(channel);
+
+  // Sync draft when channel changes externally
+  useEffect(() => { setDraft(channel); }, [channel]);
+
+  const set = (patch: Partial<ChannelState[typeof type]>) => {
+    setDraft(prev => ({ ...prev, ...patch }));
+    onChange(type, patch);
+  };
+
+  const label: Record<ChannelType, string> = {
+    feishu: t.channelFeishu,
+    dingtalk: t.channelDingtalk,
+    wechat: t.channelWechat,
+    wecom: t.channelWecom,
+  };
+
+  const icon: Record<ChannelType, string> = {
+    feishu: "📱", dingtalk: "💬", wechat: "💚", wecom: "💙",
+  };
+
+  return (
+    <div style={{
+      position: "fixed", inset: 0, zIndex: 1000,
+      display: "flex", alignItems: "center", justifyContent: "center",
+      background: "rgba(0,0,0,0.55)",
+      backdropFilter: "blur(3px)",
+    }}
+      onClick={e => { if (e.target === e.currentTarget) onCancel(); }}
+    >
+      <div style={{
+        background: c.panel,
+        border: `1px solid ${c.borderStrong}`,
+        borderRadius: r.radiusLg,
+        padding: 28,
+        width: 480,
+        maxHeight: "85vh",
+        overflowY: "auto",
+        display: "flex",
+        flexDirection: "column",
+        gap: 20,
+        boxShadow: "0 20px 60px rgba(0,0,0,0.4)",
+      }}>
+        {/* Header */}
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <span style={{ fontSize: 22 }}>{icon[type]}</span>
+            <span style={{ fontFamily: font.space, fontWeight: 700, fontSize: 16, color: c.text }}>
+              {t.edit} {label[type]}
+            </span>
+          </div>
+          <button onClick={onCancel} style={{
+            background: "none", border: "none", cursor: "pointer",
+            color: c.muted, fontSize: 20, padding: 4, lineHeight: 1,
+          }}>✕</button>
+        </div>
+
+        {/* Feishu form */}
+        {type === "feishu" && (() => {
+          const d = draft as ChannelState["feishu"];
+          return (
+          <>
+            <Field label={t.channelFeishuAppId}>
+              <input value={d.appId} onChange={e => set({ appId: e.target.value })} style={sInput} />
+            </Field>
+            <Field label={t.channelFeishuAppSecret}>
+              <input type="password" value={d.appSecret} onChange={e => set({ appSecret: e.target.value })} style={sInput} />
+            </Field>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+              <Field label={t.channelFeishuDmPolicy}>
+                <SelectField value={d.dmPolicy} onChange={v => set({ dmPolicy: v })} options={[
+                  { id: "open", label: t.channelFeishuDmPolicyOpen },
+                  { id: "close", label: "Close" },
+                ]} />
+              </Field>
+              <Field label={t.channelFeishuGroupPolicy}>
+                <SelectField value={d.groupPolicy} onChange={v => set({ groupPolicy: v })} options={[
+                  { id: "open", label: t.channelFeishuGroupPolicyOpen },
+                  { id: "close", label: "Close" },
+                ]} />
+              </Field>
+            </div>
+          </>
+          );
+        })()}
+
+        {/* Dingtalk form */}
+        {type === "dingtalk" && (() => {
+          const d = draft as ChannelState["dingtalk"];
+          return (
+          <>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+              <Field label={t.channelDingtalkClientId}>
+                <input value={d.clientId} onChange={e => set({ clientId: e.target.value })} style={sInput} />
+              </Field>
+              <Field label={t.channelDingtalkClientSecret}>
+                <input type="password" value={d.clientSecret} onChange={e => set({ clientSecret: e.target.value })} style={sInput} />
+              </Field>
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+              <Field label={t.channelDingtalkRobotCode}>
+                <input value={d.robotCode} onChange={e => set({ robotCode: e.target.value })} style={sInput} />
+              </Field>
+              <Field label={t.channelDingtalkCorpId}>
+                <input value={d.corpId} onChange={e => set({ corpId: e.target.value })} style={sInput} />
+              </Field>
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+              <Field label={t.channelDingtalkAgentId}>
+                <input value={d.agentId} onChange={e => set({ agentId: e.target.value })} style={sInput} />
+              </Field>
+              <Field label={t.channelDingtalkMessageType}>
+                <SelectField value={d.messageType} onChange={v => set({ messageType: v })} options={[
+                  { id: "markdown", label: "Markdown" },
+                  { id: "text", label: "Text" },
+                ]} />
+              </Field>
+            </div>
+            <Field label={t.channelDingtalkAllowFrom} hint="Comma-separated, e.g. * or @user">
+              <input value={d.allowFrom} onChange={e => set({ allowFrom: e.target.value })} style={sInput} placeholder="*" />
+            </Field>
+          </>
+          );
+        })()}
+
+        {/* WeChat — QR code login */}
+        {type === "wechat" && (
+          <div style={{ display: "flex", flexDirection: "column", gap: 16, alignItems: "center" }}>
+            <div style={{ fontFamily: font.mono, fontSize: 13, color: c.faint, textAlign: "center", lineHeight: 1.6 }}>
+              {t.channelWechatScanLoginDesc}
+            </div>
+            <button
+              onClick={onFetchQrcode}
+              disabled={qrcodeLoading}
+              style={{
+                background: c.lime, color: c.ink, border: "none",
+                padding: "10px 20px", fontFamily: font.space,
+                fontWeight: 700, fontSize: 13,
+                cursor: qrcodeLoading ? "default" : "pointer",
+                opacity: qrcodeLoading ? 0.6 : 1,
+                borderRadius: r.radiusSm, width: "100%",
+              }}
+            >
+              {qrcodeLoading ? "…" : t.channelWechatScanLogin}
+            </button>
+            {qrcode && (
+              <div style={{ textAlign: "center" }}>
+                {qrcode.qrcodeUrl && (
+                  <img
+                    src={qrcode.qrcodeUrl}
+                    alt={t.channelWechatLoginQrcode}
+                    style={{ width: 180, height: 180, border: `1px solid ${c.border}`, borderRadius: r.radiusSm, display: "block", margin: "0 auto" }}
+                  />
+                )}
+                <div style={{ fontFamily: font.mono, fontSize: 11, color: c.faint, marginTop: 10 }}>
+                  {qrcode.message}
+                </div>
+                <div style={{ fontFamily: font.mono, fontSize: 10.5, color: c.muted, marginTop: 4 }}>
+                  {qrcode.expiresIn > 0 ? `${qrcode.expiresIn}s` : t.channelLoginExpired}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* WeCom form */}
+        {type === "wecom" && (() => {
+          const d = draft as ChannelState["wecom"];
+          return (
+          <>
+            <Field label={t.channelWecomBotId}>
+              <input value={d.botId} onChange={e => set({ botId: e.target.value })} style={sInput} />
+            </Field>
+            <Field label={t.channelWecomSecret}>
+              <input type="password" value={d.secret} onChange={e => set({ secret: e.target.value })} style={sInput} />
+            </Field>
+          </>
+          );
+        })()}
+
+        {/* Actions */}
+        <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", paddingTop: 4 }}>
+          <button onClick={onCancel} style={{
+            padding: "10px 18px",
+            background: "none",
+            border: `1px solid ${c.borderStrong}`,
+            borderRadius: r.radiusSm,
+            color: c.text2,
+            fontFamily: font.space,
+            fontWeight: 600,
+            fontSize: 13,
+            cursor: saving ? "default" : "pointer",
+            opacity: saving ? 0.5 : 1,
+          }}>
+            {t.cancel}
+          </button>
+          <button onClick={() => onSave(type)} disabled={saving} style={{
+            padding: "10px 20px",
+            background: c.lime,
+            border: "none",
+            borderRadius: r.radiusSm,
+            color: c.ink,
+            fontFamily: font.space,
+            fontWeight: 700,
+            fontSize: 13,
+            cursor: saving ? "default" : "pointer",
+            opacity: saving ? 0.6 : 1,
+          }}>
+            {saving ? "…" : t.saveChanges}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ChannelsTab({ cur }: { cur: AgentDetailDTO }) {
+  const { lang } = useApp();
+  const t = fleetDetail[lang];
+  const [channels, setChannels] = useState<ChannelState>({
+    feishu: { enabled: false, appId: "", appSecret: "", dmPolicy: "open", groupPolicy: "open" },
+    dingtalk: { enabled: false, clientId: "", clientSecret: "", robotCode: "", corpId: "", agentId: "", messageType: "markdown", allowFrom: "*" },
+    wechat: { enabled: false },
+    wecom: { enabled: false, botId: "", secret: "" },
+  });
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState<ChannelType | null>(null);
+  const [busyToggle, setBusyToggle] = useState<Record<ChannelType, boolean>>({ feishu: false, dingtalk: false, wechat: false, wecom: false });
+  const [error, setError] = useState<string | null>(null);
+  const [successMsg, setSuccessMsg] = useState<string | null>(null);
+  const [qrcode, setQrcode] = useState<{ qrcodeUrl: string | null; qrcodeImage: string | null; expiresIn: number; message: string; status: string } | null>(null);
+  const [qrcodeLoading, setQrcodeLoading] = useState(false);
+  const [editingChannel, setEditingChannel] = useState<ChannelType | null>(null);
+
+  const instanceUuid = (cur as unknown as Record<string, unknown>).instanceUuid as string | undefined;
+
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      try {
+        const res = await api.getChannels(instanceUuid ?? cur.id);
+        if (!alive) return;
+        const found = res.channels;
+        if (found.length > 0) {
+          const updateChannel = (type: ChannelType, ch: typeof found[0]) => {
+            const cfg = ch.config ?? {};
+            if (type === "feishu") {
+              setChannels(prev => ({ ...prev, feishu: {
+                enabled: ch.status === "enabled" || ch.status === "active" || (ch as unknown as { enabled?: boolean }).enabled === true,
+                appId: String(cfg.appId ?? ""),
+                appSecret: String(cfg.appSecret ?? ""),
+                dmPolicy: String(cfg.dmPolicy ?? "open"),
+                groupPolicy: String(cfg.groupPolicy ?? "open"),
+              }}));
+            } else if (type === "dingtalk") {
+              setChannels(prev => ({ ...prev, dingtalk: {
+                enabled: ch.status === "enabled" || ch.status === "active" || (ch as unknown as { enabled?: boolean }).enabled === true,
+                clientId: String(cfg.clientId ?? ""),
+                clientSecret: String(cfg.clientSecret ?? ""),
+                robotCode: String(cfg.robotCode ?? ""),
+                corpId: String(cfg.corpId ?? ""),
+                agentId: String(cfg.agentId ?? ""),
+                messageType: String(cfg.messageType ?? "markdown"),
+                allowFrom: String(cfg.allowFrom ?? "*"),
+              }}));
+            } else if (type === "wechat") {
+              setChannels(prev => ({ ...prev, wechat: {
+                enabled: ch.status === "enabled" || ch.status === "active" || (ch as unknown as { enabled?: boolean }).enabled === true,
+              }}));
+            } else if (type === "wecom") {
+              setChannels(prev => ({ ...prev, wecom: {
+                enabled: ch.status === "enabled" || ch.status === "active" || (ch as unknown as { enabled?: boolean }).enabled === true,
+                botId: String(cfg.botId ?? ""),
+                secret: String(cfg.secret ?? ""),
+              }}));
+            }
+          };
+          found.forEach(ch => {
+            const t = ch.type?.toLowerCase();
+            if (t === "feishu") updateChannel("feishu", ch);
+            else if (t === "dingtalk") updateChannel("dingtalk", ch);
+            else if (t === "wechat") updateChannel("wechat", ch);
+            else if (t === "wecom") updateChannel("wecom", ch);
+          });
+        }
+      } catch (e) {
+        if (alive) setError(e instanceof ApiError ? e.message : t.channelSaveError);
+      } finally {
+        if (alive) setLoading(false);
+      }
+    })();
+    return () => { alive = false; };
+  }, [instanceUuid, cur.id, t.channelSaveError]);
+
+  const showSuccess = (msg: string) => {
+    setSuccessMsg(msg);
+    setTimeout(() => setSuccessMsg(null), 2500);
+  };
+
+  const saveChannel = async (type: ChannelType) => {
+    if (saving) return;
+    setSaving(type);
+    setError(null);
+    try {
+      const instUuid = instanceUuid ?? cur.id;
+      if (type === "feishu") {
+        const ch = channels.feishu;
+        await api.upsertChannel({
+          instanceUuid: instUuid, channelType: "feishu", enabled: ch.enabled,
+          config: { appId: ch.appId, appSecret: ch.appSecret, domain: "feishu", defaultAccount: "default", dmPolicy: ch.dmPolicy, groupPolicy: ch.groupPolicy },
+        });
+      } else if (type === "dingtalk") {
+        const ch = channels.dingtalk;
+        await api.upsertChannel({
+          instanceUuid: instUuid, channelType: "dingtalk", enabled: ch.enabled,
+          config: { clientId: ch.clientId, clientSecret: ch.clientSecret, robotCode: ch.robotCode, corpId: ch.corpId, agentId: ch.agentId ? Number(ch.agentId) : 0, dmPolicy: "open", groupPolicy: "open", messageType: ch.messageType, allowFrom: ch.allowFrom.split(",").map((s: string) => s.trim()).filter(Boolean), enabled: ch.enabled },
+        });
+      } else if (type === "wechat") {
+        await api.upsertChannel({ instanceUuid: instUuid, channelType: "wechat", enabled: channels.wechat.enabled, config: {} });
+      } else if (type === "wecom") {
+        const ch = channels.wecom;
+        await api.upsertChannel({
+          instanceUuid: instUuid, channelType: "wecom", enabled: ch.enabled,
+          config: { botId: ch.botId, secret: ch.secret },
+        });
+      }
+      showSuccess(t.channelSaveSuccess);
+      setEditingChannel(null);
+    } catch (e) {
+      setError(e instanceof ApiError ? e.message : t.channelSaveError);
+    } finally {
+      setSaving(null);
+    }
+  };
+
+  const toggleChannel = async (type: ChannelType, enabled: boolean) => {
+    setBusyToggle(prev => ({ ...prev, [type]: true }));
+    setError(null);
+    const instUuid = instanceUuid ?? cur.id;
+    try {
+      if (type === "feishu") {
+        const ch = channels.feishu;
+        setChannels(prev => ({ ...prev, feishu: { ...prev.feishu, enabled } }));
+        await api.upsertChannel({
+          instanceUuid: instUuid, channelType: "feishu", enabled,
+          config: { appId: ch.appId, appSecret: ch.appSecret, domain: "feishu", defaultAccount: "default", dmPolicy: ch.dmPolicy, groupPolicy: ch.groupPolicy },
+        });
+      } else if (type === "dingtalk") {
+        const ch = channels.dingtalk;
+        setChannels(prev => ({ ...prev, dingtalk: { ...prev.dingtalk, enabled } }));
+        await api.upsertChannel({
+          instanceUuid: instUuid, channelType: "dingtalk", enabled,
+          config: { clientId: ch.clientId, clientSecret: ch.clientSecret, robotCode: ch.robotCode, corpId: ch.corpId, agentId: ch.agentId ? Number(ch.agentId) : 0, dmPolicy: "open", groupPolicy: "open", messageType: ch.messageType, allowFrom: ch.allowFrom.split(",").map((s: string) => s.trim()).filter(Boolean), enabled },
+        });
+      } else if (type === "wechat") {
+        setChannels(prev => ({ ...prev, wechat: { ...prev.wechat, enabled } }));
+        await api.upsertChannel({ instanceUuid: instUuid, channelType: "wechat", enabled, config: {} });
+      } else if (type === "wecom") {
+        const ch = channels.wecom;
+        setChannels(prev => ({ ...prev, wecom: { ...prev.wecom, enabled } }));
+        await api.upsertChannel({ instanceUuid: instUuid, channelType: "wecom", enabled, config: { botId: ch.botId, secret: ch.secret } });
+      }
+    } catch (e) {
+      setChannels(prev => ({ ...prev, [type]: { ...prev[type], enabled: !enabled } as typeof prev[typeof type] }));
+      setError(e instanceof ApiError ? e.message : t.channelToggleError);
+    } finally {
+      setBusyToggle(prev => ({ ...prev, [type]: false }));
+    }
+  };
+
+  const setChannel = <T extends ChannelType>(type: T, patch: Partial<ChannelState[T]>) => {
+    setChannels(prev => ({ ...prev, [type]: { ...prev[type], ...patch } as ChannelState[T] }));
+  };
+
+  const fetchWechatQrcode = async () => {
+    setQrcodeLoading(true);
+    setQrcode(null);
+    try {
+      const res = await api.getWechatLoginQrcode(instanceUuid ?? cur.id);
+      setQrcode(res);
+    } catch (e) {
+      setError(e instanceof ApiError ? e.message : t.channelToggleError);
+    } finally {
+      setQrcodeLoading(false);
+    }
+  };
+
+  const CHANNEL_ICONS: Record<ChannelType, string> = {
+    feishu: "📱", dingtalk: "💬", wechat: "💚", wecom: "💙",
+  };
+
+  const CHANNEL_LABELS: Record<ChannelType, string> = {
+    feishu: t.channelFeishu,
+    dingtalk: t.channelDingtalk,
+    wechat: t.channelWechat,
+    wecom: t.channelWecom,
+  };
+
+  if (loading) {
+    return (
+      <div style={{ fontFamily: font.mono, fontSize: 12, color: c.faint, textAlign: "center", padding: 40 }}>
+        Loading channels…
+      </div>
+    );
+  }
+
+  return (
+    <>
+        {editingChannel && (
+        <ChannelModal
+          type={editingChannel}
+          channel={channels[editingChannel]}
+          onChange={(type, patch) => setChannel(type, patch)}
+          onSave={async (type) => { await saveChannel(type); }}
+          onCancel={() => setEditingChannel(null)}
+          saving={saving === editingChannel}
+          t={t}
+          qrcode={qrcode}
+          qrcodeLoading={qrcodeLoading}
+          onFetchQrcode={() => fetchWechatQrcode()}
+        />
+      )}
+
+      <div style={{ display: "grid", gridTemplateColumns: r.detailSettings, gap: 20, alignItems: "start" }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+          <SettingCard title={t.channelsTabTitle} desc={t.channelsTabDesc}>
+            {/* 4-channel grid */}
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+              {(["feishu", "dingtalk", "wechat", "wecom"] as ChannelType[]).map(type => (
+                <div
+                  key={type}
+                  style={{
+                    border: `1px solid ${channels[type].enabled ? c.limeBorder : c.borderStrong}`,
+                    background: c.bg,
+                    padding: 14,
+                    borderRadius: r.radiusMd,
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: 10,
+                    opacity: busyToggle[type] ? 0.6 : 1,
+                    transition: "opacity .15s",
+                  }}
+                >
+                  {/* Header row */}
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                      <span style={{ fontSize: 18 }}>{CHANNEL_ICONS[type]}</span>
+                      <span style={{ fontFamily: font.mono, fontSize: 11.5, letterSpacing: ".08em", color: c.text2 }}>
+                        {CHANNEL_LABELS[type]}
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => toggleChannel(type, !channels[type].enabled)}
+                      disabled={busyToggle[type]}
+                      aria-pressed={channels[type].enabled}
+                      style={{
+                        width: 40, height: 22, borderRadius: 11,
+                        border: `1px solid ${channels[type].enabled ? c.limeBorder : c.borderStrong}`,
+                        background: channels[type].enabled ? c.lime : "transparent",
+                        cursor: busyToggle[type] ? "default" : "pointer",
+                        position: "relative", flexShrink: 0,
+                        transition: "background .15s ease, border-color .15s ease",
+                      }}
+                    >
+                      <span style={{
+                        position: "absolute", top: 2,
+                        left: channels[type].enabled ? 19 : 2,
+                        width: 16, height: 16, borderRadius: "50%",
+                        background: channels[type].enabled ? c.ink : c.muted,
+                        transition: "left .15s ease",
+                      }} />
+                    </button>
+                  </div>
+
+                  {/* Status line */}
+                  <div style={{ fontFamily: font.mono, fontSize: 10, color: channels[type].enabled ? c.accent : c.faint, letterSpacing: ".06em" }}>
+                    {channels[type].enabled ? t.channelEnabled : t.channelDisabled}
+                  </div>
+
+                  {/* Edit button — only when enabled */}
+                  {channels[type].enabled && (
+                    <button
+                      onClick={() => setEditingChannel(type)}
+                      style={{
+                        background: "none",
+                        border: `1px solid ${c.border}`,
+                        borderRadius: r.radiusSm,
+                        color: c.text2,
+                        fontFamily: font.space,
+                        fontWeight: 600,
+                        fontSize: 11.5,
+                        padding: "6px 12px",
+                        cursor: "pointer",
+                        textAlign: "center",
+                        transition: "border-color .1s, color .1s",
+                      }}
+                    >
+                      {t.edit}
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
+
+            {/* Global error */}
+            {error && (
+              <div style={{ fontFamily: font.mono, fontSize: 11, color: c.red, marginTop: 8 }}>
+                {error}
+              </div>
+            )}
+            {/* Global success */}
+            {successMsg && (
+              <div style={{ fontFamily: font.mono, fontSize: 11, color: c.accent, marginTop: 8 }}>
+                {successMsg}
+              </div>
+            )}
+          </SettingCard>
+
+          {/* WeChat QR code section — shown when enabled */}
+          {channels.wechat.enabled && (
+            <SettingCard title={`${CHANNEL_ICONS.wechat} ${t.channelWechat}`}>
+              <div style={{ fontFamily: font.mono, fontSize: 12, color: c.faint, marginBottom: 12 }}>
+                {t.channelWechatScanLoginDesc}
+              </div>
+              <button
+                onClick={fetchWechatQrcode}
+                disabled={qrcodeLoading}
+                style={{
+                  background: c.lime, color: c.ink, border: "none",
+                  padding: "10px 16px", fontFamily: font.space,
+                  fontWeight: 700, fontSize: 13,
+                  cursor: qrcodeLoading ? "default" : "pointer",
+                  opacity: qrcodeLoading ? 0.6 : 1,
+                  borderRadius: r.radiusSm, width: "100%", marginBottom: 12,
+                }}
+              >
+                {qrcodeLoading ? "…" : t.channelWechatScanLogin}
+              </button>
+              {qrcode && (
+                <div style={{ marginTop: 12, textAlign: "center" }}>
+                  {qrcode.qrcodeUrl && (
+                    <img
+                      src={qrcode.qrcodeUrl}
+                      alt={t.channelWechatLoginQrcode}
+                      style={{ width: 160, height: 160, border: `1px solid ${c.border}`, borderRadius: r.radiusSm }}
+                    />
+                  )}
+                  <div style={{ fontFamily: font.mono, fontSize: 11, color: c.faint, marginTop: 8 }}>
+                    {qrcode.message}
+                  </div>
+                  <div style={{ fontFamily: font.mono, fontSize: 10.5, color: c.muted, marginTop: 4 }}>
+                    {qrcode.expiresIn > 0 ? `${qrcode.expiresIn}s` : t.channelLoginExpired}
+                  </div>
+                </div>
+              )}
+            </SettingCard>
+          )}
+        </div>
+
+        {/* Sidebar — only channel guide for now */}
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          <SettingCard title={t.channelsTabGuideTitle}>
+            <div style={{ fontFamily: font.mono, fontSize: 12, color: c.faint, lineHeight: 1.7 }}>
+              {t.channelsTabGuideDesc}
+            </div>
+          </SettingCard>
+        </div>
+      </div>
+    </>
+  );
+}
+
 function AgentDetailInner() {
   const { lang } = useApp();
   const t = fleetDetail[lang];
@@ -2689,9 +3290,11 @@ function AgentDetailInner() {
                   ? t.tabChat
                   : id === "performance"
                     ? t.tabPerformance
-                    : id === "usage"
+                    :             id === "usage"
                       ? t.tabUsage
-                      : t.tabSettings;
+                      : id === "settings"
+                        ? t.tabSettings
+                        : t.tabChannels;
           return (
             <button
               key={id}
@@ -2722,6 +3325,7 @@ function AgentDetailInner() {
       {tab === "performance" && <PerformanceTab key={cur.id} cur={cur} onRefresh={load} />}
       {tab === "usage" && <UsageTab key={cur.id} cur={cur} />}
       {tab === "settings" && <SettingsTab key={cur.id} cur={cur} onRefresh={load} />}
+      {tab === "channels" && <ChannelsTab key={cur.id} cur={cur} />}
     </div>
   );
 }

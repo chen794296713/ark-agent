@@ -104,6 +104,15 @@ export const connectChannelSchema = z.object({
   label: z.string().max(80).optional(),
 });
 
+const CHANNEL_TYPE_ALL = ["feishu", "dingtalk", "wechat", "wecom", ...CHANNEL_TYPES] as const;
+
+export const upsertChannelSchema = z.object({
+  instanceUuid: z.string(),
+  channelType: z.enum(CHANNEL_TYPE_ALL),
+  enabled: z.boolean(),
+  config: z.record(z.string(), z.unknown()).default({}),
+});
+
 export const checkoutSchema = z.object({
   planId: z.enum(["associate", "professional", "director"]),
   cycle: z.enum(["monthly", "annual"]).default("monthly"),

@@ -9,6 +9,7 @@ export interface FleetDetailDict {
   tabPerformance: string;
   tabSettings: string;
   tabUsage: string;
+  tabChannels: string;
 
   // Activity tab
   activityEmpty: string;
@@ -214,6 +215,48 @@ export interface FleetDetailDict {
   instanceOpenApp: string;
   instanceOpenVnc: string;
 
+  // Channel management
+  channelsTabTitle: string;
+  channelsTabDesc: string;
+  channelsTabGuideTitle: string;
+  channelsTabGuideDesc: string;
+  edit: string;
+  cancel: string;
+  channelFeishu: string;
+  channelDingtalk: string;
+  channelWechat: string;
+  channelWecom: string;
+  channelEnabled: string;
+  channelDisabled: string;
+  channelSaveSuccess: string;
+  channelSaveError: string;
+  channelToggleSuccess: string;
+  channelToggleError: string;
+  channelFeishuAppId: string;
+  channelFeishuAppSecret: string;
+  channelFeishuDmPolicy: string;
+  channelFeishuDmPolicyOpen: string;
+  channelFeishuGroupPolicy: string;
+  channelFeishuGroupPolicyOpen: string;
+  channelDingtalkClientId: string;
+  channelDingtalkClientSecret: string;
+  channelDingtalkRobotCode: string;
+  channelDingtalkCorpId: string;
+  channelDingtalkAgentId: string;
+  channelDingtalkMessageType: string;
+  channelDingtalkAllowFrom: string;
+  channelWechatScanLogin: string;
+  channelWechatScanLoginDesc: string;
+  channelWechatLoginPending: string;
+  channelWechatLoginExpired: string;
+  channelWechatLoginRefresh: string;
+  channelWechatLoginQrcode: string;
+  channelWecomBotId: string;
+  channelWecomSecret: string;
+  channelLoginQrcode: string;
+  channelLoginExpired: string;
+  channelLoginRefresh: string;
+
   // Detail shell
   loadAgentError: string;
   loadingAgent: string;
@@ -232,6 +275,7 @@ const en: FleetDetailDict = {
   tabPerformance: "Performance",
   tabSettings: "Settings",
   tabUsage: "Usage",
+  tabChannels: "Channels",
 
   activityEmpty: "No activity yet — this agent hasn’t logged anything.",
 
@@ -420,6 +464,48 @@ const en: FleetDetailDict = {
   instanceOpenApp: "Open instance",
   instanceOpenVnc: "Open browser (VNC)",
 
+  // Channel management
+  channelsTabTitle: "CHANNELS",
+  channelsTabDesc: "Configure messaging channels for this agent.",
+  channelsTabGuideTitle: "Setup Guide",
+  channelsTabGuideDesc: "Enable a channel, then click Edit to configure its credentials and options. Each channel is saved independently.",
+  edit: "Edit",
+  cancel: "Cancel",
+  channelFeishu: "飞书",
+  channelDingtalk: "钉钉",
+  channelWechat: "微信",
+  channelWecom: "企微",
+  channelEnabled: "Enabled",
+  channelDisabled: "Disabled",
+  channelSaveSuccess: "Configuration saved.",
+  channelSaveError: "Failed to save configuration.",
+  channelToggleSuccess: "Channel updated.",
+  channelToggleError: "Failed to update channel.",
+  channelFeishuAppId: "App ID",
+  channelFeishuAppSecret: "App Secret",
+  channelFeishuDmPolicy: "DM Policy",
+  channelFeishuDmPolicyOpen: "Open",
+  channelFeishuGroupPolicy: "Group Policy",
+  channelFeishuGroupPolicyOpen: "Open",
+  channelDingtalkClientId: "Client ID",
+  channelDingtalkClientSecret: "Client Secret",
+  channelDingtalkRobotCode: "Robot Code",
+  channelDingtalkCorpId: "Corp ID",
+  channelDingtalkAgentId: "Agent ID",
+  channelDingtalkMessageType: "Message Type",
+  channelDingtalkAllowFrom: "Allow From",
+  channelWechatScanLogin: "Scan to Login",
+  channelWechatScanLoginDesc: "Click to generate a QR code for WeChat login.",
+  channelWechatLoginPending: "Waiting for scan…",
+  channelWechatLoginExpired: "QR code expired.",
+  channelWechatLoginRefresh: "Refresh QR code",
+  channelWechatLoginQrcode: "Scan with WeChat",
+  channelWecomBotId: "Bot ID",
+  channelWecomSecret: "Secret",
+  channelLoginQrcode: "QR Code",
+  channelLoginExpired: "Expired",
+  channelLoginRefresh: "Refresh",
+
   loadAgentError: "Couldn’t load this agent.",
   loadingAgent: "Loading agent…",
   notFoundTitle: "Agent not found",
@@ -437,6 +523,7 @@ const zh: FleetDetailDict = {
   tabPerformance: "表现",
   tabSettings: "设置",
   tabUsage: "使用统计",
+  tabChannels: "渠道管理",
 
   activityEmpty: "暂无动态——这位智能体还没有记录任何内容。",
 
@@ -625,6 +712,48 @@ const zh: FleetDetailDict = {
   instanceOpenApp: "打开智能体",
   instanceOpenVnc: "打开浏览器",
 
+  // Channel management
+  channelsTabTitle: "渠道管理",
+  channelsTabDesc: "配置该智能体的消息渠道。",
+  channelsTabGuideTitle: "设置指南",
+  channelsTabGuideDesc: "先开启渠道，再点击「编辑」配置凭证和选项。每个渠道独立保存。",
+  edit: "编辑",
+  cancel: "取消",
+  channelFeishu: "飞书",
+  channelDingtalk: "钉钉",
+  channelWechat: "微信",
+  channelWecom: "企微",
+  channelEnabled: "已启用",
+  channelDisabled: "已停用",
+  channelSaveSuccess: "配置已保存。",
+  channelSaveError: "保存配置失败。",
+  channelToggleSuccess: "渠道已更新。",
+  channelToggleError: "更新渠道失败。",
+  channelFeishuAppId: "App ID",
+  channelFeishuAppSecret: "App Secret",
+  channelFeishuDmPolicy: "私信策略",
+  channelFeishuDmPolicyOpen: "开放",
+  channelFeishuGroupPolicy: "群策略",
+  channelFeishuGroupPolicyOpen: "开放",
+  channelDingtalkClientId: "Client ID",
+  channelDingtalkClientSecret: "Client Secret",
+  channelDingtalkRobotCode: "Robot Code",
+  channelDingtalkCorpId: "Corp ID",
+  channelDingtalkAgentId: "Agent ID",
+  channelDingtalkMessageType: "消息类型",
+  channelDingtalkAllowFrom: "允许来源",
+  channelWechatScanLogin: "扫码登录",
+  channelWechatScanLoginDesc: "点击生成微信登录二维码。",
+  channelWechatLoginPending: "等待扫码…",
+  channelWechatLoginExpired: "二维码已过期。",
+  channelWechatLoginRefresh: "刷新二维码",
+  channelWechatLoginQrcode: "请使用微信扫码",
+  channelWecomBotId: "Bot ID",
+  channelWecomSecret: "Secret",
+  channelLoginQrcode: "二维码",
+  channelLoginExpired: "已过期",
+  channelLoginRefresh: "刷新",
+
   loadAgentError: "无法加载该智能体。",
   loadingAgent: "正在加载智能体…",
   notFoundTitle: "找不到智能体",
@@ -642,6 +771,7 @@ const zht: FleetDetailDict = {
   tabPerformance: "表現",
   tabSettings: "設定",
   tabUsage: "使用統計",
+  tabChannels: "渠道管理",
 
   activityEmpty: "尚無動態——這位智能體還沒有記錄任何內容。",
 
@@ -830,6 +960,48 @@ const zht: FleetDetailDict = {
   instanceOpenApp: "開啟實例",
   instanceOpenVnc: "開啟瀏覽器 (VNC)",
 
+  // Channel management
+  channelsTabTitle: "渠道管理",
+  channelsTabDesc: "設定該智能體的訊息渠道。",
+  channelsTabGuideTitle: "設定指南",
+  channelsTabGuideDesc: "先啟用渠道，再點擊「編輯」設定憑證和選項。每個渠道獨立儲存。",
+  edit: "編輯",
+  cancel: "取消",
+  channelFeishu: "飛書",
+  channelDingtalk: "釘釘",
+  channelWechat: "微信",
+  channelWecom: "企微",
+  channelEnabled: "已啟用",
+  channelDisabled: "已停用",
+  channelSaveSuccess: "設定已儲存。",
+  channelSaveError: "儲存設定失敗。",
+  channelToggleSuccess: "渠道已更新。",
+  channelToggleError: "更新渠道失敗。",
+  channelFeishuAppId: "App ID",
+  channelFeishuAppSecret: "App Secret",
+  channelFeishuDmPolicy: "私信策略",
+  channelFeishuDmPolicyOpen: "開放",
+  channelFeishuGroupPolicy: "群策略",
+  channelFeishuGroupPolicyOpen: "開放",
+  channelDingtalkClientId: "Client ID",
+  channelDingtalkClientSecret: "Client Secret",
+  channelDingtalkRobotCode: "Robot Code",
+  channelDingtalkCorpId: "Corp ID",
+  channelDingtalkAgentId: "Agent ID",
+  channelDingtalkMessageType: "訊息類型",
+  channelDingtalkAllowFrom: "允許來源",
+  channelWechatScanLogin: "掃碼登入",
+  channelWechatScanLoginDesc: "點擊產生微信登入二維碼。",
+  channelWechatLoginPending: "等待掃碼…",
+  channelWechatLoginExpired: "二維碼已過期。",
+  channelWechatLoginRefresh: "刷新二維碼",
+  channelWechatLoginQrcode: "請使用微信掃碼",
+  channelWecomBotId: "Bot ID",
+  channelWecomSecret: "Secret",
+  channelLoginQrcode: "二維碼",
+  channelLoginExpired: "已過期",
+  channelLoginRefresh: "刷新",
+
   loadAgentError: "無法載入該智能體。",
   loadingAgent: "正在載入智能體…",
   notFoundTitle: "找不到智能體",
@@ -847,6 +1019,7 @@ const ja: FleetDetailDict = {
   tabPerformance: "パフォーマンス",
   tabSettings: "設定",
   tabUsage: "使用統計",
+  tabChannels: "チャネル管理",
 
   activityEmpty: "アクティビティはまだありません。このエージェントは何も記録していません。",
 
@@ -1034,6 +1207,48 @@ const ja: FleetDetailDict = {
   instanceFieldRawConfig: "完全な設定 JSON",
   instanceOpenApp: "インスタンスを開く",
   instanceOpenVnc: "ブラウザを開く (VNC)",
+
+  // Channel management
+  channelsTabTitle: "チャネル管理",
+  channelsTabDesc: "このエージェントのメッセージチャネルを設定します。",
+  channelsTabGuideTitle: "セットアップガイド",
+  channelsTabGuideDesc: "チャネルを有効にしてから「編集」をクリックし、認証情報とオプションを設定します。各チャネルは個別に保存されます。",
+  edit: "編集",
+  cancel: "キャンセル",
+  channelFeishu: "飛書",
+  channelDingtalk: "钉钉",
+  channelWechat: "微信",
+  channelWecom: "企業微信",
+  channelEnabled: "有効",
+  channelDisabled: "無効",
+  channelSaveSuccess: "設定が保存されました。",
+  channelSaveError: "設定の保存に失敗しました。",
+  channelToggleSuccess: "チャネルが更新されました。",
+  channelToggleError: "チャネルの更新に失敗しました。",
+  channelFeishuAppId: "App ID",
+  channelFeishuAppSecret: "App Secret",
+  channelFeishuDmPolicy: "DMポリシー",
+  channelFeishuDmPolicyOpen: "オープン",
+  channelFeishuGroupPolicy: "グループポリシー",
+  channelFeishuGroupPolicyOpen: "オープン",
+  channelDingtalkClientId: "Client ID",
+  channelDingtalkClientSecret: "Client Secret",
+  channelDingtalkRobotCode: "Robot Code",
+  channelDingtalkCorpId: "Corp ID",
+  channelDingtalkAgentId: "Agent ID",
+  channelDingtalkMessageType: "メッセージタイプ",
+  channelDingtalkAllowFrom: "許可元",
+  channelWechatScanLogin: "スキャンログイン",
+  channelWechatScanLoginDesc: "クリックして微信ログイン用QRコードを生成します。",
+  channelWechatLoginPending: "スキャン待ち…",
+  channelWechatLoginExpired: "QRコードの有効期限が切れました。",
+  channelWechatLoginRefresh: "QRコードを再取得",
+  channelWechatLoginQrcode: "微信でスキャンしてください",
+  channelWecomBotId: "Bot ID",
+  channelWecomSecret: "Secret",
+  channelLoginQrcode: "QRコード",
+  channelLoginExpired: "期限切れ",
+  channelLoginRefresh: "再取得",
 
   loadAgentError: "このエージェントを読み込めませんでした。",
   loadingAgent: "エージェントを読み込み中…",
