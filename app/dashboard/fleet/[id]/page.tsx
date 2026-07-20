@@ -2481,12 +2481,12 @@ interface ChannelModalProps {
   onCancel: () => void;
   saving: boolean;
   t: FleetDetailDict;
-  qrcode?: { qrcodeUrl: string | null; qrcodeImage: string | null; expiresIn: number; message: string; status: string } | null;
+  qrcode?: { qrcodeUrl: string | null; qrcodeImage: string | null; expiresIn: number; message: string; status: string; rawOutput?: string | null } | null;
   qrcodeLoading: boolean;
   onFetchQrcode: () => void;
 }
 
-function ChannelModal({ type, channel, onChange, onSave, onCancel, saving, t }: ChannelModalProps) {
+function ChannelModal({ type, channel, onChange, onSave, onCancel, saving, t, qrcode, qrcodeLoading, onFetchQrcode }: ChannelModalProps) {
   const [draft, setDraft] = useState(channel);
 
   // Sync draft when channel changes externally
@@ -2633,18 +2633,34 @@ function ChannelModal({ type, channel, onChange, onSave, onCancel, saving, t }: 
               {qrcodeLoading ? "…" : t.channelWechatScanLogin}
             </button>
             {qrcode && (
-              <div style={{ textAlign: "center" }}>
-                {qrcode.qrcodeUrl && (
+              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 10 }}>
+                {qrcode.rawOutput ? (
+                  <pre style={{
+                    background: "#111",
+                    padding: "14px 18px",
+                    borderRadius: r.radiusSm,
+                    border: `1px solid ${c.border}`,
+                    fontFamily: "monospace",
+                    fontSize: 9.5,
+                    lineHeight: 1.25,
+                    color: "#00ff88",
+                    textAlign: "left",
+                    overflowX: "auto",
+                    margin: 0,
+                  }}>
+                    {qrcode.rawOutput}
+                  </pre>
+                ) : qrcode.qrcodeUrl ? (
                   <img
                     src={qrcode.qrcodeUrl}
                     alt={t.channelWechatLoginQrcode}
                     style={{ width: 180, height: 180, border: `1px solid ${c.border}`, borderRadius: r.radiusSm, display: "block", margin: "0 auto" }}
                   />
-                )}
-                <div style={{ fontFamily: font.mono, fontSize: 11, color: c.faint, marginTop: 10 }}>
+                ) : null}
+                <div style={{ fontFamily: font.mono, fontSize: 11, color: c.faint, textAlign: "center" }}>
                   {qrcode.message}
                 </div>
-                <div style={{ fontFamily: font.mono, fontSize: 10.5, color: c.muted, marginTop: 4 }}>
+                <div style={{ fontFamily: font.mono, fontSize: 10.5, color: c.muted, textAlign: "center" }}>
                   {qrcode.expiresIn > 0 ? `${qrcode.expiresIn}s` : t.channelLoginExpired}
                 </div>
               </div>
@@ -2717,7 +2733,7 @@ function ChannelsTab({ cur }: { cur: AgentDetailDTO }) {
   const [busyToggle, setBusyToggle] = useState<Record<ChannelType, boolean>>({ feishu: false, dingtalk: false, wechat: false, wecom: false });
   const [error, setError] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
-  const [qrcode, setQrcode] = useState<{ qrcodeUrl: string | null; qrcodeImage: string | null; expiresIn: number; message: string; status: string } | null>(null);
+  const [qrcode, setQrcode] = useState<{ qrcodeUrl: string | null; qrcodeImage: string | null; expiresIn: number; message: string; status: string; rawOutput?: string | null } | null>(null);
   const [qrcodeLoading, setQrcodeLoading] = useState(false);
   const [editingChannel, setEditingChannel] = useState<ChannelType | null>(null);
 
@@ -2735,41 +2751,43 @@ function ChannelsTab({ cur }: { cur: AgentDetailDTO }) {
             const cfg = ch.config ?? {};
             if (type === "feishu") {
               setChannels(prev => ({ ...prev, feishu: {
-                enabled: ch.status === "enabled" || ch.status === "active" || (ch as unknown as { enabled?: boolean }).enabled === true,
-                appId: String(cfg.appId ?? ""),
-                appSecret: String(cfg.appSecret ?? ""),
+                enabled: Boolean(ch.enabled),
+                appId: String((cfg.accounts as Record<string, {appId?:string}> | undefined)?.default?.appId ?? cfg.appId ?? ""),
+                appSecret: String((cfg.accounts as Record<string, {appSecret?:string}> | undefined)?.default?.appSecret ?? cfg.appSecret ?? ""),
                 dmPolicy: String(cfg.dmPolicy ?? "open"),
                 groupPolicy: String(cfg.groupPolicy ?? "open"),
               }}));
             } else if (type === "dingtalk") {
               setChannels(prev => ({ ...prev, dingtalk: {
-                enabled: ch.status === "enabled" || ch.status === "active" || (ch as unknown as { enabled?: boolean }).enabled === true,
+                enabled: Boolean(ch.enabled),
                 clientId: String(cfg.clientId ?? ""),
                 clientSecret: String(cfg.clientSecret ?? ""),
                 robotCode: String(cfg.robotCode ?? ""),
                 corpId: String(cfg.corpId ?? ""),
                 agentId: String(cfg.agentId ?? ""),
                 messageType: String(cfg.messageType ?? "markdown"),
-                allowFrom: String(cfg.allowFrom ?? "*"),
+                allowFrom: Array.isArray(cfg.allowFrom) ? cfg.allowFrom.join(", ") : String(cfg.allowFrom ?? "*"),
               }}));
             } else if (type === "wechat") {
               setChannels(prev => ({ ...prev, wechat: {
-                enabled: ch.status === "enabled" || ch.status === "active" || (ch as unknown as { enabled?: boolean }).enabled === true,
+                enabled: Boolean(ch.enabled),
               }}));
             } else if (type === "wecom") {
               setChannels(prev => ({ ...prev, wecom: {
-                enabled: ch.status === "enabled" || ch.status === "active" || (ch as unknown as { enabled?: boolean }).enabled === true,
+                enabled: Boolean(ch.enabled),
                 botId: String(cfg.botId ?? ""),
                 secret: String(cfg.secret ?? ""),
               }}));
             }
           };
           found.forEach(ch => {
-            const t = ch.type?.toLowerCase();
-            if (t === "feishu") updateChannel("feishu", ch);
-            else if (t === "dingtalk") updateChannel("dingtalk", ch);
-            else if (t === "wechat") updateChannel("wechat", ch);
-            else if (t === "wecom") updateChannel("wecom", ch);
+            const key = ch.type?.toLowerCase();
+            // OpenClaw returns "ddingtalk" for dingtalk; normalise to "dingtalk"
+            const norm = key === "ddingtalk" ? "dingtalk" : key;
+            if (norm === "feishu") updateChannel("feishu", ch);
+            else if (norm === "dingtalk") updateChannel("dingtalk", ch);
+            else if (norm === "wechat") updateChannel("wechat", ch);
+            else if (norm === "wecom") updateChannel("wecom", ch);
           });
         }
       } catch (e) {
@@ -3005,46 +3023,6 @@ function ChannelsTab({ cur }: { cur: AgentDetailDTO }) {
               </div>
             )}
           </SettingCard>
-
-          {/* WeChat QR code section — shown when enabled */}
-          {channels.wechat.enabled && (
-            <SettingCard title={`${CHANNEL_ICONS.wechat} ${t.channelWechat}`}>
-              <div style={{ fontFamily: font.mono, fontSize: 12, color: c.faint, marginBottom: 12 }}>
-                {t.channelWechatScanLoginDesc}
-              </div>
-              <button
-                onClick={fetchWechatQrcode}
-                disabled={qrcodeLoading}
-                style={{
-                  background: c.lime, color: c.ink, border: "none",
-                  padding: "10px 16px", fontFamily: font.space,
-                  fontWeight: 700, fontSize: 13,
-                  cursor: qrcodeLoading ? "default" : "pointer",
-                  opacity: qrcodeLoading ? 0.6 : 1,
-                  borderRadius: r.radiusSm, width: "100%", marginBottom: 12,
-                }}
-              >
-                {qrcodeLoading ? "…" : t.channelWechatScanLogin}
-              </button>
-              {qrcode && (
-                <div style={{ marginTop: 12, textAlign: "center" }}>
-                  {qrcode.qrcodeUrl && (
-                    <img
-                      src={qrcode.qrcodeUrl}
-                      alt={t.channelWechatLoginQrcode}
-                      style={{ width: 160, height: 160, border: `1px solid ${c.border}`, borderRadius: r.radiusSm }}
-                    />
-                  )}
-                  <div style={{ fontFamily: font.mono, fontSize: 11, color: c.faint, marginTop: 8 }}>
-                    {qrcode.message}
-                  </div>
-                  <div style={{ fontFamily: font.mono, fontSize: 10.5, color: c.muted, marginTop: 4 }}>
-                    {qrcode.expiresIn > 0 ? `${qrcode.expiresIn}s` : t.channelLoginExpired}
-                  </div>
-                </div>
-              )}
-            </SettingCard>
-          )}
         </div>
 
         {/* Sidebar — only channel guide for now */}

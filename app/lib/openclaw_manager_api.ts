@@ -690,22 +690,39 @@ export interface WechatLoginResponse {
   qrcodeImage: string | null;
   expiresIn: number;
   message: string;
+  rawOutput?: string | null;
 }
 
-export interface ChannelConfig {
-  type: string;
+// OpenClaw /api/channels/status response shape
+export interface OpenClawChannelStatus {
+  instance_uuid: string;
+  instance_type: string;
+  source: string;
+  channels: Record<string, OpenClawChannelEntry>;
+}
+
+export interface OpenClawChannelEntry {
+  channel_type: string;
+  label: string;
   enabled: boolean;
+  configured: boolean;
   config: Record<string, unknown>;
 }
 
 /**
- * 获取渠道配置列表
- * GET /api/channels?instance_uuid=<uuid>
+ * 获取渠道状态（完整配置）— 回显用
+ * GET /api/channels/status?instance_uuid=<uuid>
+ *
+ * 返回每个渠道的 enabled / configured / config 信息。
  */
-export async function getChannels(instanceUuid: string): Promise<ChannelConfig[]> {
-  const url = `${BASE_URL}/api/channels?instance_uuid=${encodeURIComponent(instanceUuid)}`;
-  const raw = await request<{ channels?: ChannelConfig[] }>(url, { method: "GET" });
-  return raw.channels ?? [];
+export async function getChannelStatus(instanceUuid: string): Promise<OpenClawChannelStatus | null> {
+  const url = `${BASE_URL}/api/channels/status?instance_uuid=${encodeURIComponent(instanceUuid)}`;
+  try {
+    const raw = await request<OpenClawChannelStatus>(url, { method: "GET" });
+    return raw ?? null;
+  } catch {
+    return null;
+  }
 }
 
 /**
@@ -743,5 +760,6 @@ export async function wechatLogin(instanceUuid: string): Promise<WechatLoginResp
     qrcodeImage: (raw.qrcodeImage as string | null) ?? null,
     expiresIn: (raw.expiresIn as number) ?? 120,
     message: (raw.message as string) ?? "",
+    rawOutput: (raw.rawOutput as string | null) ?? null,
   };
 }

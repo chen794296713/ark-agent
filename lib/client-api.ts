@@ -99,11 +99,11 @@ export const api = {
     channelType: string;
     enabled: boolean;
     config: Record<string, unknown>;
-  }) => req<ChannelDTO>("POST", "/api/channels/upsert", body),
+  }) => req<void>("POST", "/api/channels/upsert", body),
   getChannels: (instanceUuid: string) =>
-    req<{ channels: ChannelDTO[] }>("GET", `/api/channels?instance_uuid=${instanceUuid}`),
+    req<{ channels: AgentChannelDTO[] }>("GET", `/api/channels?instance_uuid=${instanceUuid}`),
   getWechatLoginQrcode: (instanceUuid: string) =>
-    req<{ status: string; qrcodeUrl: string | null; qrcodeImage: string | null; expiresIn: number; message: string }>(
+    req<{ status: string; qrcodeUrl: string | null; qrcodeImage: string | null; expiresIn: number; message: string; rawOutput: string | null }>(
       "POST",
       `/api/channels/wechat/login?instance_uuid=${instanceUuid}`
     ),
@@ -196,6 +196,15 @@ export interface UpdateAgentBody {
 }
 export interface ChannelDTO {
   id: string; type: string; status: string; label: string | null; config: Record<string, string>;
+}
+
+/** OpenClaw channel status returned by /api/channels?instance_uuid= */
+export interface AgentChannelDTO {
+  type: string;
+  label: string;
+  enabled: boolean;
+  configured: boolean;
+  config: Record<string, unknown>;
 }
 export interface InvoiceDTO {
   id: string; number: string; amountCents: number; currency: string; status: string;
