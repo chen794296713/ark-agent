@@ -2,6 +2,7 @@
 
 import { Suspense, useCallback, useEffect, useRef, useState } from "react";
 import type { CSSProperties, ReactNode } from "react";
+import Image from "next/image";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { c, font, r } from "@/lib/theme";
 import { Btn } from "@/components/ui";
@@ -1150,6 +1151,7 @@ const sInput: CSSProperties = {
   width: "100%",
   background: c.bg,
   border: `1px solid ${c.border}`,
+  borderRadius: r.radiusSm,
   color: c.text,
   padding: "10px 12px",
   fontSize: 14,
@@ -1176,6 +1178,7 @@ function SettingCard({
         border: `1px solid ${c.border}`,
         background: c.panel,
         padding: 22,
+        borderRadius: r.radiusMd,
         display: "flex",
         flexDirection: "column",
         gap: 16,
@@ -1554,8 +1557,11 @@ function SettingsTab({ cur, onRefresh }: { cur: AgentDetailDTO; onRefresh: () =>
     }
   };
 
-  const CHANNEL_ICONS: Record<ChannelType, string> = {
-    feishu: "📱", dingtalk: "💬", wechat: "💚", wecom: "💙",
+  const CHANNEL_ICONS: Record<ChannelType, ReactNode> = {
+    feishu: <Image src="/feishu.png" alt="feishu" width={20} height={20} style={{ borderRadius: 4 }} />,
+    dingtalk: <Image src="/dingding.png" alt="dingtalk" width={20} height={20} style={{ borderRadius: 4 }} />,
+    wechat: <Image src="/weixin.png" alt="wechat" width={20} height={20} style={{ borderRadius: 4 }} />,
+    wecom: <Image src="/qiwei.png" alt="wecom" width={20} height={20} style={{ borderRadius: 4 }} />,
   };
 
   const CHANNEL_LABELS: Record<ChannelType, string> = {
@@ -2083,7 +2089,7 @@ function SettingsTab({ cur, onRefresh }: { cur: AgentDetailDTO; onRefresh: () =>
 
       {/* ---- Sidebar: save + runtime + danger ---- */}
       <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-        <div style={{ border: `1px solid ${c.border}`, background: c.panel, padding: 20, display: "flex", flexDirection: "column", gap: 12 }}>
+        <div style={{ border: `1px solid ${c.border}`, background: c.panel, padding: 20, display: "flex", flexDirection: "column", gap: 12, borderRadius: r.radiusMd }}>
           <button
             onClick={save}
             disabled={saving}
@@ -2091,6 +2097,7 @@ function SettingsTab({ cur, onRefresh }: { cur: AgentDetailDTO; onRefresh: () =>
               background: c.lime,
               color: c.ink,
               border: "none",
+              borderRadius: r.radiusSm,
               padding: "13px 20px",
               fontFamily: font.space,
               fontWeight: 700,
@@ -2107,7 +2114,7 @@ function SettingsTab({ cur, onRefresh }: { cur: AgentDetailDTO; onRefresh: () =>
           {error && <div style={{ fontFamily: font.mono, fontSize: 11, color: c.red }}>{error}</div>}
         </div>
 
-        <div style={{ border: `1px solid ${c.border}`, background: c.panel, padding: 20 }}>
+        <div style={{ border: `1px solid ${c.border}`, background: c.panel, padding: 20, borderRadius: r.radiusMd }}>
           <div style={{ fontFamily: font.mono, fontSize: 11, letterSpacing: ".12em", color: c.muted, marginBottom: 14 }}>
             {t.runtime}
           </div>
@@ -2138,6 +2145,7 @@ function SettingsTab({ cur, onRefresh }: { cur: AgentDetailDTO; onRefresh: () =>
             background: "transparent",
             color: c.text,
             padding: 12,
+            borderRadius: r.radiusSm,
             fontFamily: font.space,
             fontWeight: 500,
             fontSize: 14,
@@ -2156,6 +2164,7 @@ function SettingsTab({ cur, onRefresh }: { cur: AgentDetailDTO; onRefresh: () =>
             background: "transparent",
             color: c.red,
             padding: 12,
+            borderRadius: r.radiusSm,
             fontFamily: font.space,
             fontSize: 14,
             cursor: lifeBusy ? "default" : "pointer",
@@ -2164,7 +2173,7 @@ function SettingsTab({ cur, onRefresh }: { cur: AgentDetailDTO; onRefresh: () =>
         >
           {t.terminateAgent}
         </Btn>
-        <div style={{ border: `1px dashed ${c.border}`, padding: "12px 14px", fontSize: 12.5, color: c.faint }}>
+        <div style={{ border: `1px dashed ${c.border}`, padding: "12px 14px", fontSize: 12.5, color: c.faint, borderRadius: r.radiusSm }}>
           {t.dangerNote}
         </div>
         <Btn
@@ -2174,6 +2183,7 @@ function SettingsTab({ cur, onRefresh }: { cur: AgentDetailDTO; onRefresh: () =>
             background: "transparent",
             color: c.text,
             padding: 12,
+            borderRadius: r.radiusSm,
             fontFamily: font.space,
             fontWeight: 500,
             fontSize: 14,
