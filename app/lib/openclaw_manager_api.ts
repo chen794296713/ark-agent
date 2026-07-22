@@ -4,7 +4,7 @@
  */
 
 const BASE_URL = process.env.OPENCLAW_MANAGER_API_URL || "http://10.21.27.155:18090";
-const API_KEY = process.env.OPENCLAW_MANAGER_API_KEY || "MToxNzg0NjAzNjUz.Jehh4lQZx3YufgkE8L-QF7oQluyKxNkt2hbl6vzCvEU";
+const API_KEY = process.env.OPENCLAW_MANAGER_API_KEY || "MToxNzg0NzI0MzMz.QftVbvmw84sm6rVGCwcSRsOJpVLxgDGgEIf0WV8gmIY";
 
 function getHeaders(): HeadersInit {
   return {
@@ -684,15 +684,6 @@ export async function getTokenReport(
 
 // ============ 渠道管理 ============
 
-export interface WechatLoginResponse {
-  status: string;
-  qrcodeUrl: string | null;
-  qrcodeImage: string | null;
-  expiresIn: number;
-  message: string;
-  rawOutput?: string | null;
-}
-
 // OpenClaw /api/channels/status response shape
 export interface OpenClawChannelStatus {
   instance_uuid: string;
@@ -748,18 +739,209 @@ export async function upsertChannel(params: {
 }
 
 /**
- * 微信扫码登录 — 获取二维码
- * POST /api/channels/wechat/login
+ * 微信扫码登录 — 流式返回 (POST /api/channels/:uuid/flows 返回 SSE)
+ *
+ * 上游会以 SSE 形式推送若干事件:
+ *   - wait_matched:    等待扫码命中,data.stdout 内含 ASCII QR 码 + fallback URL
+ *   - step_completed:  单步完成
+ *   - heartbeat:       心跳
+ *   - session_completed: 整个会话结束
+ *
+ * 该函数会消费整条流,聚合成最终结果返回;同时通过 options.onEvent
+ * 实时把每个事件吐给调用方,用于前端展示中间状态。
  */
-export async function wechatLogin(instanceUuid: string): Promise<WechatLoginResponse> {
-  const url = `${BASE_URL}/api/channels/wechat/login?instance_uuid=${encodeURIComponent(instanceUuid)}`;
-  const raw = await request<Record<string, unknown>>(url, { method: "POST" });
-  return {
-    status: (raw.status as string) ?? "pending",
-    qrcodeUrl: (raw.qrcodeUrl as string | null) ?? null,
-    qrcodeImage: (raw.qrcodeImage as string | null) ?? null,
-    expiresIn: (raw.expiresIn as number) ?? 120,
-    message: (raw.message as string) ?? "",
-    rawOutput: (raw.rawOutput as string | null) ?? null,
+export type WechatLoginStatus = "pending" | "connected" | "expired" | "error";
+
+export interface WechatLoginResponse {
+  status: WechatLoginStatus;
+  qrcodeUrl: string | null;
+  qrcodeImage: string | null;
+  expiresIn: number;
+  message: string;
+  rawOutput: string | null;
+  sessionId: string | null;
+  finalStdout: string | null;
+  connected: boolean;
+  exitCode: number | null;
+  events: WechatLoginEvent[];
+}
+
+/** SSE 事件载荷 (与上游保持一致). */
+export interface WechatLoginEvent {
+  event: string;
+  sessionId: string | null;
+  ts: number | null;
+  data: Record<string, unknown> | null;
+  raw: string;
+}
+
+export interface WechatLoginOptions {
+  signal?: AbortSignal;
+  onEvent?: (e: WechatLoginEvent) => void;
+}
+
+/**
+ * 从 wait_matched.data.stdout 里尝试抽取 fallback URL (二维码加载失败时使用).
+ */
+function extractFallbackUrl(stdout: string | null | undefined): string | null {
+  if (!stdout) return null;
+  const m = stdout.match(/https?:\/\/\S+/);
+  return m ? m[0].replace(/[)\]】。.,;]+$/, "") : null;
+}
+
+/**
+ * 发起微信扫码登录,并以 SSE 流的方式返回过程事件.
+ * POST /api/channels/:uuid/flows
+ */
+export async function wechatLogin(
+  instanceUuid: string,
+  options?: WechatLoginOptions
+): Promise<WechatLoginResponse> {
+  const url = `${BASE_URL}/api/channels/${encodeURIComponent(instanceUuid)}/flows`;
+  const res = await fetch(url, {
+    method: "POST",
+    headers: {
+      ...getHeaders(),
+      Accept: "text/event-stream, */*",
+      "Content-Length": "0",
+    },
+    body: "",
+    signal: options?.signal,
+  });
+
+  if (!res.ok) {
+    const text = await res.text().catch(() => "Unknown error");
+    throw new Error(`OpenClaw API error ${res.status}: ${text}`);
+  }
+
+  const reader = res.body?.getReader();
+  if (!reader) throw new Error("No response body");
+
+  const decoder = new TextDecoder();
+  let buffer = "";
+
+  // 聚合结果
+  let status: WechatLoginResponse["status"] = "pending";
+  let qrcodeUrl: string | null = null;
+  let qrcodeImage: string | null = null;
+  let expiresIn = 120;
+  let message = "";
+  let rawOutput: string | null = null;
+  let sessionId: string | null = null;
+  let finalStdout: string | null = null;
+  let exitCode: number | null = null;
+  const events: WechatLoginEvent[] = [];
+
+  const pushEvent = (ev: WechatLoginEvent) => {
+    events.push(ev);
+    if (ev.sessionId) sessionId = ev.sessionId;
+    const payload = ev.data;
+    if (!payload) {
+      options?.onEvent?.(ev);
+      return;
+    }
+    if (ev.event === "wait_matched") {
+      const inner = (payload.data as Record<string, unknown> | undefined) ?? {};
+      const stdout = typeof inner.stdout === "string" ? inner.stdout : null;
+      const matchedText = typeof inner.matched_text === "string" ? inner.matched_text : null;
+      if (stdout) {
+        rawOutput = stdout;
+        finalStdout = stdout;
+        // 上游没有直接给图;优先尝试 stdout 里的 fallback URL,否则就地用 stdout 渲染.
+        qrcodeUrl = extractFallbackUrl(stdout);
+        qrcodeImage = stdout; // 浏览器用 <pre> 渲染 ASCII QR,见 ChannelModal
+      }
+      if (matchedText) message = matchedText;
+    } else if (ev.event === "session_completed") {
+      const inner = (payload.data as Record<string, unknown> | undefined) ?? {};
+      exitCode = (inner.exit_code as number | null | undefined) ?? null;
+      const fs = typeof inner.final_stdout === "string" ? inner.final_stdout : null;
+      if (fs) {
+        finalStdout = fs;
+        if (!rawOutput) rawOutput = fs;
+      }
+      // exit_code 为 null 通常是超时;非 0 也视作异常.
+      if (exitCode === 0) {
+        status = "connected";
+        message = "WeChat login successful";
+      } else if (exitCode === null) {
+        status = "expired";
+        message = "WeChat login session expired";
+      } else {
+        status = "error";
+        message = `WeChat login failed (exit ${exitCode})`;
+      }
+    } else if (ev.event === "step_completed") {
+      // 单步完成;继续等扫码命中.
+    } else if (ev.event === "heartbeat") {
+      // 心跳 — 不改变 UI 状态.
+    }
+    options?.onEvent?.(ev);
   };
+
+  // SSE 协议: 事件之间用 \n\n 分隔, 单个事件由 event: / data: 等行组成.
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+
+    let idx;
+    while ((idx = buffer.indexOf("\n\n")) >= 0) {
+      const rawEvent = buffer.slice(0, idx);
+      buffer = buffer.slice(idx + 2);
+      parseSseEventBlock(rawEvent, pushEvent);
+    }
+  }
+  if (buffer.trim()) parseSseEventBlock(buffer, pushEvent);
+
+  // 流结束但从未收到 session_completed 时, 标记为 expired.
+  if (status === "pending") status = "expired";
+
+  return {
+    status,
+    qrcodeUrl,
+    qrcodeImage,
+    expiresIn,
+    message,
+    rawOutput,
+    sessionId,
+    finalStdout,
+    connected: (status as WechatLoginStatus) === "connected",
+    exitCode,
+    events,
+  };
+}
+
+function parseSseEventBlock(
+  block: string,
+  emit: (e: WechatLoginEvent) => void
+) {
+  if (!block.trim()) return;
+  let eventName = "message";
+  let dataLines: string[] = [];
+  for (const rawLine of block.split("\n")) {
+    const line = rawLine.replace(/\r$/, "");
+    if (!line || line.startsWith(":")) continue;
+    if (line.startsWith("event:")) {
+      eventName = line.slice(6).trim() || "message";
+    } else if (line.startsWith("data:")) {
+      dataLines.push(line.slice(5).trim());
+    }
+  }
+  if (dataLines.length === 0) return;
+  const dataStr = dataLines.join("\n");
+  let parsed: Record<string, unknown> | null = null;
+  try {
+    parsed = JSON.parse(dataStr) as Record<string, unknown>;
+  } catch {
+    parsed = null;
+  }
+  if (!parsed) return;
+  emit({
+    event: eventName,
+    sessionId: (parsed.session_id as string | undefined) ?? null,
+    ts: typeof parsed.ts === "number" ? parsed.ts : null,
+    data: parsed,
+    raw: dataStr,
+  });
 }

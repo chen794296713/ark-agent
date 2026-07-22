@@ -102,10 +102,13 @@ export const api = {
   }) => req<void>("POST", "/api/channels/upsert", body),
   getChannels: (instanceUuid: string) =>
     req<{ channels: AgentChannelDTO[] }>("GET", `/api/channels?instance_uuid=${instanceUuid}`),
-  getWechatLoginQrcode: (instanceUuid: string) =>
-    req<{ status: string; qrcodeUrl: string | null; qrcodeImage: string | null; expiresIn: number; message: string; rawOutput: string | null }>(
-      "POST",
-      `/api/channels/wechat/login?instance_uuid=${instanceUuid}`
+  getWechatLoginQrcode: (
+    instanceUuid: string,
+    options: { onEvent?: (e: WechatLoginEvent) => void; signal?: AbortSignal } = {}
+  ) =>
+    streamWechatLogin(
+      `/api/channels/wechat/login?instance_uuid=${encodeURIComponent(instanceUuid)}`,
+      options
     ),
 
   // ---- dashboard / channels / billing ----
@@ -245,6 +248,90 @@ export interface StreamChunkError {
   message: string;
 }
 export type StreamChunk = StreamChunkUser | StreamChunkDelta | StreamChunkDone | StreamChunkError;
+
+// ---- WeChat login streaming ----
+export interface WechatLoginEvent {
+  event: string;
+  sessionId: string | null;
+  ts: number | null;
+  data: Record<string, unknown> | null;
+}
+export interface WechatLoginResponse {
+  status: "pending" | "connected" | "expired" | "error";
+  qrcodeUrl: string | null;
+  qrcodeImage: string | null;
+  expiresIn: number;
+  message: string;
+  rawOutput: string | null;
+  sessionId: string | null;
+  finalStdout: string | null;
+  connected: boolean;
+  exitCode: number | null;
+  events: WechatLoginEvent[];
+}
+
+async function streamWechatLogin(
+  path: string,
+  options: { onEvent?: (e: WechatLoginEvent) => void; signal?: AbortSignal }
+): Promise<WechatLoginResponse> {
+  const res = await fetch(path, {
+    method: "POST",
+    headers: { accept: "text/event-stream" },
+    credentials: "same-origin",
+    signal: options.signal,
+  });
+  if (!res.ok || !res.body) {
+    let payload: { error?: string } | null = null;
+    try { payload = (await res.json()) as { error?: string }; } catch {}
+    throw new ApiError(payload?.error || `Request failed (${res.status})`, res.status);
+  }
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+  let final: WechatLoginResponse | null = null;
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+    let idx;
+    while ((idx = buffer.indexOf("\n\n")) >= 0) {
+      const rawEvent = buffer.slice(0, idx);
+      buffer = buffer.slice(idx + 2);
+      const parsed = parseWechatSseEvent(rawEvent);
+      if (!parsed) continue;
+      if (parsed.event === "done") {
+        final = parsed.data as unknown as WechatLoginResponse;
+      } else if (parsed.event === "error") {
+        const msg = (parsed.data as { message?: string } | null)?.message || "WeChat login failed";
+        throw new ApiError(msg, 500);
+      } else {
+        options.onEvent?.(parsed);
+      }
+    }
+  }
+  if (!final) throw new ApiError("Stream ended without a final response", 500);
+  return final;
+}
+
+function parseWechatSseEvent(raw: string): WechatLoginEvent | null {
+  let eventName = "message";
+  let dataLines: string[] = [];
+  for (const line of raw.split("\n")) {
+    const trimmed = line.replace(/\r$/, "");
+    if (!trimmed || trimmed.startsWith(":")) continue;
+    if (trimmed.startsWith("event:")) eventName = trimmed.slice(6).trim() || "message";
+    else if (trimmed.startsWith("data:")) dataLines.push(trimmed.slice(5).trim());
+  }
+  if (dataLines.length === 0) return null;
+  let parsed: Record<string, unknown> | null = null;
+  try { parsed = JSON.parse(dataLines.join("\n")) as Record<string, unknown>; } catch { return null; }
+  return {
+    event: eventName,
+    sessionId: (parsed.session_id as string | undefined) ?? null,
+    ts: typeof parsed.ts === "number" ? parsed.ts : null,
+    data: parsed,
+  };
+}
 
 async function streamMessage(
   agentId: string,

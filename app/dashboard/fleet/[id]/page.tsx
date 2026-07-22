@@ -1393,7 +1393,7 @@ function SettingsTab({ cur, onRefresh }: { cur: AgentDetailDTO; onRefresh: () =>
   const [channelBusyToggle, setChannelBusyToggle] = useState<Record<ChannelType, boolean>>({ feishu: false, dingtalk: false, wechat: false, wecom: false });
   const [channelError, setChannelError] = useState<string | null>(null);
   const [channelSuccessMsg, setChannelSuccessMsg] = useState<string | null>(null);
-  const [qrcode, setQrcode] = useState<{ qrcodeUrl: string | null; qrcodeImage: string | null; expiresIn: number; message: string; status: string; rawOutput?: string | null } | null>(null);
+  const [qrcode, setQrcode] = useState<{ qrcodeUrl: string | null; qrcodeImage: string | null; expiresIn: number; message: string; status: string; rawOutput?: string | null; connected?: boolean; sessionId?: string | null; finalStdout?: string | null; exitCode?: number | null } | null>(null);
   const [qrcodeLoading, setQrcodeLoading] = useState(false);
   const [editingChannel, setEditingChannel] = useState<ChannelType | null>(null);
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -1548,8 +1548,34 @@ function SettingsTab({ cur, onRefresh }: { cur: AgentDetailDTO; onRefresh: () =>
     setQrcodeLoading(true);
     setQrcode(null);
     try {
-      const res = await api.getWechatLoginQrcode(instanceUuid ?? cur.id);
-      setQrcode(res);
+      const res = await api.getWechatLoginQrcode(instanceUuid ?? cur.id, {
+        // 仅用 wait_matched 来即时渲染 QR;其它事件 (heartbeat / step_completed
+        // / session_completed) 直接忽略,最终结果走 `done` 的聚合响应.
+        onEvent: (e) => {
+          if (e.event !== "wait_matched") return;
+          const inner = (e.data?.data as { stdout?: string; matched_text?: string } | undefined) ?? {};
+          const stdout = typeof inner.stdout === "string" ? inner.stdout : null;
+          if (!stdout) return;
+          const fallbackUrl = (stdout.match(/https?:\/\/\S+/) ?? [""])[0]
+            .replace(/[)\]】。.,;]+$/, "");
+          setQrcode({
+            qrcodeUrl: fallbackUrl || null,
+            qrcodeImage: stdout,
+            expiresIn: 120,
+            message: inner.matched_text || "waiting for scan…",
+            status: "pending",
+            rawOutput: stdout,
+          });
+          setQrcodeLoading(false);
+        },
+      });
+      // 流结束:用聚合结果合并最终状态 (connected / expired / error).
+      setQrcode((prev) => ({
+        ...(res as typeof prev),
+        rawOutput: prev?.rawOutput ?? res.rawOutput ?? null,
+        qrcodeImage: prev?.qrcodeImage ?? res.qrcodeImage ?? null,
+        qrcodeUrl: prev?.qrcodeUrl ?? res.qrcodeUrl ?? null,
+      }));
     } catch (e) {
       setChannelError(e instanceof ApiError ? e.message : t.channelToggleError);
     } finally {
@@ -2760,7 +2786,7 @@ interface ChannelModalProps {
   onCancel: () => void;
   saving: boolean;
   t: FleetDetailDict;
-  qrcode?: { qrcodeUrl: string | null; qrcodeImage: string | null; expiresIn: number; message: string; status: string; rawOutput?: string | null } | null;
+  qrcode?: { qrcodeUrl: string | null; qrcodeImage: string | null; expiresIn: number; message: string; status: string; rawOutput?: string | null; connected?: boolean; sessionId?: string | null; finalStdout?: string | null; exitCode?: number | null } | null;
   qrcodeLoading: boolean;
   onFetchQrcode: () => void;
 }
@@ -2891,7 +2917,7 @@ function ChannelModal({ type, channel, onChange, onSave, onCancel, saving, t, qr
           );
         })()}
 
-        {/* WeChat — QR code login */}
+        {/* WeChat — QR code login (SSE driven) */}
         {type === "wechat" && (
           <div style={{ display: "flex", flexDirection: "column", gap: 16, alignItems: "center" }}>
             <div style={{ fontFamily: font.mono, fontSize: 13, color: c.faint, textAlign: "center", lineHeight: 1.6 }}>
@@ -2909,11 +2935,33 @@ function ChannelModal({ type, channel, onChange, onSave, onCancel, saving, t, qr
                 borderRadius: r.radiusSm, width: "100%",
               }}
             >
-              {qrcodeLoading ? "…" : t.channelWechatScanLogin}
+              {qrcodeLoading
+                ? "…"
+                : qrcode?.connected
+                ? "Connected"
+                : qrcode?.status === "expired"
+                ? "Expired — retry"
+                : t.channelWechatScanLogin}
             </button>
             {qrcode && (
-              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 10 }}>
-                {qrcode.rawOutput ? (
+              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 10, width: "100%" }}>
+                {qrcode.connected ? (
+                  <div style={{
+                    fontFamily: font.mono, fontSize: 12.5, color: c.green,
+                    padding: "10px 14px", border: `1px solid ${c.greenBorder ?? c.border}`,
+                    borderRadius: r.radiusSm, textAlign: "center",
+                  }}>
+                    WeChat login successful
+                  </div>
+                ) : qrcode.status === "error" ? (
+                  <div style={{
+                    fontFamily: font.mono, fontSize: 12, color: c.red,
+                    padding: "10px 14px", border: `1px solid ${c.redBorder}`,
+                    borderRadius: r.radiusSm, textAlign: "center",
+                  }}>
+                    {qrcode.message || "Login failed"}
+                  </div>
+                ) : qrcode.rawOutput ? (
                   <pre style={{
                     background: "#111",
                     padding: "14px 18px",
@@ -2926,6 +2974,7 @@ function ChannelModal({ type, channel, onChange, onSave, onCancel, saving, t, qr
                     textAlign: "left",
                     overflowX: "auto",
                     margin: 0,
+                    maxWidth: "100%",
                   }}>
                     {qrcode.rawOutput}
                   </pre>
@@ -2936,11 +2985,23 @@ function ChannelModal({ type, channel, onChange, onSave, onCancel, saving, t, qr
                     style={{ width: 180, height: 180, border: `1px solid ${c.border}`, borderRadius: r.radiusSm, display: "block", margin: "0 auto" }}
                   />
                 ) : null}
+                {qrcode.qrcodeUrl && qrcode.rawOutput && (
+                  <a
+                    href={qrcode.qrcodeUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    style={{ fontFamily: font.mono, fontSize: 10.5, color: c.muted, textAlign: "center", wordBreak: "break-all" }}
+                  >
+                    {qrcode.qrcodeUrl}
+                  </a>
+                )}
                 <div style={{ fontFamily: font.mono, fontSize: 11, color: c.faint, textAlign: "center" }}>
                   {qrcode.message}
                 </div>
                 <div style={{ fontFamily: font.mono, fontSize: 10.5, color: c.muted, textAlign: "center" }}>
-                  {qrcode.expiresIn > 0 ? `${qrcode.expiresIn}s` : t.channelLoginExpired}
+                  {qrcode.expiresIn > 0 && !qrcode.connected && qrcode.status !== "error"
+                    ? `${qrcode.expiresIn}s`
+                    : t.channelLoginExpired}
                 </div>
               </div>
             )}
