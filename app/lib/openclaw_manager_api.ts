@@ -4,7 +4,7 @@
  */
 
 const BASE_URL = process.env.OPENCLAW_MANAGER_API_URL || "http://10.21.27.155:18090";
-const API_KEY = process.env.OPENCLAW_MANAGER_API_KEY || "MToxNzg0NzI0MzMz.QftVbvmw84sm6rVGCwcSRsOJpVLxgDGgEIf0WV8gmIY";
+const API_KEY = process.env.OPENCLAW_MANAGER_API_KEY || "MToxNzg1MzEwMDU5.YrGbUrmBl9Nla9rteuzkzEiQF1V_JvWRb_ESK7WcD_U";
 
 function getHeaders(): HeadersInit {
   return {

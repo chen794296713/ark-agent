@@ -2861,18 +2861,18 @@ function ChannelModal({ type, channel, onChange, onSave, onCancel, saving, t, qr
               <input type="password" value={d.appSecret} onChange={e => set({ appSecret: e.target.value })} style={sInput} />
             </Field>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
-              <Field label={t.channelFeishuDmPolicy}>
+              {/* <Field label={t.channelFeishuDmPolicy}>
                 <SelectField value={d.dmPolicy} onChange={v => set({ dmPolicy: v })} options={[
                   { id: "open", label: t.channelFeishuDmPolicyOpen },
                   { id: "close", label: "Close" },
                 ]} />
-              </Field>
-              <Field label={t.channelFeishuGroupPolicy}>
+              </Field> */}
+              {/* <Field label={t.channelFeishuGroupPolicy}>
                 <SelectField value={d.groupPolicy} onChange={v => set({ groupPolicy: v })} options={[
                   { id: "open", label: t.channelFeishuGroupPolicyOpen },
                   { id: "close", label: "Close" },
                 ]} />
-              </Field>
+              </Field> */}
             </div>
           </>
           );
@@ -2892,27 +2892,28 @@ function ChannelModal({ type, channel, onChange, onSave, onCancel, saving, t, qr
               </Field>
             </div>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
-              <Field label={t.channelDingtalkRobotCode}>
+              {/* <Field label={t.channelDingtalkRobotCode}>
                 <input value={d.robotCode} onChange={e => set({ robotCode: e.target.value })} style={sInput} />
-              </Field>
+              </Field> */}
               <Field label={t.channelDingtalkCorpId}>
                 <input value={d.corpId} onChange={e => set({ corpId: e.target.value })} style={sInput} />
               </Field>
-            </div>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
               <Field label={t.channelDingtalkAgentId}>
                 <input value={d.agentId} onChange={e => set({ agentId: e.target.value })} style={sInput} />
               </Field>
-              <Field label={t.channelDingtalkMessageType}>
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+           
+              {/* <Field label={t.channelDingtalkMessageType}>
                 <SelectField value={d.messageType} onChange={v => set({ messageType: v })} options={[
                   { id: "markdown", label: "Markdown" },
                   { id: "text", label: "Text" },
                 ]} />
-              </Field>
+              </Field> */}
             </div>
-            <Field label={t.channelDingtalkAllowFrom} hint="Comma-separated, e.g. * or @user">
+            {/* <Field label={t.channelDingtalkAllowFrom} hint="Comma-separated, e.g. * or @user">
               <input value={d.allowFrom} onChange={e => set({ allowFrom: e.target.value })} style={sInput} placeholder="*" />
-            </Field>
+            </Field> */}
           </>
           );
         })()}
