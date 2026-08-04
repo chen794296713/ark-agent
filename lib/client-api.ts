@@ -138,6 +138,7 @@ export interface RoleDTO {
   id: string; name: string; blurb: string; longBlurb: string | null; hue: string; mono: string;
   defaultEngine: "openclaw" | "hermes"; defaultInstructions: string | null; defaultRules: string | null;
   minPlan: "associate" | "professional" | "director";
+  managerAgentId?: number; categoryId?: number; categoryName?: string; uploadFilename?: string;
 }
 export interface PlanDTO {
   id: "associate" | "professional" | "director"; name: string; monthlyPriceCents: number;
@@ -189,6 +190,7 @@ export interface AgentDetailDTO extends AgentDTO {
 }
 export interface CreateAgentBody {
   name: string; roleId: string; engine: "openclaw" | "hermes";
+  managerAgentId?: number;
   planTier: "associate" | "professional" | "director"; instructions: string; rules: string;
   channels: string[]; tasks: string[];
 }

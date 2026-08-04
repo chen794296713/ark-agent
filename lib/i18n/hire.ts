@@ -23,12 +23,21 @@ export interface HireDict {
   loadingRoles: string;
   rolesLoadError: string;
   noRoles: string;
+  searchRolesPlaceholder: string;
+  noRolesMatch: string;
+  customRoleName: string;
+  customRoleBlurb: string;
+  customRolePlaceholder: string;
+  rolePrevious: string;
+  roleNext: string;
+  rolePage: (page: number, total: number) => string;
 
   // Step 2 — Brief
   remindDefault: string;
   tasksDefault: string[];
   s2Title: string;
   s2Hiring: (role: string) => string;
+  roleDescription: string;
   agentName: string;
   agentNamePlaceholder: string;
   instructions: string;
@@ -115,6 +124,14 @@ const en: HireDict = {
   loadingRoles: "Loading roles…",
   rolesLoadError: "Couldn't load roles.",
   noRoles: "No roles are available right now.",
+  searchRolesPlaceholder: "Search roles by name or description",
+  noRolesMatch: "No roles match your search.",
+  customRoleName: "Custom role",
+  customRoleBlurb: "Define a role from scratch",
+  customRolePlaceholder: "Enter a custom role name",
+  rolePrevious: "Previous",
+  roleNext: "Next",
+  rolePage: (page, total) => `${page} / ${total}`,
 
   remindDefault: "Daily summary at 18:00 · Weekly report Friday",
   tasksDefault: [
@@ -123,6 +140,7 @@ const en: HireDict = {
   ],
   s2Title: "Write the job brief",
   s2Hiring: (role) => `Hiring: ${role} — plain language is all it needs.`,
+  roleDescription: "ROLE DESCRIPTION",
   agentName: "AGENT NAME",
   agentNamePlaceholder: "e.g. Aria",
   instructions: "INSTRUCTIONS",
@@ -208,6 +226,14 @@ const zh: HireDict = {
   loadingRoles: "正在加载岗位…",
   rolesLoadError: "无法加载岗位。",
   noRoles: "目前暂无可用岗位。",
+  searchRolesPlaceholder: "按名称或描述搜索岗位",
+  noRolesMatch: "没有匹配的岗位。",
+  customRoleName: "自定义岗位",
+  customRoleBlurb: "从零定义岗位职责",
+  customRolePlaceholder: "请输入自定义岗位名称",
+  rolePrevious: "上一页",
+  roleNext: "下一页",
+  rolePage: (page, total) => `第 ${page} / ${total} 页`,
 
   remindDefault: "每天 18:00 汇总 · 每周五出周报",
   tasksDefault: [
@@ -216,6 +242,7 @@ const zh: HireDict = {
   ],
   s2Title: "撰写工作简报",
   s2Hiring: (role) => `正在雇佣：${role}——用大白话说清楚就够了。`,
+  roleDescription: "岗位描述",
   agentName: "智能体名称",
   agentNamePlaceholder: "例如 Aria",
   instructions: "工作指令",
@@ -299,6 +326,14 @@ const zht: HireDict = {
   loadingRoles: "正在載入職位…",
   rolesLoadError: "無法載入職位。",
   noRoles: "目前暫無可用職位。",
+  searchRolesPlaceholder: "按名稱或描述搜尋職位",
+  noRolesMatch: "沒有符合條件的職位。",
+  customRoleName: "自訂職位",
+  customRoleBlurb: "從零定義職位職責",
+  customRolePlaceholder: "請輸入自訂職位名稱",
+  rolePrevious: "上一頁",
+  roleNext: "下一頁",
+  rolePage: (page, total) => `第 ${page} / ${total} 頁`,
 
   remindDefault: "每天 18:00 彙整 · 每週五出週報",
   tasksDefault: [
@@ -307,6 +342,7 @@ const zht: HireDict = {
   ],
   s2Title: "撰寫工作簡報",
   s2Hiring: (role) => `正在僱用：${role}——用白話說清楚就夠了。`,
+  roleDescription: "職位描述",
   agentName: "智能體名稱",
   agentNamePlaceholder: "例如 Aria",
   instructions: "工作指令",
@@ -390,6 +426,14 @@ const ja: HireDict = {
   loadingRoles: "職種を読み込み中…",
   rolesLoadError: "職種を読み込めませんでした。",
   noRoles: "現在、利用できる職種はありません。",
+  searchRolesPlaceholder: "名前や説明で職種を検索",
+  noRolesMatch: "検索に一致する職種はありません。",
+  customRoleName: "カスタム職種",
+  customRoleBlurb: "職種をゼロから定義",
+  customRolePlaceholder: "カスタム職種名を入力",
+  rolePrevious: "前へ",
+  roleNext: "次へ",
+  rolePage: (page, total) => `${page} / ${total} ページ`,
 
   remindDefault: "毎日18:00にサマリー · 毎週金曜にレポート",
   tasksDefault: [
@@ -399,6 +443,7 @@ const ja: HireDict = {
 
   s2Title: "ジョブブリーフを書く",
   s2Hiring: (role) => `採用中：${role} — ふだんの言葉で書くだけで十分です。`,
+  roleDescription: "職種の説明",
   agentName: "エージェント名",
   agentNamePlaceholder: "例：Aria",
   instructions: "指示",

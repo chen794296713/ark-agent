@@ -26,6 +26,7 @@ export const loginSchema = z.object({
 export const createAgentSchema = z.object({
   name: z.string().min(1).max(80),
   roleId: z.string().min(1).max(40),
+  managerAgentId: z.number().int().positive().optional(),
   engine: z.enum(["openclaw", "hermes"]),
   planTier: z.enum(["associate", "professional", "director"]).default("associate"),
   instructions: z.string().max(8000).default(""),

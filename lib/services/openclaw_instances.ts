@@ -29,6 +29,7 @@ const PROVIDER = "openclaw";
 
 export interface CreateOpenclawInstanceInput {
   agentId: string;
+  managerAgentId?: number;
   name: string;
   categoryId: number;
   targetUserId: string;
@@ -49,6 +50,9 @@ export async function createOpenclawInstance(
     name: input.name,
     category_id: input.categoryId,
     target_user_id: input.targetUserId,
+    ...(input.managerAgentId !== undefined
+      ? { agent_id: input.managerAgentId }
+      : {}),
   });
 
   const [row] = await db

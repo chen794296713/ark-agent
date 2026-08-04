@@ -3,8 +3,10 @@
  * 对接 manager_api.md 中的所有接口
  */
 
-const BASE_URL = process.env.OPENCLAW_MANAGER_API_URL || "http://10.21.27.155:18090";
-const API_KEY = process.env.OPENCLAW_MANAGER_API_KEY || "MToxNzg1MzEwMDU5.YrGbUrmBl9Nla9rteuzkzEiQF1V_JvWRb_ESK7WcD_U";
+const BASE_URL = (
+  process.env.OPENCLAW_MANAGER_API_URL || "https://clawmanager.lightark.cc"
+).replace(/\/+$/, "");
+const API_KEY = process.env.OPENCLAW_MANAGER_API_KEY || "";
 
 function getHeaders(): HeadersInit {
   return {
@@ -14,7 +16,63 @@ function getHeaders(): HeadersInit {
   };
 }
 
+function logRequest(url: string, options?: RequestInit): void {
+  if (process.env.OPENCLAW_DEBUG_LOG !== "1") return;
+
+  const parsedUrl = new URL(url);
+  let body: unknown;
+  if (typeof options?.body === "string") {
+    try {
+      body = JSON.parse(options.body);
+    } catch {
+      body = options.body;
+    }
+  } else if (options?.body !== undefined) {
+    body = "[non-string body]";
+  }
+
+  console.info(
+    "[openclaw-manager:request]",
+    JSON.stringify({
+      method: options?.method || "GET",
+      url: `${parsedUrl.origin}${parsedUrl.pathname}`,
+      query: Object.fromEntries(parsedUrl.searchParams.entries()),
+      ...(body !== undefined ? { body } : {}),
+    }),
+  );
+}
+
+export interface OpenClawManagerAgent {
+  id: number;
+  user_id: number;
+  category_id: number;
+  category_name: string;
+  name: string;
+  description: string;
+  upload_filename: string;
+  created_at: string;
+  updated_at: string;
+}
+
+/**
+ * 获取 OpenClaw Manager 中可用于岗位选择的模板列表。
+ * GET /api/agents
+ */
+export async function listOpenClawManagerAgents(): Promise<OpenClawManagerAgent[]> {
+  const raw = await request<{ items?: unknown }>(`${BASE_URL}/api/agents`, {
+    method: "GET",
+  });
+
+  if (!Array.isArray(raw.items)) return [];
+  return raw.items.filter((item): item is OpenClawManagerAgent => {
+    if (!item || typeof item !== "object") return false;
+    const value = item as Record<string, unknown>;
+    return typeof value.id === "number" && typeof value.name === "string";
+  });
+}
+
 async function request<T>(url: string, options?: RequestInit): Promise<T> {
+  logRequest(url, options);
   const res = await fetch(url, {
     ...options,
     headers: {
@@ -190,6 +248,7 @@ export interface CreateInstanceParams {
   name: string;
   category_id: number;
   target_user_id: string;
+  agent_id?: number;
 }
 
 export interface SendChatParams {
@@ -377,13 +436,16 @@ export async function streamChat(
   options?: { signal?: AbortSignal; onEvent?: (e: StreamChatEvent) => void }
 ): Promise<StreamChatHandle> {
   const url = BASE_URL + "/api/openclaw/instances/" + instanceUuid + "/chat/stream";
-  const res = await fetch(url, {
+  const requestOptions: RequestInit = {
     method: "POST",
-    headers: getHeaders(),
     body: JSON.stringify(params),
     signal: options?.signal,
+  };
+  logRequest(url, requestOptions);
+  const res = await fetch(url, {
+    ...requestOptions,
+    headers: getHeaders(),
   });
-  console.log("stream_chat:", url,JSON.stringify(params));
   if (!res.ok) {
     const text = await res.text().catch(() => "Unknown error");
     throw new Error("OpenClaw API error " + res.status + ": " + text);

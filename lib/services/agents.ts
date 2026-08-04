@@ -164,6 +164,7 @@ export async function getAgentDetail(agentId: string, workspaceId: string) {
 export interface CreateAgentInput {
   name: string;
   roleId: string;
+  managerAgentId?: number;
   engine: "openclaw" | "hermes";
   planTier: PlanTier;
   instructions: string;
@@ -211,6 +212,7 @@ export async function createAgent(ctx: AuthContext, input: CreateAgentInput) {
     const categoryId = input.engine === "openclaw" ? 2 : 4;
     const { config, preprocessed } = await createOpenclawInstance({
       agentId: agent.id,
+      managerAgentId: input.roleId === "custom" ? undefined : input.managerAgentId,
       name: input.name,
       categoryId,
       targetUserId: ctx.user.id,
