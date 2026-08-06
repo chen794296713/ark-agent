@@ -212,21 +212,23 @@ export default function FleetPage() {
 
   // Filter agents based on search, engine, and status
   const filteredAgents = useMemo(() => {
-    return agents.filter((a) => {
-      // Search filter (by name)
-      if (searchQuery && !a.name.toLowerCase().includes(searchQuery.toLowerCase())) {
-        return false;
-      }
-      // Engine filter
-      if (engineFilter !== "all" && a.engine !== engineFilter) {
-        return false;
-      }
-      // Status filter
-      if (statusFilter !== "all" && a.status !== statusFilter) {
-        return false;
-      }
-      return true;
-    });
+    return agents
+      .filter((a) => {
+        // Search filter (by name)
+        if (searchQuery && !a.name.toLowerCase().includes(searchQuery.toLowerCase())) {
+          return false;
+        }
+        // Engine filter
+        if (engineFilter !== "all" && a.engine !== engineFilter) {
+          return false;
+        }
+        // Status filter
+        if (statusFilter !== "all" && a.status !== statusFilter) {
+          return false;
+        }
+        return true;
+      })
+      .sort((a, b) => Date.parse(String(b.createdAt)) - Date.parse(String(a.createdAt)));
   }, [agents, searchQuery, engineFilter, statusFilter]);
 
   const hasActiveFilters = searchQuery || engineFilter !== "all" || statusFilter !== "all";
