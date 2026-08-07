@@ -102,7 +102,10 @@ function ActivityTab({ cur }: { cur: AgentDetailDTO }) {
 function TasksTab({ cur }: { cur: AgentDetailDTO }) {
   const { lang } = useApp();
   const t = fleetDetail[lang];
-  if (cur.tasks.length === 0) {
+  const [selectedTask, setSelectedTask] = useState<AgentDetailDTO["tasks"][number] | null>(null);
+  const tasks = cur.tasks;
+
+  if (tasks.length === 0) {
     return (
       <div
         style={{
@@ -119,11 +122,15 @@ function TasksTab({ cur }: { cur: AgentDetailDTO }) {
       </div>
     );
   }
-  return (
+  const taskList = (
     <div style={{ border: `1px solid ${c.border}`, background: c.panel, borderRadius: r.radiusMd, overflow: "hidden" }}>
-      {cur.tasks.map((k) => {
-        const sym = TASK_SYMBOL[k.status] ?? TASK_SYMBOL.queued;
-        const done = k.status === "done";
+      {tasks.map((k) => {
+        const normalizedStatus = k.status === "completed" ? "done" : k.status;
+        const sym = TASK_SYMBOL[normalizedStatus] ?? {
+          sym: normalizedStatus === "failed" || normalizedStatus === "error" ? "!" : "◌",
+          color: normalizedStatus === "failed" || normalizedStatus === "error" ? c.red : c.accent,
+        };
+        const done = normalizedStatus === "done" || normalizedStatus === "completed";
         return (
           <div
             key={k.id}
@@ -138,12 +145,110 @@ function TasksTab({ cur }: { cur: AgentDetailDTO }) {
             <span style={{ fontFamily: font.mono, fontSize: 13, color: sym.color, width: 18 }}>
               {sym.sym}
             </span>
-            <span style={{ fontSize: 14.5, color: done ? c.faint : c.text2, flex: 1 }}>{k.text}</span>
-            <span style={{ fontFamily: font.mono, fontSize: 11, color: c.faint }}>{k.meta}</span>
+            <span style={{ fontSize: 14.5, color: done ? c.faint : c.text2, flex: 1, whiteSpace: "pre-wrap" }}>{k.text}</span>
+            <span style={{ fontFamily: font.mono, fontSize: 10.5, color: sym.color, textTransform: "uppercase" }}>
+              {k.status}
+            </span>
+            {k.result ? (
+              <button
+                type="button"
+                onClick={() => setSelectedTask(k)}
+                style={{
+                  border: `1px solid ${c.borderStrong}`,
+                  background: "transparent",
+                  color: c.accent,
+                  padding: "6px 9px",
+                  fontFamily: font.mono,
+                  fontSize: 10.5,
+                  cursor: "pointer",
+                  borderRadius: r.radiusSm,
+                  flexShrink: 0,
+                }}
+              >
+                {t.taskViewResult}
+              </button>
+            ) : null}
           </div>
         );
       })}
     </div>
+  );
+
+  const resultTask = selectedTask;
+  return (
+    <>
+      {taskList}
+      {resultTask && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          onClick={() => setSelectedTask(null)}
+          style={{
+            position: "fixed",
+            inset: 0,
+            zIndex: 100,
+            background: "rgba(8, 10, 14, 0.62)",
+            display: "grid",
+            placeItems: "center",
+            padding: 20,
+          }}
+        >
+          <div
+            onClick={(event) => event.stopPropagation()}
+            style={{
+              width: "min(720px, 100%)",
+              maxHeight: "min(80vh, 680px)",
+              overflow: "auto",
+              border: `1px solid ${c.borderStrong}`,
+              background: c.panel,
+              padding: 22,
+              borderRadius: r.radiusMd,
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16 }}>
+              <div style={{ fontFamily: font.space, fontWeight: 700, fontSize: 16, flex: 1 }}>
+                {t.taskResultTitle}
+              </div>
+              <button
+                type="button"
+                aria-label={t.taskCloseResult}
+                onClick={() => setSelectedTask(null)}
+                style={{
+                  border: `1px solid ${c.borderStrong}`,
+                  background: "transparent",
+                  color: c.muted,
+                  width: 30,
+                  height: 30,
+                  cursor: "pointer",
+                  borderRadius: r.radiusSm,
+                }}
+              >
+                ×
+              </button>
+            </div>
+            <div style={{ color: c.muted, fontSize: 13.5, marginBottom: 14, whiteSpace: "pre-wrap" }}>
+              {resultTask.text}
+            </div>
+            <pre
+              style={{
+                margin: 0,
+                padding: 16,
+                border: `1px solid ${c.line}`,
+                background: c.bg,
+                color: c.text2,
+                fontFamily: font.mono,
+                fontSize: 12.5,
+                lineHeight: 1.65,
+                whiteSpace: "pre-wrap",
+                overflowWrap: "anywhere",
+              }}
+            >
+              {resultTask.result}
+            </pre>
+          </div>
+        </div>
+      )}
+    </>
   );
 }
 

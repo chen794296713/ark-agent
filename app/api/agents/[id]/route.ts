@@ -6,6 +6,7 @@ import { requireAuth, parseBody, json, notFound } from "@/lib/api";
 import { updateAgentSchema } from "@/lib/validation";
 import { mergeSettings } from "@/lib/agent-settings";
 import { getAgentDetail, getAgentRow, setLifecycle } from "@/lib/services/agents";
+import { getOpenclawVisibleTasks } from "@/lib/services/openclaw_instances";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -19,7 +20,10 @@ export async function GET(_req: Request, { params }: Ctx) {
   const { id } = await params;
   const detail = await getAgentDetail(id, auth.ctx.workspace.id);
   if (!detail) return notFound("Agent not found");
-  return json({ agent: detail });
+  const runtimeTasks = detail.engine === "openclaw"
+    ? await getOpenclawVisibleTasks(id)
+    : null;
+  return json({ agent: runtimeTasks ? { ...detail, tasks: runtimeTasks } : detail });
 }
 
 export async function PATCH(req: Request, { params }: Ctx) {

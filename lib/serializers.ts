@@ -66,7 +66,7 @@ export function serializeAgent(
 export type AgentDTO = ReturnType<typeof serializeAgent>;
 
 export function serializeTask(t: AgentTask) {
-  return { id: t.id, text: t.text, status: t.status, meta: t.meta, sortOrder: t.sortOrder };
+  return { id: t.id, text: t.text, status: t.status, meta: t.meta, sortOrder: t.sortOrder, result: null };
 }
 
 export function serializeActivity(a: AgentActivity) {

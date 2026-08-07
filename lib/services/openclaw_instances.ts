@@ -33,6 +33,9 @@ export interface CreateOpenclawInstanceInput {
   name: string;
   categoryId: number;
   targetUserId: string;
+  instructions: string;
+  rules: string;
+  tasks: string[];
 }
 
 export interface CreateOpenclawInstanceResult {
@@ -46,10 +49,14 @@ export interface CreateOpenclawInstanceResult {
 export async function createOpenclawInstance(
   input: CreateOpenclawInstanceInput
 ): Promise<CreateOpenclawInstanceResult> {
+  const brief = [input.instructions.trim(), input.rules.trim()]
+    .filter(Boolean)
+    .join("\n\n");
   const preprocessed = await createInstance({
     name: input.name,
     category_id: input.categoryId,
     target_user_id: input.targetUserId,
+    tasks: brief ? [brief, ...input.tasks] : input.tasks,
     ...(input.managerAgentId !== undefined
       ? { agent_id: input.managerAgentId }
       : {}),
@@ -87,6 +94,54 @@ export async function getOpenclawConfigByAgentId(
     )
     .limit(1);
   return row ?? null;
+}
+
+export interface OpenclawVisibleTask {
+  id: string;
+  text: string;
+  status: string;
+  meta: string | null;
+  sortOrder: number;
+  result: string | null;
+}
+
+/** Fetch current user tasks while hiding the internal brief task. */
+export async function getOpenclawVisibleTasks(
+  agentId: string,
+): Promise<OpenclawVisibleTask[] | null> {
+  const config = await getOpenclawConfigByAgentId(agentId);
+  if (!config) return null;
+
+  try {
+    const latest = await getInstance(config.externalId);
+    return latest.tasks
+      .slice()
+      .sort((a, b) => a.sortOrder - b.sortOrder)
+      .slice(1)
+      .map((task) => ({
+        id: String(task.id),
+        text: task.content,
+        status: task.status,
+        meta: null,
+        sortOrder: task.sortOrder,
+        result: task.result,
+      }));
+  } catch {
+    const cachedTasks = (config.config as Record<string, unknown> | null)?.tasks;
+    if (!Array.isArray(cachedTasks)) return [];
+    return cachedTasks
+      .filter((task): task is Record<string, unknown> => !!task && typeof task === "object")
+      .map((task) => ({
+        id: String(task.id),
+        text: String(task.content ?? ""),
+        status: String(task.status ?? "pending"),
+        meta: null,
+        sortOrder: Number(task.sortOrder ?? task.sort_order ?? 0),
+        result: task.result == null ? null : String(task.result),
+      }))
+      .sort((a, b) => a.sortOrder - b.sortOrder)
+      .slice(1);
+  }
 }
 
 /**

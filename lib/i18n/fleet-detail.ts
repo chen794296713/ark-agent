@@ -16,6 +16,9 @@ export interface FleetDetailDict {
 
   // Tasks tab
   tasksEmpty: string;
+  taskViewResult: string;
+  taskResultTitle: string;
+  taskCloseResult: string;
 
   // Chat tab
   chatLoadError: string;
@@ -280,6 +283,9 @@ const en: FleetDetailDict = {
   activityEmpty: "No activity yet — this agent hasn’t logged anything.",
 
   tasksEmpty: "No tasks queued for this agent.",
+  taskViewResult: "VIEW RESULT",
+  taskResultTitle: "Task result",
+  taskCloseResult: "Close result",
 
   chatLoadError: "Couldn’t load chat history.",
   chatSendError: "Message failed to send.",
@@ -528,6 +534,9 @@ const zh: FleetDetailDict = {
   activityEmpty: "暂无动态——这位智能体还没有记录任何内容。",
 
   tasksEmpty: "该智能体暂无排队任务。",
+  taskViewResult: "查看结果",
+  taskResultTitle: "任务执行结果",
+  taskCloseResult: "关闭结果",
 
   chatLoadError: "无法加载聊天记录。",
   chatSendError: "消息发送失败。",
@@ -776,6 +785,9 @@ const zht: FleetDetailDict = {
   activityEmpty: "尚無動態——這位智能體還沒有記錄任何內容。",
 
   tasksEmpty: "該智能體目前沒有排隊任務。",
+  taskViewResult: "查看結果",
+  taskResultTitle: "任務執行結果",
+  taskCloseResult: "關閉結果",
 
   chatLoadError: "無法載入聊天記錄。",
   chatSendError: "訊息傳送失敗。",
@@ -1024,6 +1036,9 @@ const ja: FleetDetailDict = {
   activityEmpty: "アクティビティはまだありません。このエージェントは何も記録していません。",
 
   tasksEmpty: "このエージェントに待機中のタスクはありません。",
+  taskViewResult: "結果を見る",
+  taskResultTitle: "タスク実行結果",
+  taskCloseResult: "結果を閉じる",
 
   chatLoadError: "チャット履歴を読み込めませんでした。",
   chatSendError: "メッセージの送信に失敗しました。",

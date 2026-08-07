@@ -216,6 +216,9 @@ export async function createAgent(ctx: AuthContext, input: CreateAgentInput) {
       name: input.name,
       categoryId,
       targetUserId: ctx.user.id,
+      instructions: input.instructions,
+      rules: input.rules,
+      tasks: input.tasks,
     });
     const dockerContainerName =
       typeof config.config.docker_container_name === "string"

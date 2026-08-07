@@ -121,6 +121,12 @@ function preprocessInstance(raw: Record<string, unknown>): PreprocessedInstance 
     createdAt: raw.created_at as string,
     updatedAt: raw.updated_at as string,
     lastActiveAt: raw.last_active_at as string | null,
+    tasks: Array.isArray(raw.tasks)
+      ? raw.tasks
+          .filter((task): task is Record<string, unknown> => !!task && typeof task === "object")
+          .map(preprocessTask)
+          .sort((a, b) => a.sortOrder - b.sortOrder)
+      : [],
     isReady: raw.provisioning_status === "running",
     isFailed: raw.provisioning_status === "failed" || !!raw.provisioning_error,
   };
@@ -169,6 +175,30 @@ function preprocessMessage(raw: Record<string, unknown>): PreprocessedMessage {
   };
 }
 
+export interface PreprocessedTask {
+  id: number;
+  content: string;
+  sortOrder: number;
+  sessionKey: string | null;
+  result: string | null;
+  status: string;
+  createdAt: string | null;
+  updatedAt: string | null;
+}
+
+function preprocessTask(raw: Record<string, unknown>): PreprocessedTask {
+  return {
+    id: raw.id as number,
+    content: (raw.content ?? "") as string,
+    sortOrder: (raw.sort_order ?? raw.sortOrder ?? 0) as number,
+    sessionKey: (raw.session_key ?? raw.sessionKey ?? null) as string | null,
+    result: (raw.result ?? null) as string | null,
+    status: (raw.status ?? "pending") as string,
+    createdAt: (raw.created_at ?? raw.createdAt ?? null) as string | null,
+    updatedAt: (raw.updated_at ?? raw.updatedAt ?? null) as string | null,
+  };
+}
+
 // ============ 预处理后的类型定义 ============
 
 export interface PreprocessedInstance {
@@ -197,6 +227,7 @@ export interface PreprocessedInstance {
   createdAt: string;
   updatedAt: string;
   lastActiveAt: string | null;
+  tasks: PreprocessedTask[];
   isReady: boolean;
   isFailed: boolean;
 }
@@ -249,6 +280,7 @@ export interface CreateInstanceParams {
   category_id: number;
   target_user_id: string;
   agent_id?: number;
+  tasks: string[];
 }
 
 export interface SendChatParams {

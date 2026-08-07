@@ -158,6 +158,18 @@ export interface AgentManagerProviderInfo {
   config: Record<string, unknown>;
   createdAt: string;
   updatedAt: string;
+  tasks?: InstanceTaskDTO[];
+}
+
+export interface InstanceTaskDTO {
+  id: number;
+  content: string;
+  sortOrder: number;
+  sessionKey: string | null;
+  result: string | null;
+  status: string;
+  createdAt: string | null;
+  updatedAt: string | null;
 }
 
 /** Token consumption report (per-day) for an agent's OpenClaw instance. */
@@ -181,7 +193,7 @@ export interface TokenReportDTO {
     calls: number;
   };
 }
-export interface TaskDTO { id: string; text: string; status: string; meta: string | null; sortOrder: number; }
+export interface TaskDTO { id: string; text: string; status: string; meta: string | null; sortOrder: number; result: string | null; }
 export interface ActivityDTO { id: string; text: string; tag: string; occurredAt: string; }
 export interface MetricDTO { id: string; label: string; value: string; delta: string | null; weight: number; }
 export interface ImprovementDTO { id: string; text: string; impact: string | null; status: string; createdAt: string; }
