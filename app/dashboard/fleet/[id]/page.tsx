@@ -1571,7 +1571,7 @@ function SettingsTab({ cur, onRefresh }: { cur: AgentDetailDTO; onRefresh: () =>
       });
       // 流结束:用聚合结果合并最终状态 (connected / expired / error).
       setQrcode((prev) => ({
-        ...(res as typeof prev),
+        ...(res as NonNullable<typeof prev>),
         rawOutput: prev?.rawOutput ?? res.rawOutput ?? null,
         qrcodeImage: prev?.qrcodeImage ?? res.qrcodeImage ?? null,
         qrcodeUrl: prev?.qrcodeUrl ?? res.qrcodeUrl ?? null,
