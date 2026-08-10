@@ -14,8 +14,15 @@
 
 const BASE = (process.env.OPENROUTER_BASE_URL || "https://openrouter.ai/api/v1").replace(/\/$/, "");
 const KEY = process.env.OPENROUTER_API_KEY;
-const MODEL = process.env.LLM_MODEL || "openai/gpt-4o-mini";
+const RAW_MODEL = process.env.LLM_MODEL || "openai/gpt-4o-mini";
 const TITLE = process.env.OPENROUTER_APP_TITLE || "ArkAgent";
+
+/** Mirrors normalizeModelId() in lib/llm/openrouter.ts. */
+function normalizeModelId(id: string): string {
+  const parts = id.split("/");
+  return parts.length >= 3 && parts[0] === "openrouter" ? parts.slice(1).join("/") : id;
+}
+const MODEL = normalizeModelId(RAW_MODEL);
 
 const ok = (m: string) => console.log(`  \x1b[32m✓\x1b[0m ${m}`);
 const bad = (m: string) => console.log(`  \x1b[31m✗\x1b[0m ${m}`);
@@ -32,7 +39,7 @@ function headers() {
 async function main() {
   console.log("\nArkAgent · LLM configuration check\n");
   console.log(`  endpoint : ${BASE}`);
-  console.log(`  model    : ${MODEL}`);
+  console.log(`  model    : ${MODEL}${MODEL !== RAW_MODEL ? `  (normalized from "${RAW_MODEL}")` : ""}`);
   console.log(`  app title: ${TITLE}`);
   console.log(`  api key  : ${KEY ? KEY.slice(0, 8) + "…" + KEY.slice(-4) : "(missing)"}\n`);
 
@@ -136,6 +143,9 @@ async function main() {
   ok(`Model replied: "${text.trim().slice(0, 120)}"`);
   if (catalogMiss) {
     warn(`"${MODEL}" isn't in the public catalog, but the live call succeeded — the id is usable.`);
+  }
+  if (MODEL !== RAW_MODEL) {
+    warn(`LLM_MODEL is "${RAW_MODEL}"; the app normalizes it to "${MODEL}". Update .env to match.`);
   }
   console.log("\n\x1b[32mAll checks passed — agent chat and brief generation will use this model.\x1b[0m\n");
 }

@@ -26,14 +26,15 @@ Each agent is powered by one of two real open-source agent runtimes, integrated 
 
 | Layer | Choice |
 |---|---|
-| Framework | **Next.js 16** (App Router, Turbopack, React Compiler) |
-| UI | **React 19** + **TypeScript 5** (strict) |
+| Framework | **Next.js 16.3** (App Router, Turbopack, React Compiler) |
+| UI | **React 19.2** + **TypeScript 5** (strict) |
 | Database | **Postgres** + **Drizzle ORM** (`postgres-js`), migrations via `drizzle-kit` |
 | Auth | Custom email + HTTP-only session cookies (`node:crypto` scrypt; only token SHA-256 stored) |
 | Validation | **Zod 4** at every request boundary |
 | Styling | Inline-style design system — "**Terminal Lime**" tokens in [`lib/theme.ts`](lib/theme.ts), responsive + dark/light themes |
-| i18n | English / 简体中文 / 繁體中文, persisted per user |
-| Hosting | **Vercel** |
+| i18n | English / 简体中文 / 繁體中文 / 日本語 — natively written, persisted per user |
+| LLM | **OpenRouter** (model-agnostic via `LLM_MODEL`) — agent replies, brief generation, self-review |
+| Hosting | **Vercel** (Node 24 LTS) |
 
 Runtime dependencies are intentionally tiny: `next`, `react`, `drizzle-orm`, `postgres`, `zod`.
 
@@ -41,7 +42,7 @@ Runtime dependencies are intentionally tiny: `next`, `react`, `drizzle-orm`, `po
 
 ## Getting started
 
-**Prerequisites:** Node 20+ and a Postgres database.
+**Prerequisites:** Node 24 (see `.nvmrc`) and a Postgres database.
 
 ```bash
 # 1. Install
@@ -74,8 +75,11 @@ Sign in with **`demo` / `demo123`** to explore a fully-populated workspace, or *
 | `npm run db:push` | Push the schema directly (dev shortcut) |
 | `npm run db:studio` | Open Drizzle Studio |
 | `npm run db:seed` | Seed reference data + the `demo` workspace |
+| `npm run llm:check` | Verify `OPENROUTER_API_KEY` + `LLM_MODEL` work end-to-end |
 
 `AGENT_MANAGER_MODE=mock` (the default) uses the in-process simulator; set it to `live` plus `AGENT_MANAGER_BASE_URL` to talk to a real Agent Manager.
+
+**LLM.** Set `OPENROUTER_API_KEY` and `LLM_MODEL` (an OpenRouter id like `openai/gpt-5.6-luna`) to enable real agent replies, hire-brief generation and self-review. Without a key the app falls back to canned replies and seeded defaults, so it still runs. Run `npm run llm:check` to confirm the key and model resolve.
 
 ---
 
@@ -84,14 +88,14 @@ Sign in with **`demo` / `demo123`** to explore a fully-populated workspace, or *
 | Area | What works (backed by the DB + API) |
 |---|---|
 | **Auth** | Register (real email) / login (email *or* username) / logout / session — scrypt + cookie sessions |
-| **Hire wizard** | Pick role → write brief (with ✦ AI auto-generate) → choose engine & channels → review → **launch**, which provisions the agent via the Agent Manager |
+| **Hire wizard** | Pick role → write brief (**✦ AI auto-generate**, LLM-written in your language) → choose engine & channels → review → **launch**, which provisions the agent via the Agent Manager |
 | **Dashboard** | Roster, live activity feed, credit usage, "needs review" count |
-| **Agent detail** | Activity · Tasks · **Chat** (send → agent reply) · Performance + self-review approve/dismiss · **Settings** |
+| **Agent detail** | Activity · Tasks · **Chat** (streamed LLM reply in the agent's persona) · Performance + **Run self-review** → approve/dismiss · **Settings** |
 | **Settings** | Engine-aware config: behavior, autonomy & approvals, schedule, model & reasoning, OpenClaw skills/tools, Hermes learning loop, memory & knowledge, channels, notifications, spend caps |
 | **Lifecycle** | Pause / resume / terminate |
 | **Channels** | Connect Telegram / WhatsApp / WeChat / LINE / Slack / Email (secrets masked on read) |
 | **Billing** | Credits, per-agent usage, invoices; pick plan + cycle and pay via Stripe (global) / Alipay (China) — *checkout simulated* |
-| **i18n & theme** | EN / 简 / 繁 + dark/light, persisted to the user profile |
+| **i18n & theme** | EN / 简 / 繁 / 日 via a globe picker + dark/light — persisted to localStorage and the user profile |
 
 ---
 
@@ -103,16 +107,20 @@ app/
   page.tsx  auth/  hire/  payment/  directions/
   dashboard/                dashboard shell (auth gating) + overview/fleet/detail/channels/billing
   api/                      Route Handlers — auth, agents, lifecycle, messages, improvements,
-                            channels, billing, dashboard, roles, plans, me, webhooks
-components/                 ui.tsx, MobileNav, ThemeToggle, DemoPill
+                            channels, billing, dashboard, roles, plans, me, webhooks,
+                            generate-brief, self-review
+components/                 ui.tsx, MobileNav, ThemeToggle, LanguageSwitcher, DemoPill
 lib/
   db/                       schema.ts · index.ts (lazy client) · migrations/ · seed.ts
   auth.ts                   scrypt + session cookies (server-only)
   agent-manager/            client + mock + live + webhook (HMAC) — the Agent Manager contract
+  llm/                      openrouter.ts (LLM client) · agent-prompt.ts (persona + prompts)
+  i18n/                     one typed dictionary per screen + common + detectLang
   services/agents.ts        create→provision, lifecycle, detail queries
   agent-settings.ts         AgentSettings model, defaults, catalogs
   validation.ts  serializers.ts  api.ts  client-api.ts  agent-display.ts
-  theme.ts  i18n.ts  store.tsx  data.ts  types.ts
+  theme.ts  store.tsx  data.ts  types.ts
+scripts/check-llm.ts        LLM connectivity checker (npm run llm:check)
 docs/                       PRD · SPEC · USER_STORIES · USE_CASES · TASK_PLAN · API · DATABASE
 ```
 

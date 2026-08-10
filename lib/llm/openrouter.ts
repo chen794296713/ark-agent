@@ -29,9 +29,37 @@ export function isLLMConfigured(): boolean {
   return !!process.env.OPENROUTER_API_KEY;
 }
 
+let warnedPrefix = false;
+
+/**
+ * Normalize a model id to OpenRouter's own form.
+ *
+ * OpenRouter ids are always `vendor/model` (e.g. `openai/gpt-5.6-luna`).
+ * Aggregators and directories often list them with an extra `openrouter/`
+ * prefix (`openrouter/openai/gpt-5.6-luna`), which OpenRouter rejects with a
+ * 400. A three-or-more-segment id starting with `openrouter/` is unambiguously
+ * that mistake, so strip it — while leaving genuine two-segment ids such as
+ * `openrouter/auto` untouched.
+ */
+export function normalizeModelId(id: string): string {
+  const parts = id.split("/");
+  if (parts.length >= 3 && parts[0] === "openrouter") {
+    const fixed = parts.slice(1).join("/");
+    if (!warnedPrefix) {
+      warnedPrefix = true;
+      console.warn(
+        `[llm] LLM_MODEL="${id}" is not an OpenRouter id; using "${fixed}". ` +
+          `Update LLM_MODEL to remove the "openrouter/" prefix.`,
+      );
+    }
+    return fixed;
+  }
+  return id;
+}
+
 /** The configured model id, falling back to a sensible default. */
 export function llmModel(): string {
-  return process.env.LLM_MODEL || DEFAULT_MODEL;
+  return normalizeModelId(process.env.LLM_MODEL || DEFAULT_MODEL);
 }
 
 function baseUrl(): string {
@@ -83,7 +111,7 @@ export async function streamChatCompletion(
     method: "POST",
     headers: buildHeaders(apiKey),
     body: JSON.stringify({
-      model: opts.model || llmModel(),
+      model: opts.model ? normalizeModelId(opts.model) : llmModel(),
       messages: opts.messages,
       stream: true,
       ...(opts.temperature !== undefined ? { temperature: opts.temperature } : {}),
@@ -146,7 +174,7 @@ export async function chatCompletion(opts: CompletionOptions): Promise<string> {
     method: "POST",
     headers: buildHeaders(apiKey),
     body: JSON.stringify({
-      model: opts.model || llmModel(),
+      model: opts.model ? normalizeModelId(opts.model) : llmModel(),
       messages: opts.messages,
       stream: false,
       ...(opts.temperature !== undefined ? { temperature: opts.temperature } : {}),
