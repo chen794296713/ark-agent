@@ -68,6 +68,13 @@ export const api = {
   listAgents: () => req<{ agents: AgentDTO[] }>("GET", "/api/agents"),
   getAgent: (id: string) => req<{ agent: AgentDetailDTO }>("GET", `/api/agents/${id}`),
   createAgent: (body: CreateAgentBody) => req<{ agent: AgentDetailDTO }>("POST", "/api/agents", body),
+  generateBrief: (body: {
+    roleId: string;
+    field: "instructions" | "rules";
+    agentName?: string;
+    tasks?: string[];
+    locale?: "en" | "zh" | "zht" | "ja";
+  }) => req<{ text: string; source: "llm" | "default" }>("POST", "/api/agents/generate-brief", body),
   updateAgent: (id: string, body: UpdateAgentBody) =>
     req<{ agent: AgentDetailDTO }>("PATCH", `/api/agents/${id}`, body),
   lifecycle: (id: string, action: "pause" | "resume" | "terminate") =>

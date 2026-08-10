@@ -102,21 +102,41 @@ function HireInner() {
     [roles, selRole],
   );
 
-  const genInstr = () => {
+  const genInstr = async () => {
     if (genBusyI || !selRoleObj) return;
     setGenBusyI(true);
-    setTimeout(() => {
+    try {
+      const { text } = await api.generateBrief({
+        roleId: selRoleObj.id,
+        field: "instructions",
+        agentName: agentName.trim() || undefined,
+        tasks: tasks.length ? tasks : undefined,
+        locale: lang,
+      });
+      setInstructions(text || selRoleObj.defaultInstructions || "");
+    } catch {
       setInstructions(selRoleObj.defaultInstructions || "");
+    } finally {
       setGenBusyI(false);
-    }, 900);
+    }
   };
-  const genRules = () => {
+  const genRules = async () => {
     if (genBusyR || !selRoleObj) return;
     setGenBusyR(true);
-    setTimeout(() => {
+    try {
+      const { text } = await api.generateBrief({
+        roleId: selRoleObj.id,
+        field: "rules",
+        agentName: agentName.trim() || undefined,
+        tasks: tasks.length ? tasks : undefined,
+        locale: lang,
+      });
+      setRules(text || selRoleObj.defaultRules || "");
+    } catch {
       setRules(selRoleObj.defaultRules || "");
+    } finally {
       setGenBusyR(false);
-    }, 900);
+    }
   };
 
   const addTask = () => {
