@@ -58,8 +58,8 @@ A built-in **Mock Agent Manager** (`lib/agent-manager/mock.ts`) stands in for th
 
 | Layer | Choice | Why |
 | --- | --- | --- |
-| Framework | **Next.js 16.2.9** (App Router) | One deployable owns SSR UI *and* the API surface (route handlers under `app/api/**`). No separate backend to host the control plane. **Note:** this is Next.js 16 — Middleware is now **Proxy**, route `params` are **async** (`await ctx.params`), and `GET` route handlers are **not cached by default**. Build against the bundled docs in `node_modules/next/dist/docs/`, not from memory. |
-| UI runtime | **React 19.2** + React Compiler (`reactCompiler: true`) | Server Components by default; client interactivity isolated to `"use client"` islands. The React Compiler removes most manual `memo`/`useCallback` overhead. |
+| Framework | **Next.js 16.3.0** (App Router) | One deployable owns SSR UI *and* the API surface (route handlers under `app/api/**`). No separate backend to host the control plane. **Note:** this is Next.js 16 — Middleware is now **Proxy**, route `params` are **async** (`await ctx.params`), and `GET` route handlers are **not cached by default**. Build against the bundled docs in `node_modules/next/dist/docs/`, not from memory. |
+| UI runtime | **React 19.2.8** + React Compiler (`reactCompiler: true`) | Server Components by default; client interactivity isolated to `"use client"` islands. The React Compiler removes most manual `memo`/`useCallback` overhead. |
 | Language | **TypeScript 5** (strict) | End-to-end types; Drizzle infers row types (`$inferSelect`/`$inferInsert`) so the DB schema is the single source of truth. |
 | Database | **Postgres** (remote) via **Drizzle ORM 0.45** + `postgres-js` | Relational integrity across 18 tables with FKs and cascade rules; Drizzle gives typed queries and SQL-first migrations. |
 | Migrations | **drizzle-kit 0.31** | `db:generate` → SQL files in `lib/db/migrations/`, applied with `db:migrate`. DDL runs over the **direct** (non-pooled) connection. |
@@ -126,10 +126,10 @@ All server endpoints are **Route Handlers** under `app/api/**` (`route.ts` files
 | **Auth** | `POST /api/auth/register`, `POST /api/auth/login`, `POST /api/auth/logout`, `GET /api/auth/me` | US1, US2 |
 | **Reference** | `GET /api/roles`, `GET /api/plans` | US3, US9 |
 | **Dashboard** | `GET /api/dashboard` (roster + stats + activity + credits) | US4 |
-| **Agents** | `GET /api/agents`, `POST /api/agents` (hire → provision), `GET /api/agents/[id]`, `PATCH /api/agents/[id]` (edit brief / channels / engine / plan / **settings** → re-sync), `DELETE /api/agents/[id]` (terminate) | US3, US4, US5 |
+| **Agents** | `GET /api/agents`, `POST /api/agents` (hire → provision), `POST /api/agents/generate-brief` (LLM-written brief/rules), `GET /api/agents/[id]`, `PATCH /api/agents/[id]` (edit brief / channels / engine / plan / **settings** → re-sync), `DELETE /api/agents/[id]` (terminate) | US3, US4, US5 |
 | **Lifecycle** | `POST /api/agents/[id]/lifecycle` — `{ action: "pause" \| "resume" \| "terminate" }` | US8 |
-| **Self-review** | `POST /api/agents/[id]/improvements/[improvementId]` — `{ action: "approve" \| "dismiss" }` | US5 |
-| **Messages** | `GET /api/agents/[id]/messages`, `POST /api/agents/[id]/messages` (send → relay; in mock mode the reply is returned inline) | US6 |
+| **Self-review** | `POST /api/agents/[id]/improvements/[improvementId]` — `{ action: "approve" \| "dismiss" }`, `POST /api/agents/[id]/self-review` (LLM proposes improvements) | US5 |
+| **Messages** | `GET /api/agents/[id]/messages`, `POST /api/agents/[id]/messages` (send → reply **streamed over SSE**, from the runtime, the LLM, or the mock — §6b) | US6 |
 | **Channels** | `GET /api/channels`, `POST /api/channels` (connect / upsert), `DELETE /api/channels/[id]` (disconnect) | US7 |
 | **Billing** | `GET /api/billing` (credits + per-seat usage + invoices + plans), `POST /api/billing/checkout` — `{ planId, cycle, provider }` | US9 |
 | **Preferences** | `PATCH /api/me/preferences` (locale, name) | US10 |
@@ -168,16 +168,49 @@ ArkAgent and the Agent Manager are independent services bound by a versioned HTT
 
 ---
 
+## 6b. LLM Integration (OpenRouter)
+
+Where no external agent runtime is attached, ArkAgent talks to a language model directly. `lib/llm/openrouter.ts` is the **single egress point**: an OpenAI-compatible Chat Completions client pointed at OpenRouter, so the product stays model-agnostic — swapping `LLM_MODEL` changes the brain without touching product code.
+
+| Env | Meaning |
+| --- | --- |
+| `OPENROUTER_API_KEY` | Required to make any call. Absent ⇒ `isLLMConfigured()` is false and callers fall back. |
+| `LLM_MODEL` | Model id, always `vendor/model` (e.g. `openai/gpt-5.6-luna`). |
+| `OPENROUTER_APP_TITLE` | Reported to OpenRouter as `X-Title` (defaults to `ArkAgent`). |
+| `OPENROUTER_BASE_URL` | Optional endpoint override (defaults to the public API). |
+
+**Model-id normalization.** Directories and aggregators list OpenRouter models with an extra `openrouter/` prefix (`openrouter/openai/gpt-5.6-luna`), which the API rejects with a 400. `normalizeModelId()` strips that prefix when the id has three or more segments — unambiguously the aggregator form — while leaving genuine two-segment ids such as `openrouter/auto` untouched, and warns once so the misconfiguration gets fixed rather than hidden.
+
+**Where the model is used.**
+
+| Feature | Entry point | Behavior without a key |
+| --- | --- | --- |
+| Agent chat reply (US6) | `POST /api/agents/[id]/messages` | Falls back to the canned `mockReply` |
+| Hire brief / rules auto-generate (US3) | `POST /api/agents/generate-brief` | Falls back to the role's seeded defaults |
+| Self-review suggestions (US5) | `POST /api/agents/[id]/self-review` | Returns `503` — never fabricates suggestions |
+
+**Reply routing.** The chat route prefers a live OpenClaw runtime when one is attached (`AGENT_MANAGER_MODE=live` + an OpenClaw `externalId`), then the LLM, then the mock. The LLM path streams over the **same SSE contract** as the runtime path (`user_message` → `delta`* → `done` | `error`), so the client is agnostic to which produced the reply.
+
+**Persona prompting.** `lib/llm/agent-prompt.ts` composes the system prompt from the agent's identity (name, role, role blurb), its job brief and rules, and its settings — tone, `responseLanguage` (or "match the user"), and autonomy level, which changes whether the agent proposes, confirms, or reports actions. Recent conversation history (last 20 messages) is replayed as `user`/`assistant` turns, and the agent's own `temperature`/`maxTokens` settings are applied per call.
+
+**Structured output.** Self-review asks for strict JSON and `parseImprovements()` tolerates the ways models deviate — ```` ```json ```` fences, prose wrappers, missing `impact`, non-array payloads — returning `[]` rather than throwing, so a chatty model degrades to "no suggestions" instead of a 500.
+
+**Verifying configuration.** `npm run llm:check` (`scripts/check-llm.ts`) authenticates the key, confirms `LLM_MODEL` resolves in the catalog (printing near-matches when it doesn't), and performs a real streaming completion. It exits non-zero on failure, so it can gate a deploy.
+
+---
+
 ## 7. Internationalization (US10)
 
-ArkAgent ships in three languages: **English (`en`)**, **Simplified Chinese (`zh`)**, **Traditional Chinese (`zht`)** — the `locale` pgEnum and `Lang` type agree on these three codes everywhere.
+ArkAgent ships in four languages: **English (`en`)**, **Simplified Chinese (`zh`)**, **Traditional Chinese (`zht`)**, **Japanese (`ja`)** — the `locale` pgEnum and `Lang` type agree on these four codes everywhere. Copy is authored natively per language rather than translated word-for-word from the English source.
 
-**Dictionaries.** UI copy lives in typed dictionaries keyed by `Lang` (`lib/i18n.ts` exports `dict: Record<Lang, Dict>`); the `Dict` interface makes every translation key compile-checked, so a missing string in one language is a build error rather than a runtime blank.
+**Dictionaries.** UI copy lives in `lib/i18n/`, one typed dictionary module per screen (`landing`, `auth`, `hire`, `payment`, `directions`, `dashboard`, `dashboard-layout`, `billing`, `channels`, `fleet`, `fleet-detail`) plus a shared `common` dict for nav and cross-screen strings. Each exports `Record<Lang, XDict>`, so a key missing in one language is a build error rather than a runtime blank. `lib/i18n/index.ts` exports the `LANGS` catalog, `detectLang`, `isLang`, and `LANG_STORAGE_KEY`. Interpolated copy is expressed as function fields (e.g. `resetsIn: (days) => …`) so word order stays natural in every language.
 
 **Locale resolution.**
-1. **First visit** — `detectLang(navigator.language)` maps the browser locale: `zh-TW/HK/MO` or `…Hant` → `zht`, any other `zh*` → `zh`, everything else → `en`.
-2. **Signed-in users** — the persisted `users.locale` is the source of truth and overrides detection.
-3. **Manual switch** — the nav language switcher updates client state immediately (`lib/store.tsx`) and, for signed-in users, persists via `PATCH /api/me` so the choice follows them across devices.
+1. **First visit** — a previously persisted choice (`localStorage["ark-lang"]`) wins; otherwise `detectLang(navigator.language)` maps the browser locale: `ja*` → `ja`, `zh-TW/HK/MO` or `…Hant` → `zht`, any other `zh*` → `zh`, everything else → `en`.
+2. **Signed-in users** — the persisted `users.locale` is the source of truth and overrides detection once auth loads.
+3. **Manual switch** — the language switcher updates client state immediately (`lib/store.tsx`), writes `localStorage["ark-lang"]` so the choice survives reloads while signed out, and persists via `PATCH /api/me/preferences` for signed-in users so it follows them across devices. `<html lang>` is kept in sync for accessibility.
+
+**Switcher UI.** `components/LanguageSwitcher.tsx` renders a single globe icon that opens a popover listing each language by its native name with the active one checked (closes on outside-click or `Escape`). It appears compact in the marketing nav and dashboard top bar, and as a full-width row in the mobile drawer and dashboard sidebar.
 
 **Theme (also US10).** Dark/light is a sibling preference. To avoid a flash-of-unstyled-content, a tiny pre-paint script in the root layout reads `localStorage["ark-theme"]` and sets `<html data-theme>` before React hydrates; `lib/store.tsx` then adopts whatever the script applied. Signed-in users' theme/locale persist to their profile.
 
@@ -227,6 +260,9 @@ ArkAgent ships in three languages: **English (`en`)**, **Simplified Chinese (`zh
 | `SESSION_COOKIE_NAME` | Session cookie name (default `ark_session`) |
 | `SESSION_TTL_DAYS` | Session lifetime in days (default `30`) |
 | `AGENT_MANAGER_MODE` | `mock` (in-process simulator, default) or `live` (call the real service) |
+| `OPENROUTER_API_KEY` | Enables real LLM replies, brief generation and self-review; absent ⇒ mock/default fallbacks (§6b) |
+| `LLM_MODEL` | OpenRouter model id, `vendor/model` (e.g. `openai/gpt-5.6-luna`) |
+| `OPENROUTER_APP_TITLE` | App name sent to OpenRouter as `X-Title` (default `ArkAgent`) |
 | `AGENT_MANAGER_BASE_URL` | Base URL of the Agent Manager service (live mode) |
 | `AGENT_MANAGER_API_KEY` | Bearer token for outbound Agent Manager calls |
 | `AGENT_MANAGER_WEBHOOK_SECRET` | Shared HMAC secret for verifying inbound webhooks |

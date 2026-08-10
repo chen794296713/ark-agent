@@ -33,7 +33,7 @@ ArkAgent targets buyers who feel the pain of "too much to do, not enough headcou
 - **Context:** Solo founder / creator running an e-commerce + content brand. No staff, infinite tasks.
 - **Jobs to be done:** Multiply himself — one agent writing content, one handling DMs, one doing admin/ops — without learning ops tooling.
 - **Behavior:** Power user. Will iterate on the job brief, tune rules, and lean heavily on AI auto-generate. Watches credit burn closely because budget is personal.
-- **Maps to:** US3 (hire + AI auto-generate brief), US5 (manage/tune), US8 (pause to control cost), US9 (usage), US10 (works in zh/zht).
+- **Maps to:** US3 (hire + AI auto-generate brief), US5 (manage/tune), US8 (pause to control cost), US9 (usage), US10 (works in zh/zht/ja).
 
 ### 2.3 Persona C — Lin, the Ops Lead
 - **Context:** Operations lead at a 60–150 person company; reports to a COO; manages a small team plus tooling budget.
@@ -67,7 +67,7 @@ ArkAgent targets buyers who feel the pain of "too much to do, not enough headcou
 2. Make managing an agent feel like managing a person: brief, review, adjust, pause (US5, US8).
 3. Be a **reliable system of record** — every status change, activity, message, metric, and credit charge is persisted and attributable.
 4. Keep the human in control of trust-sensitive moments via the **self-review approval queue** (US5).
-5. Be genuinely usable end-to-end in en/zh/zht and pay-ready in both Stripe and Alipay markets (US9, US10).
+5. Be genuinely usable end-to-end in en/zh/zht/ja and pay-ready in both Stripe and Alipay markets (US9, US10).
 6. Cleanly separate concerns from the **Agent Manager** so the runtime can evolve independently (§7).
 
 ### 4.2 Non-Goals
@@ -93,7 +93,7 @@ ArkAgent targets buyers who feel the pain of "too much to do, not enough headcou
 | **US7** | Connect & manage channels | Connect/configure Telegram/WhatsApp/WeChat/LINE/Slack/Email/web at the **workspace** level; attach channels to agents; secrets stored **encrypted**. | `channels`, `agent_channels`, `workspaces` |
 | **US8** | Agent lifecycle control | Pause, resume, terminate — each calls the Agent Manager and updates `status` (`paused`, `working`, `terminated`). | `agents` |
 | **US9** | Billing & usage | Credits used vs included, per-agent usage, invoices; pick plan (Associate $49/5k · Professional $149/25k · Director $399/100k) + cycle; pay via **Stripe** (global) or **Alipay** (China); seats roll up to workspace credits. | `plans`, `subscriptions`, `invoices`, `usage_records`, `workspaces`, `workspace_members` |
-| **US10** | Localization & preferences | Use the product in en/zh/zht; switch language and light/dark theme; persisted to the user profile. | `users` |
+| **US10** | Localization & preferences | Use the product in en/zh/zht/ja; switch language and light/dark theme; persisted to localStorage and the user profile. | `users` |
 
 ### 5.1 Cross-cutting capabilities
 - **Self-review queue (US4 + US5):** the Agent Manager posts `agent_improvements` (engine self-review suggestions) in `pending`; a human approves (applies + re-syncs brief) or dismisses. This is the central trust mechanism.
@@ -166,14 +166,14 @@ The **Agent Manager** is an external backend (implemented elsewhere). The bounda
 ## 8. i18n & Markets
 
 ### 8.1 Languages
-- First-class **English (`en`)**, **Simplified Chinese (`zh`)**, and **Traditional Chinese (`zht`)** across the entire product surface — not just marketing pages.
+- First-class **English (`en`)**, **Simplified Chinese (`zh`)**, **Traditional Chinese (`zht`)**, and **Japanese (`ja`)** across the entire product surface — not just marketing pages. Copy is authored natively per language, not machine-translated from English.
 - Language and theme (light/dark) are user preferences **persisted to the user profile** (US10) and applied via the existing inline "Terminal Lime" design system with responsive tokens.
 
 ### 8.2 Two domains, one product
 | | Global | China |
 |---|--------|-------|
 | **Domain** | `arkagent.ai` | `iagent.cc` |
-| **Default languages** | en (zh/zht available) | zh / zht (en available) |
+| **Default languages** | en (zh/zht/ja available) | zh / zht (en/ja available) |
 | **Payment** | **Stripe** | **Alipay** |
 | **Primary channels** | Telegram, WhatsApp, Slack, LINE, Email, web | WeChat, web (plus others as available) |
 

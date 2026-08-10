@@ -49,7 +49,7 @@ All enums are Postgres `pgEnum` types.
 
 | Enum | Values |
 | --- | --- |
-| `locale` | `en`, `zh`, `zht` |
+| `locale` | `en`, `zh`, `zht`, `ja` |
 | `member_role` | `owner`, `admin`, `member` |
 | `engine` | `openclaw`, `hermes` |
 | `agent_status` | `draft`, `provisioning`, `deploying`, `working`, `scheduled`, `needs_review`, `paused`, `error`, `terminated` |
