@@ -217,7 +217,8 @@ export const landing: Record<Lang, LandingDict> = {
     pricingFoot: "ANNUAL −20% · 14-DAY TRIAL ON EVERY SEAT · UNUSED CREDITS ROLL OVER ONE CYCLE",
 
     footTagline: "Autonomous employees for everyone.",
-    footCopyright: "© 2026 ARKAGENT INC.",
+    footCopyright:
+      "Copyright©2026 光之舟智能科技(北京)有限公司 | 京ICP备2025103610号-3 | 京公网安备11010802046015号",
     footProduct: "PRODUCT",
     footProductAgents: "Agents",
     footProductEngines: "Engines",
@@ -334,7 +335,8 @@ export const landing: Record<Lang, LandingDict> = {
     pricingFoot: "年付立减 20% · 每个席位 14 天试用 · 未用积分顺延一个周期",
 
     footTagline: "让每个人都用得起的自主员工。",
-    footCopyright: "© 2026 ARKAGENT INC.",
+    footCopyright:
+      "Copyright©2026 光之舟智能科技(北京)有限公司 | 京ICP备2025103610号-3 | 京公网安备11010802046015号",
     footProduct: "产品",
     footProductAgents: "智能员工",
     footProductEngines: "引擎",
@@ -451,7 +453,8 @@ export const landing: Record<Lang, LandingDict> = {
     pricingFoot: "年付折 20% · 每個席位 14 天試用 · 未用點數順延一個週期",
 
     footTagline: "讓每個人都用得起的自主員工。",
-    footCopyright: "© 2026 ARKAGENT INC.",
+    footCopyright:
+      "Copyright©2026 光之舟智能科技(北京)有限公司 | 京ICP备2025103610号-3 | 京公网安备11010802046015号",
     footProduct: "產品",
     footProductAgents: "智能員工",
     footProductEngines: "引擎",
@@ -568,7 +571,8 @@ export const landing: Record<Lang, LandingDict> = {
     pricingFoot: "年払いで−20% · 全席14日間無料 · 未使用クレジットは1サイクル繰り越し",
 
     footTagline: "すべての人に、自律型の社員を。",
-    footCopyright: "© 2026 ARKAGENT INC.",
+    footCopyright:
+      "Copyright©2026 光之舟智能科技(北京)有限公司 | 京ICP备2025103610号-3 | 京公网安备11010802046015号",
     footProduct: "プロダクト",
     footProductAgents: "エージェント",
     footProductEngines: "エンジン",

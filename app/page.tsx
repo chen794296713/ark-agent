@@ -17,6 +17,7 @@ export default function LandingPage() {
   const { lang } = useApp();
   const t = landing[lang];
   const nav = common[lang];
+  const footCopyrightParts = t.footCopyright.split(" | ");
 
   const [tick, setTick] = useState(0);
   const [approved, setApproved] = useState(false);
@@ -1337,8 +1338,22 @@ export default function LandingPage() {
               </span>
             </div>
             <div style={{ color: c.muted, fontSize: 14 }}>{t.footTagline}</div>
-            <div style={{ fontFamily: font.mono, fontSize: 12, color: c.faint, marginTop: 20 }}>
-              {t.footCopyright}
+            <div
+              style={{
+                maxWidth: "100%",
+                marginTop: 16,
+                color: c.faint,
+                fontFamily: font.sans,
+                fontSize: 11,
+                lineHeight: 1.6,
+                overflowWrap: "anywhere",
+                wordBreak: "break-word",
+              }}
+            >
+              <div>{footCopyrightParts[0]}</div>
+              <div style={{ marginTop: 4 }}>
+                {footCopyrightParts.slice(1).join(" | ")}
+              </div>
             </div>
           </div>
           <div
