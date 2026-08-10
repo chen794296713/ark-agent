@@ -116,6 +116,11 @@ export const prefsSchema = z.object({
   name: z.string().min(1).max(120).optional(),
 });
 
+export const selfReviewSchema = z.object({
+  locale: z.enum(["en", "zh", "zht", "ja"]).optional(),
+  count: z.number().int().min(1).max(5).optional(),
+});
+
 export const generateBriefSchema = z.object({
   roleId: z.string().min(1).max(40),
   field: z.enum(["instructions", "rules"]),
