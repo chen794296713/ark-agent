@@ -32,6 +32,10 @@ export interface FleetDetailDict {
   perfSelfReview: string;
   perfNoMetrics: string;
   perfImprovementQueue: string;
+  perfRunSelfReview: string;
+  perfRunningSelfReview: string;
+  perfSelfReviewNone: string;
+  perfSelfReviewError: string;
   perfNoImprovements: string;
   perfApproved: string;
   perfDismissed: string;
@@ -228,6 +232,10 @@ const en: FleetDetailDict = {
   perfSelfReview: "SELF-REVIEW",
   perfNoMetrics: "No metrics recorded yet.",
   perfImprovementQueue: "IMPROVEMENT QUEUE",
+  perfRunSelfReview: "Run self-review",
+  perfRunningSelfReview: "Reviewing…",
+  perfSelfReviewNone: "The self-review found nothing new to suggest.",
+  perfSelfReviewError: "Couldn’t run the self-review.",
   perfNoImprovements: "The agent has no proposed improvements right now.",
   perfApproved: "✓ Approved",
   perfDismissed: "Dismissed",
@@ -411,6 +419,10 @@ const zh: FleetDetailDict = {
   perfSelfReview: "自我复盘",
   perfNoMetrics: "暂无记录的指标。",
   perfImprovementQueue: "优化队列",
+  perfRunSelfReview: "运行自查",
+  perfRunningSelfReview: "自查中…",
+  perfSelfReviewNone: "本次自查没有发现新的改进建议。",
+  perfSelfReviewError: "自查未能完成。",
   perfNoImprovements: "智能体目前没有提出任何优化建议。",
   perfApproved: "✓ 已批准",
   perfDismissed: "已忽略",
@@ -594,6 +606,10 @@ const zht: FleetDetailDict = {
   perfSelfReview: "自我檢視",
   perfNoMetrics: "尚無記錄的指標。",
   perfImprovementQueue: "優化佇列",
+  perfRunSelfReview: "執行自我檢視",
+  perfRunningSelfReview: "檢視中…",
+  perfSelfReviewNone: "本次自我檢視沒有發現新的改進建議。",
+  perfSelfReviewError: "自我檢視未能完成。",
   perfNoImprovements: "智能體目前沒有提出任何優化建議。",
   perfApproved: "✓ 已核准",
   perfDismissed: "已忽略",
@@ -777,6 +793,10 @@ const ja: FleetDetailDict = {
   perfSelfReview: "セルフレビュー",
   perfNoMetrics: "記録された指標はまだありません。",
   perfImprovementQueue: "改善キュー",
+  perfRunSelfReview: "セルフレビューを実行",
+  perfRunningSelfReview: "レビュー中…",
+  perfSelfReviewNone: "今回のセルフレビューでは新しい提案はありませんでした。",
+  perfSelfReviewError: "セルフレビューを実行できませんでした。",
   perfNoImprovements: "現在、エージェントからの改善提案はありません。",
   perfApproved: "✓ 承認済み",
   perfDismissed: "却下済み",

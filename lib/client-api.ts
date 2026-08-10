@@ -81,6 +81,8 @@ export const api = {
     req<{ agent: AgentDetailDTO }>("POST", `/api/agents/${id}/lifecycle`, { action }),
   resolveImprovement: (agentId: string, improvementId: string, action: "approve" | "dismiss") =>
     req<{ agent: AgentDetailDTO }>("POST", `/api/agents/${agentId}/improvements/${improvementId}`, { action }),
+  runSelfReview: (agentId: string, body: { locale?: "en" | "zh" | "zht" | "ja"; count?: number } = {}) =>
+    req<{ created: number; agent: AgentDetailDTO }>("POST", `/api/agents/${agentId}/self-review`, body),
 
   // ---- messages ----
   messages: (agentId: string) =>

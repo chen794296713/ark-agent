@@ -43,7 +43,7 @@ function buildHeaders(apiKey: string): Record<string, string> {
     Authorization: `Bearer ${apiKey}`,
     "Content-Type": "application/json",
     // OpenRouter attribution headers (optional but recommended).
-    "X-Title": "ArkAgent",
+    "X-Title": process.env.OPENROUTER_APP_TITLE || "ArkAgent",
   };
   const referer = process.env.NEXT_PUBLIC_APP_URL || process.env.OPENROUTER_HTTP_REFERER;
   if (referer) headers["HTTP-Referer"] = referer;

@@ -379,9 +379,27 @@ function PerformanceTab({ cur, onRefresh }: { cur: AgentDetailDTO; onRefresh: ()
   const t = fleetDetail[lang];
   const [busy, setBusy] = useState<Record<string, boolean>>({});
   const [error, setError] = useState<string | null>(null);
+  const [reviewing, setReviewing] = useState(false);
+  const [notice, setNotice] = useState<string | null>(null);
 
   const pending = cur.improvements.filter((q) => q.status === "pending" || q.status === "proposed");
   const queue = pending.length > 0 ? pending : cur.improvements;
+
+  const runSelfReview = async () => {
+    if (reviewing) return;
+    setReviewing(true);
+    setError(null);
+    setNotice(null);
+    try {
+      const { created } = await api.runSelfReview(cur.id, { locale: lang });
+      if (created === 0) setNotice(t.perfSelfReviewNone);
+      await onRefresh();
+    } catch (e) {
+      setError(e instanceof ApiError ? e.message : t.perfSelfReviewError);
+    } finally {
+      setReviewing(false);
+    }
+  };
 
   const resolve = async (improvementId: string, action: "approve" | "dismiss") => {
     setBusy((s) => ({ ...s, [improvementId]: true }));
@@ -448,16 +466,46 @@ function PerformanceTab({ cur, onRefresh }: { cur: AgentDetailDTO; onRefresh: ()
       <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
         <div
           style={{
-            fontFamily: font.mono,
-            fontSize: 11,
-            letterSpacing: ".1em",
-            color: c.muted,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: 12,
           }}
         >
-          {t.perfImprovementQueue}
+          <span
+            style={{
+              fontFamily: font.mono,
+              fontSize: 11,
+              letterSpacing: ".1em",
+              color: c.muted,
+            }}
+          >
+            {t.perfImprovementQueue}
+          </span>
+          <Btn
+            onClick={runSelfReview}
+            disabled={reviewing}
+            style={{
+              background: "none",
+              border: `1px solid ${c.limeBorder}`,
+              color: c.accent,
+              fontFamily: font.mono,
+              fontSize: 11,
+              letterSpacing: ".06em",
+              padding: "5px 10px",
+              cursor: reviewing ? "default" : "pointer",
+              opacity: reviewing ? 0.6 : 1,
+            }}
+            hoverStyle={{ background: c.limeWash }}
+          >
+            {reviewing ? t.perfRunningSelfReview : t.perfRunSelfReview}
+          </Btn>
         </div>
         {error && (
           <div style={{ fontFamily: font.mono, fontSize: 11, color: c.red }}>{error}</div>
+        )}
+        {notice && (
+          <div style={{ fontFamily: font.mono, fontSize: 11, color: c.muted }}>{notice}</div>
         )}
         {queue.length === 0 ? (
           <div
