@@ -1,6 +1,6 @@
-import { and, asc, desc, eq } from "drizzle-orm";
+import { asc, desc, eq } from "drizzle-orm";
 import { db } from "@/lib/db";
-import { conversations, messages, usageRecords } from "@/lib/db/schema";
+import { agentRoles, conversations, messages, usageRecords } from "@/lib/db/schema";
 import { requireAuth, parseBody, json, notFound } from "@/lib/api";
 import { sendMessageSchema } from "@/lib/validation";
 import { getAgentRow } from "@/lib/services/agents";
@@ -10,7 +10,10 @@ import {
   getOpenclawConfigByAgentId,
   streamOpenclawChat,
 } from "@/lib/services/openclaw_instances";
-import type { Message } from "@/lib/db/schema";
+import { mergeSettings } from "@/lib/agent-settings";
+import { isLLMConfigured, streamChatCompletion, type ChatMessage } from "@/lib/llm/openrouter";
+import { buildAgentSystemPrompt } from "@/lib/llm/agent-prompt";
+import type { Agent, Message } from "@/lib/db/schema";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -81,6 +84,9 @@ export async function POST(req: Request, { params }: Ctx) {
   const openclawConfig = await getOpenclawConfigByAgentId(id);
   const useStream =
     process.env.AGENT_MANAGER_MODE === "live" && !!openclawConfig?.externalId;
+  // When no live OpenClaw runtime is attached, prefer a real LLM (OpenRouter)
+  // over the canned mock reply — as long as an API key is configured.
+  const useLLM = !useStream && isLLMConfigured();
 
   const encoder = new TextEncoder();
   const stream = new ReadableStream<Uint8Array>({
@@ -99,6 +105,15 @@ export async function POST(req: Request, { params }: Ctx) {
             conversationId: conv!.id,
             agentName: agent.name,
             body: parsed.data.body,
+            onDelta: (delta) => send({ type: "delta", delta }),
+            onComplete: (replyMessage) =>
+              send({ type: "done", conversationId: conv!.id, replyMessage: serializeMessage(replyMessage) }),
+            onError: (message) => send({ type: "error", message }),
+          });
+        } else if (useLLM) {
+          await streamLLMReply({
+            agent,
+            conversationId: conv!.id,
             onDelta: (delta) => send({ type: "delta", delta }),
             onComplete: (replyMessage) =>
               send({ type: "done", conversationId: conv!.id, replyMessage: serializeMessage(replyMessage) }),
@@ -213,6 +228,66 @@ async function streamOpenclawReply(opts: {
     opts.onComplete(reply);
   } catch (e) {
     opts.onError(e instanceof Error ? e.message : "OpenClaw stream failed");
+  }
+}
+
+async function streamLLMReply(opts: {
+  agent: Agent;
+  conversationId: string;
+  onDelta: (delta: string) => void;
+  onComplete: (replyMessage: Message) => void;
+  onError: (message: string) => void;
+}) {
+  try {
+    const [role] = await db
+      .select({ name: agentRoles.name, blurb: agentRoles.blurb })
+      .from(agentRoles)
+      .where(eq(agentRoles.id, opts.agent.roleId))
+      .limit(1);
+    const settings = mergeSettings(opts.agent.settings);
+
+    // Recent conversation history (includes the message we just stored).
+    const history = await db
+      .select()
+      .from(messages)
+      .where(eq(messages.conversationId, opts.conversationId))
+      .orderBy(asc(messages.createdAt));
+    const recent = history.slice(-20);
+
+    const llmMessages: ChatMessage[] = [
+      {
+        role: "system",
+        content: buildAgentSystemPrompt({
+          agentName: opts.agent.name,
+          roleName: role?.name ?? "AI employee",
+          roleBlurb: role?.blurb ?? null,
+          instructions: opts.agent.instructions,
+          rules: opts.agent.rules,
+          settings,
+        }),
+      },
+    ];
+    for (const m of recent) {
+      if (m.sender === "user") llmMessages.push({ role: "user", content: m.body });
+      else if (m.sender === "agent") llmMessages.push({ role: "assistant", content: m.body });
+    }
+
+    const full = await streamChatCompletion({
+      messages: llmMessages,
+      temperature: settings.temperature,
+      maxTokens: settings.maxTokens,
+      onDelta: opts.onDelta,
+    });
+
+    const reply = await persistAgentReply({
+      agentId: opts.agent.id,
+      conversationId: opts.conversationId,
+      agentName: opts.agent.name,
+      body: full.trim() || "(no reply)",
+    });
+    opts.onComplete(reply);
+  } catch (e) {
+    opts.onError(e instanceof Error ? e.message : "LLM reply failed");
   }
 }
 
