@@ -93,6 +93,7 @@ export const lifecycleSchema = z.object({
 export const sendMessageSchema = z.object({
   body: z.string().min(1).max(4000),
   conversationId: z.string().uuid().optional(),
+  sessionKey: z.string().min(1).max(500).optional(),
 });
 
 export const improvementActionSchema = z.object({

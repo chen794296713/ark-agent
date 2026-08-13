@@ -196,7 +196,7 @@ summary {
   --r-hire-grid: 280px 1fr;
   --r-dash-grid: 236px 1fr;
   --r-form-w: 400px;
-  --r-chat-h: 480px;
+  --r-chat-h: min(640px, 72vh);
   --r-dir-card-h: 340px;
 
   /* nav show/hide toggles + sidebar positioning */
@@ -366,6 +366,114 @@ button {
 }
 .ark-scroll::-webkit-scrollbar-track {
   background: transparent;
+}
+
+/* Markdown content inside chat bubbles. */
+.ark-chat-markdown {
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+.ark-chat-markdown > :first-child {
+  margin-top: 0;
+}
+.ark-chat-markdown > :last-child {
+  margin-bottom: 0;
+}
+.ark-chat-markdown p,
+.ark-chat-markdown ul,
+.ark-chat-markdown ol,
+.ark-chat-markdown blockquote,
+.ark-chat-markdown pre,
+.ark-chat-markdown table {
+  margin: 0 0 10px;
+}
+.ark-chat-markdown h1,
+.ark-chat-markdown h2,
+.ark-chat-markdown h3,
+.ark-chat-markdown h4,
+.ark-chat-markdown h5,
+.ark-chat-markdown h6 {
+  margin: 14px 0 8px;
+  font-size: 1em;
+  line-height: 1.35;
+}
+.ark-chat-markdown h1 {
+  font-size: 1.25em;
+}
+.ark-chat-markdown h2 {
+  font-size: 1.15em;
+}
+.ark-chat-markdown ul,
+.ark-chat-markdown ol {
+  padding-left: 22px;
+}
+.ark-chat-markdown li + li {
+  margin-top: 4px;
+}
+.ark-chat-markdown blockquote {
+  padding-left: 12px;
+  border-left: 3px solid var(--c-border-mute);
+  color: var(--c-muted);
+}
+.ark-chat-markdown-user blockquote {
+  border-left-color: rgba(11, 13, 16, 0.45);
+  color: inherit;
+}
+.ark-chat-markdown code {
+  padding: 2px 5px;
+  background: var(--c-panel-deep);
+  color: var(--c-text2);
+  font-family: var(--font-geist-mono), monospace;
+  font-size: 0.88em;
+}
+.ark-chat-markdown pre {
+  max-width: 100%;
+  padding: 12px;
+  overflow-x: auto;
+  background: var(--c-panel-deep);
+  border: 1px solid var(--c-line);
+}
+.ark-chat-markdown pre code {
+  padding: 0;
+  background: transparent;
+  color: var(--c-text2);
+  white-space: pre;
+}
+.ark-chat-markdown a {
+  color: var(--c-accent);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.ark-chat-markdown-user a {
+  color: inherit;
+}
+.ark-chat-markdown table {
+  display: block;
+  max-width: 100%;
+  overflow-x: auto;
+  border-collapse: collapse;
+}
+.ark-chat-markdown th,
+.ark-chat-markdown td {
+  padding: 6px 9px;
+  border: 1px solid var(--c-border);
+  text-align: left;
+  white-space: nowrap;
+}
+.ark-chat-markdown-user th,
+.ark-chat-markdown-user td {
+  border-color: rgba(11, 13, 16, 0.3);
+}
+.ark-chat-markdown hr {
+  margin: 12px 0;
+  border: 0;
+  border-top: 1px solid var(--c-border);
+}
+.ark-chat-markdown img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  margin: 8px 0;
 }
 
 @keyframes blink {

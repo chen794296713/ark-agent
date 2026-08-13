@@ -6,6 +6,8 @@ import {
   createInstance,
   getInstanceEvents,
   getChatHistory,
+  listOpenClawSessions,
+  getOpenClawSessionHistory,
   sendChat,
   streamChat,
   chat,
@@ -18,6 +20,8 @@ import {
   type PreprocessedEvent,
   type PreprocessedChatHistory,
   type PreprocessedMessage,
+  type OpenClawSession,
+  type OpenClawSessionHistory,
   type PreprocessedTokenReport,
   type StreamChatEvent,
   type StreamChatHandle,
@@ -209,9 +213,21 @@ export async function sendOpenclawChat(
  */
 export async function getOpenclawChatHistory(
   externalId: string,
-  agent = "main"
+  agent = "main",
+  sessionKey?: string
 ): Promise<PreprocessedChatHistory> {
-  return getChatHistory(externalId, agent);
+  return getChatHistory(externalId, agent, sessionKey);
+}
+
+export async function getOpenclawSessions(externalId: string): Promise<OpenClawSession[]> {
+  return listOpenClawSessions(externalId);
+}
+
+export async function getOpenclawSessionHistory(
+  externalId: string,
+  sessionId: string
+): Promise<OpenClawSessionHistory> {
+  return getOpenClawSessionHistory(externalId, sessionId);
 }
 
 /**

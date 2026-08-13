@@ -294,6 +294,26 @@ export interface StreamChatParams {
   sessionKey?: string;
 }
 
+export interface OpenClawSession {
+  id: string;
+  key: string;
+  historyId: string;
+  label: string;
+  status: string | null;
+  createdAt: string | null;
+  updatedAt: number | null;
+  preview: string | null;
+  archived: boolean;
+  pinned: boolean;
+}
+
+export interface OpenClawSessionHistory {
+  sessionId: string;
+  sessionKey: string;
+  status: string | null;
+  messages: PreprocessedMessage[];
+}
+
 // SSE 事件类型（参考 OpenAI Responses API 流式协议）
 export type StreamEventType =
   | "response.created"
@@ -435,9 +455,12 @@ export async function sendChat(
  */
 export async function getChatHistory(
   instanceUuid: string,
-  agent = "main"
+  agent = "main",
+  sessionKey?: string
 ): Promise<PreprocessedChatHistory> {
-  const url = `${BASE_URL}/api/openclaw/instances/${instanceUuid}/chat/history?agent=${agent}`;
+  const params = new URLSearchParams({ agent });
+  if (sessionKey) params.set("sessionKey", sessionKey);
+  const url = `${BASE_URL}/api/openclaw/instances/${instanceUuid}/chat/history?${params.toString()}`;
   const raw = await request<Record<string, unknown>>(url, {
     method: "GET",
   });
@@ -456,6 +479,65 @@ export async function getChatHistory(
     assistantMessages,
     lastMessage,
     text: lastMessage?.content || "",
+  };
+}
+
+/**
+ * 获取实例的 session 列表。
+ * GET /api/openclaw/instances/:uuid/sessions
+ *
+ * Hermes 使用 sessionId / conversation，OpenClaw 使用 sessionId / key。
+ * 这里在 manager API 层统一成前端可消费的结构。
+ */
+export async function listOpenClawSessions(
+  instanceUuid: string
+): Promise<OpenClawSession[]> {
+  const url = `${BASE_URL}/api/openclaw/instances/${instanceUuid}/sessions`;
+  const raw = await request<Record<string, unknown>>(url, { method: "GET" });
+  if (!Array.isArray(raw.sessions)) return [];
+
+  return raw.sessions
+    .filter((item): item is Record<string, unknown> => !!item && typeof item === "object")
+    .map((item, index) => {
+      const id = String(item.sessionId ?? item.id ?? item.key ?? `session-${index}`);
+      const key = String(item.key ?? item.conversation ?? item.sessionId ?? id);
+      const historyId = typeof item.key === "string" ? item.key : id;
+      const preview = typeof item.preview === "string" ? item.preview : null;
+      return {
+        id,
+        key,
+        historyId,
+        label: preview && preview !== "—" ? preview : key,
+        status: typeof item.status === "string" ? item.status : null,
+        createdAt: typeof item.created_at === "string" ? item.created_at : null,
+        updatedAt: typeof item.updatedAt === "number" ? item.updatedAt : null,
+        preview,
+        archived: item.archived === true,
+        pinned: item.pinned === true,
+      };
+    });
+}
+
+/**
+ * 获取指定 session 的历史。
+ * GET /api/openclaw/instances/:uuid/sessions/:sessionId/history
+ */
+export async function getOpenClawSessionHistory(
+  instanceUuid: string,
+  sessionId: string
+): Promise<OpenClawSessionHistory> {
+  const url =
+    `${BASE_URL}/api/openclaw/instances/${encodeURIComponent(instanceUuid)}` +
+    `/sessions/${encodeURIComponent(sessionId)}/history`;
+  const raw = await request<Record<string, unknown>>(url, { method: "GET" });
+  const rawMessages = Array.isArray(raw.messages) ? raw.messages : [];
+  return {
+    sessionId: String(raw.sessionId ?? sessionId),
+    sessionKey: String(raw.sessionKey ?? raw.sessionId ?? sessionId),
+    status: typeof raw.status === "string" ? raw.status : null,
+    messages: rawMessages
+      .filter((item): item is Record<string, unknown> => !!item && typeof item === "object")
+      .map(preprocessMessage),
   };
 }
 

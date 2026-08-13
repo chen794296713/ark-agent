@@ -4,10 +4,18 @@ import { Suspense, useCallback, useEffect, useRef, useState } from "react";
 import type { CSSProperties, ReactNode } from "react";
 import Image from "next/image";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import { c, font, r } from "@/lib/theme";
 import { Btn } from "@/components/ui";
 import { api, ApiError } from "@/lib/client-api";
-import type { AgentDetailDTO, AgentManagerProviderInfo, MessageDTO, TokenReportDTO } from "@/lib/client-api";
+import type {
+  AgentDetailDTO,
+  AgentManagerProviderInfo,
+  MessageDTO,
+  SessionDTO,
+  TokenReportDTO,
+} from "@/lib/client-api";
 import {
   statusDisplay,
   ENGINE_LABEL,
@@ -256,6 +264,9 @@ function ChatTab({ cur }: { cur: AgentDetailDTO }) {
   const { lang } = useApp();
   const t = fleetDetail[lang];
   const [messages, setMessages] = useState<MessageDTO[]>([]);
+  const [sessions, setSessions] = useState<SessionDTO[]>([]);
+  const [selectedSessionKey, setSelectedSessionKey] = useState("");
+  const [sessionsLoading, setSessionsLoading] = useState(true);
   const [draft, setDraft] = useState("");
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
@@ -265,19 +276,59 @@ function ChatTab({ cur }: { cur: AgentDetailDTO }) {
   useEffect(() => {
     let alive = true;
     (async () => {
+      setSessionsLoading(true);
+      setLoading(true);
+      setError(null);
       try {
-        const res = await api.messages(cur.id);
-        if (alive) setMessages(res.messages);
+        const sessionRes = await api.sessions(cur.id);
+        if (!alive) return;
+
+        setSessions(sessionRes.sessions);
+        const firstSession = sessionRes.sessions[0];
+        if (firstSession) {
+          setSelectedSessionKey(firstSession.key);
+          const history = await api.sessionHistory(cur.id, firstSession.historyId);
+          if (alive) setMessages(history.messages);
+        } else {
+          const res = await api.messages(cur.id);
+          if (alive) setMessages(res.messages);
+        }
       } catch (e) {
-        if (alive) setError(e instanceof ApiError ? e.message : t.chatLoadError);
+        try {
+          const res = await api.messages(cur.id);
+          if (alive) setMessages(res.messages);
+        } catch {
+          if (alive) setError(e instanceof ApiError ? e.message : t.chatLoadError);
+        }
       } finally {
-        if (alive) setLoading(false);
+        if (alive) {
+          setSessionsLoading(false);
+          setLoading(false);
+        }
       }
     })();
     return () => {
       alive = false;
     };
   }, [cur.id]);
+
+  const selectSession = async (sessionKey: string) => {
+    if (sessionKey === selectedSessionKey || sending) return;
+    const session = sessions.find((item) => item.key === sessionKey);
+    if (!session) return;
+
+    setSelectedSessionKey(sessionKey);
+    setLoading(true);
+    setError(null);
+    try {
+      const history = await api.sessionHistory(cur.id, session.historyId);
+      setMessages(history.messages);
+    } catch (e) {
+      setError(e instanceof ApiError ? e.message : t.chatLoadError);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
     if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
@@ -322,7 +373,10 @@ function ChatTab({ cur }: { cur: AgentDetailDTO }) {
     };
 
     try {
-      const res = await api.streamMessage(cur.id, body, { onDelta: applyDelta });
+      const res = await api.streamMessage(cur.id, body, {
+        onDelta: applyDelta,
+        sessionKey: selectedSessionKey || undefined,
+      });
       setMessages((prev) => {
         // Replace both temp entries: use server-persisted user message (if any)
         // and the final assistant reply.
@@ -369,6 +423,62 @@ function ChatTab({ cur }: { cur: AgentDetailDTO }) {
         {t.chatWebConsole}{channelsText(cur.channels) ? t.chatAlsoOn(channelsText(cur.channels)) : ""}
       </div>
       <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 12,
+          padding: "10px 16px",
+          borderBottom: `1px solid ${c.line}`,
+          background: c.bg,
+        }}
+      >
+        <label
+          htmlFor={`chat-session-${cur.id}`}
+          style={{
+            fontFamily: font.mono,
+            fontSize: 10.5,
+            color: c.faint,
+            flexShrink: 0,
+          }}
+        >
+          {t.chatSession}
+        </label>
+        <select
+          id={`chat-session-${cur.id}`}
+          value={selectedSessionKey}
+          onChange={(e) => void selectSession(e.target.value)}
+          disabled={sessionsLoading || sending || sessions.length === 0}
+          aria-label={t.chatSession}
+          style={{
+            minWidth: 0,
+            flex: 1,
+            background: c.panel,
+            border: `1px solid ${c.border}`,
+            color: c.text,
+            padding: "8px 10px",
+            fontSize: 12.5,
+            fontFamily: font.sans,
+            outline: "none",
+            cursor: sessionsLoading || sending || sessions.length === 0 ? "default" : "pointer",
+            opacity: sessionsLoading ? 0.65 : 1,
+            borderRadius: r.radiusSm,
+          }}
+        >
+          {sessionsLoading ? (
+            <option value="">{t.chatSessionLoading}</option>
+          ) : sessions.length === 0 ? (
+            <option value="">{t.chatSessionDefault}</option>
+          ) : (
+            sessions.map((session) => (
+              <option key={session.key} value={session.key}>
+                {session.label}
+                {session.label !== session.key ? ` · ${session.key}` : ""}
+              </option>
+            ))
+          )}
+        </select>
+      </div>
+      <div
         ref={scrollRef}
         style={{
           flex: 1,
@@ -398,8 +508,10 @@ function ChatTab({ cur }: { cur: AgentDetailDTO }) {
                 }}
               >
                 <div
+                  className={`ark-chat-markdown${me ? " ark-chat-markdown-user" : ""}`}
                   style={{
                     maxWidth: "72%",
+                    minWidth: 0,
                     background: me ? c.lime : c.panel,
                     color: me ? c.ink : c.text,
                     padding: "11px 15px",
@@ -408,7 +520,18 @@ function ChatTab({ cur }: { cur: AgentDetailDTO }) {
                     borderRadius: r.radiusMd,
                   }}
                 >
-                  {m.body}
+                  <ReactMarkdown
+                    remarkPlugins={[remarkGfm]}
+                    components={{
+                      a: ({ href, children }) => (
+                        <a href={href} target="_blank" rel="noreferrer">
+                          {children}
+                        </a>
+                      ),
+                    }}
+                  >
+                    {m.body}
+                  </ReactMarkdown>
                 </div>
                 <div
                   style={{

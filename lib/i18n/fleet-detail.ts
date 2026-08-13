@@ -24,6 +24,9 @@ export interface FleetDetailDict {
   chatLoadError: string;
   chatSendError: string;
   chatWebConsole: string;
+  chatSession: string;
+  chatSessionLoading: string;
+  chatSessionDefault: string;
   chatAlsoOn: (channels: string) => string;
   chatLoading: string;
   chatEmpty: (name: string) => string;
@@ -290,6 +293,9 @@ const en: FleetDetailDict = {
   chatLoadError: "Couldn’t load chat history.",
   chatSendError: "Message failed to send.",
   chatWebConsole: "WEB CONSOLE",
+  chatSession: "SESSION",
+  chatSessionLoading: "Loading sessions…",
+  chatSessionDefault: "Select a session",
   chatAlsoOn: (channels) => ` · ALSO ON ${channels}`,
   chatLoading: "Loading conversation…",
   chatEmpty: (name) => `No messages yet. Say hello to ${name}.`,
@@ -541,6 +547,9 @@ const zh: FleetDetailDict = {
   chatLoadError: "无法加载聊天记录。",
   chatSendError: "消息发送失败。",
   chatWebConsole: "网页控制台",
+  chatSession: "会话",
+  chatSessionLoading: "正在加载会话…",
+  chatSessionDefault: "选择会话",
   chatAlsoOn: (channels) => ` · 同时接入 ${channels}`,
   chatLoading: "正在加载对话…",
   chatEmpty: (name) => `还没有消息，跟 ${name} 打个招呼吧。`,
@@ -792,6 +801,9 @@ const zht: FleetDetailDict = {
   chatLoadError: "無法載入聊天記錄。",
   chatSendError: "訊息傳送失敗。",
   chatWebConsole: "網頁主控台",
+  chatSession: "工作階段",
+  chatSessionLoading: "正在載入工作階段…",
+  chatSessionDefault: "選擇工作階段",
   chatAlsoOn: (channels) => ` · 同時接入 ${channels}`,
   chatLoading: "正在載入對話…",
   chatEmpty: (name) => `還沒有訊息，跟 ${name} 打個招呼吧。`,
@@ -1043,6 +1055,9 @@ const ja: FleetDetailDict = {
   chatLoadError: "チャット履歴を読み込めませんでした。",
   chatSendError: "メッセージの送信に失敗しました。",
   chatWebConsole: "ウェブコンソール",
+  chatSession: "セッション",
+  chatSessionLoading: "セッションを読み込み中…",
+  chatSessionDefault: "セッションを選択",
   chatAlsoOn: (channels) => ` · 連携中: ${channels}`,
   chatLoading: "会話を読み込み中…",
   chatEmpty: (name) => `まだメッセージがありません。${name} に挨拶してみましょう。`,

@@ -90,8 +90,16 @@ export const api = {
     options: {
       onDelta: (delta: string) => void;
       signal?: AbortSignal;
+      sessionKey?: string;
     },
   ) => streamMessage(agentId, body, options),
+  sessions: (agentId: string) =>
+    req<{ sessions: SessionDTO[] }>("GET", `/api/agents/${agentId}/sessions`),
+  sessionHistory: (agentId: string, sessionId: string) =>
+    req<{ sessionId: string; sessionKey: string; status: string | null; messages: MessageDTO[] }>(
+      "GET",
+      `/api/agents/${agentId}/sessions/${encodeURIComponent(sessionId)}/history`,
+    ),
 
   // ---- channel management (per-agent, instance-uuid scoped) ----
   upsertChannel: (body: {
@@ -223,6 +231,18 @@ export interface AgentChannelDTO {
   configured: boolean;
   config: Record<string, unknown>;
 }
+export interface SessionDTO {
+  id: string;
+  key: string;
+  historyId: string;
+  label: string;
+  status: string | null;
+  createdAt: string | null;
+  updatedAt: number | null;
+  preview: string | null;
+  archived: boolean;
+  pinned: boolean;
+}
 export interface InvoiceDTO {
   id: string; number: string; amountCents: number; currency: string; status: string;
   issuedAt: string; paidAt: string | null; pdfUrl: string | null;
@@ -350,12 +370,15 @@ function parseWechatSseEvent(raw: string): WechatLoginEvent | null {
 async function streamMessage(
   agentId: string,
   body: string,
-  options: { onDelta: (delta: string) => void; signal?: AbortSignal }
+  options: { onDelta: (delta: string) => void; signal?: AbortSignal; sessionKey?: string }
 ): Promise<{ conversationId: string; replyMessage: MessageDTO; userMessage?: MessageDTO }> {
   const res = await fetch(`/api/agents/${agentId}/messages`, {
     method: "POST",
     headers: { "content-type": "application/json", accept: "text/event-stream" },
-    body: JSON.stringify({ body }),
+    body: JSON.stringify({
+      body,
+      ...(options.sessionKey ? { sessionKey: options.sessionKey } : {}),
+    }),
     credentials: "same-origin",
     signal: options.signal,
   });
