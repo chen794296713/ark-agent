@@ -3030,6 +3030,9 @@ function ChannelModal({ type, channel, onChange, onSave, onCancel, saving, t, qr
     onChange(type, patch);
   };
 
+  // Keep terminal QR output compact without changing the QR rows themselves.
+  const qrOutput = qrcode?.rawOutput?.trim();
+
   const label: Record<ChannelType, string> = {
     feishu: t.channelFeishu,
     dingtalk: t.channelDingtalk,
@@ -3190,22 +3193,22 @@ function ChannelModal({ type, channel, onChange, onSave, onCancel, saving, t, qr
                   }}>
                     {qrcode.message || "Login failed"}
                   </div>
-                ) : qrcode.rawOutput ? (
+                ) : qrOutput ? (
                   <pre style={{
                     background: "#111",
-                    padding: "14px 18px",
+                    padding: "8px 12px",
                     borderRadius: r.radiusSm,
                     border: `1px solid ${c.border}`,
                     fontFamily: "monospace",
-                    fontSize: 9.5,
-                    lineHeight: 1.25,
+                    fontSize: 9,
+                    lineHeight: 1,
                     color: "#00ff88",
                     textAlign: "left",
                     overflowX: "auto",
                     margin: 0,
                     maxWidth: "100%",
                   }}>
-                    {qrcode.rawOutput}
+                    {qrOutput}
                   </pre>
                 ) : qrcode.qrcodeUrl ? (
                   <img
