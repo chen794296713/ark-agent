@@ -14,7 +14,7 @@ import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 
 export default function LandingPage() {
   const router = useRouter();
-  const { lang } = useApp();
+  const { lang, user } = useApp();
   const t = landing[lang];
   const nav = common[lang];
   const footCopyrightParts = t.footCopyright.split(" | ");
@@ -116,7 +116,7 @@ export default function LandingPage() {
             <LanguageSwitcher />
             <ThemeToggle />
             <button
-              onClick={() => router.push("/auth")}
+              onClick={() => router.push(user ? "/dashboard/account" : "/auth")}
               style={{
                 background: "none",
                 border: "none",
@@ -126,7 +126,7 @@ export default function LandingPage() {
                 fontFamily: font.sans,
               }}
             >
-              {nav.signin}
+              {user ? nav.account : nav.signin}
             </button>
             <Btn
               onClick={() => router.push("/hire")}

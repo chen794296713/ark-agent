@@ -6,6 +6,9 @@ export interface DashLayoutDict {
   navFleet: string;
   navChannels: string;
   navBilling: string;
+  navPayment: string;
+  navDirections: string;
+  navAccount: string;
   workspace: string;
   workspaceFallback: string;
   hireNew: string;
@@ -22,6 +25,9 @@ export const dashLayout: Record<Lang, DashLayoutDict> = {
     navFleet: "Fleet",
     navChannels: "Channels",
     navBilling: "Billing & usage",
+    navPayment: "Payment",
+    navDirections: "Directions",
+    navAccount: "Personal center",
     workspace: "WORKSPACE",
     workspaceFallback: "Workspace",
     hireNew: "+ Hire new agent",
@@ -36,6 +42,9 @@ export const dashLayout: Record<Lang, DashLayoutDict> = {
     navFleet: "智能体团队",
     navChannels: "渠道",
     navBilling: "账单与用量",
+    navPayment: "支付",
+    navDirections: "导航",
+    navAccount: "个人中心",
     workspace: "工作区",
     workspaceFallback: "工作区",
     hireNew: "+ 雇佣新智能体",
@@ -50,6 +59,9 @@ export const dashLayout: Record<Lang, DashLayoutDict> = {
     navFleet: "智能體團隊",
     navChannels: "通路",
     navBilling: "帳單與用量",
+    navPayment: "支付",
+    navDirections: "導航",
+    navAccount: "個人中心",
     workspace: "工作區",
     workspaceFallback: "工作區",
     hireNew: "+ 僱用新智能體",
@@ -64,6 +76,9 @@ export const dashLayout: Record<Lang, DashLayoutDict> = {
     navFleet: "エージェント一覧",
     navChannels: "チャネル",
     navBilling: "請求と利用状況",
+    navPayment: "支払い",
+    navDirections: "ナビゲーション",
+    navAccount: "マイページ",
     workspace: "ワークスペース",
     workspaceFallback: "ワークスペース",
     hireNew: "+ 新しいエージェントを雇う",

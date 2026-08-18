@@ -59,6 +59,8 @@ export const api = {
   me: () => req<{ user: SessionUser; workspace: WorkspaceDTO }>("GET", "/api/auth/me"),
   setPrefs: (body: { locale?: "en" | "zh" | "zht" | "ja"; name?: string }) =>
     req<{ user: SessionUser }>("PATCH", "/api/me/preferences", body),
+  changePassword: (body: { currentPassword: string; newPassword: string }) =>
+    req<{ ok: true }>("PATCH", "/api/me/password", body),
 
   // ---- reference ----
   roles: () => req<{ roles: RoleDTO[] }>("GET", "/api/roles"),

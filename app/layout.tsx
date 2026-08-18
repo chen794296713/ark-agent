@@ -7,7 +7,6 @@ import {
 } from "next/font/google";
 import "./globals.css";
 import { AppProvider } from "@/lib/store";
-import { DemoPill } from "@/components/DemoPill";
 
 const spaceGrotesk = Space_Grotesk({
   subsets: ["latin"],
@@ -71,7 +70,6 @@ export default function RootLayout({
         />
         <AppProvider>
           {children}
-          <DemoPill />
         </AppProvider>
       </body>
     </html>

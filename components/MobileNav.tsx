@@ -24,7 +24,7 @@ const links = [
 
 export function MobileNav({ open, onClose }: { open: boolean; onClose: () => void }) {
   const router = useRouter();
-  const { lang } = useApp();
+  const { lang, user } = useApp();
   const t = common[lang];
 
   // Lock body scroll while the drawer is open; always restore on close/unmount.
@@ -140,7 +140,7 @@ export function MobileNav({ open, onClose }: { open: boolean; onClose: () => voi
         <button
           onClick={() => {
             onClose();
-            router.push("/auth");
+            router.push(user ? "/dashboard/account" : "/auth");
           }}
           style={{
             background: "transparent",
@@ -152,7 +152,7 @@ export function MobileNav({ open, onClose }: { open: boolean; onClose: () => voi
             fontFamily: font.sans,
           }}
         >
-          {t.signin}
+          {user ? t.account : t.signin}
         </button>
         <button
           onClick={() => {

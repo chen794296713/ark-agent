@@ -14,8 +14,11 @@ import { dashLayout } from "@/lib/i18n/dashboard-layout";
 const navDefs = [
   { id: "overview", key: "navOverview", icon: "◫", href: "/dashboard" },
   { id: "agents", key: "navFleet", icon: "◉", href: "/dashboard/fleet" },
-  { id: "channels", key: "navChannels", icon: "⌁", href: "/dashboard/channels" },
+  // { id: "channels", key: "navChannels", icon: "⌁", href: "/dashboard/channels" },
   { id: "billing", key: "navBilling", icon: "▤", href: "/dashboard/billing" },
+  { id: "payment", key: "navPayment", icon: "◇", href: "/payment" },
+  { id: "directions", key: "navDirections", icon: "⌘", href: "/directions" },
+  { id: "account", key: "navAccount", icon: "◇", href: "/dashboard/account" },
 ] as const;
 
 const fmt = (n: number) => n.toLocaleString("en-US");
@@ -41,6 +44,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     if (id === "agents") return pathname.startsWith("/dashboard/fleet");
     if (id === "channels") return pathname.startsWith("/dashboard/channels");
     if (id === "billing") return pathname.startsWith("/dashboard/billing");
+    if (id === "payment") return pathname.startsWith("/payment");
+    if (id === "directions") return pathname.startsWith("/directions");
+    if (id === "account") return pathname.startsWith("/dashboard/account");
     return false;
   }
   function go(href: string) {

@@ -293,7 +293,7 @@ export default function PaymentPage() {
         style={{
           maxWidth: "1080px",
           margin: "0 auto",
-          padding: `${r.pagePxWide} ${r.pagePx} 140px`,
+          padding: `${r.pagePxWide} ${r.pagePx}`,
           display: "grid",
           gridTemplateColumns: r.checkout,
           gap: r.gapMd,

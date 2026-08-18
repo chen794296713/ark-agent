@@ -23,6 +23,16 @@ export const loginSchema = z.object({
   password: z.string().min(1).max(200),
 });
 
+export const changePasswordSchema = z
+  .object({
+    currentPassword: z.string().min(1).max(200),
+    newPassword: z.string().min(8, "Password must be at least 8 characters").max(200),
+  })
+  .refine(({ currentPassword, newPassword }) => currentPassword !== newPassword, {
+    message: "New password must be different from the current password",
+    path: ["newPassword"],
+  });
+
 export const createAgentSchema = z.object({
   name: z.string().min(1).max(80),
   roleId: z.string().min(1).max(40),

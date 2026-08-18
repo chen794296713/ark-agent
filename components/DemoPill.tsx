@@ -18,13 +18,19 @@ interface PillDef {
 
 const PILLS: PillDef[] = [
   { labelKey: "navLanding", href: "/", active: (p) => p === "/" },
-  { labelKey: "navSignIn", href: "/auth", active: (p) => p.startsWith("/auth") },
-  { labelKey: "navHire", href: "/hire", active: (p) => p.startsWith("/hire") },
   {
-    labelKey: "navDashboard",
-    href: "/dashboard",
-    active: (p) => p === "/dashboard" || p.startsWith("/dashboard/channels"),
+    labelKey: "navDirections",
+    href: "/directions",
+    active: (p) => p.startsWith("/directions"),
   },
+
+  { labelKey: "navHire", href: "/hire", active: (p) => p.startsWith("/hire") },
+
+  // {
+  //   labelKey: "navDashboard",
+  //   href: "/dashboard",
+  //   active: (p) => p === "/dashboard" || p.startsWith("/dashboard/channels"),
+  // },
   {
     labelKey: "navFleet",
     href: "/dashboard/fleet",
@@ -36,16 +42,12 @@ const PILLS: PillDef[] = [
     active: (p) => p.startsWith("/dashboard/billing"),
   },
   { labelKey: "navPayment", href: "/payment", active: (p) => p.startsWith("/payment") },
-  {
-    labelKey: "navDirections",
-    href: "/directions",
-    active: (p) => p.startsWith("/directions"),
-  },
+  { labelKey: "navSignIn", href: "/auth", active: (p) => p.startsWith("/auth") },
 ];
 
 export function DemoPill() {
   const pathname = usePathname() || "/";
-  const { lang } = useApp();
+  const { lang, user } = useApp();
   const t = common[lang];
 
   return (
@@ -75,11 +77,15 @@ export function DemoPill() {
       }}
     >
       {PILLS.map((p) => {
-        const on = p.active(pathname);
+        const isAuthPill = p.labelKey === "navSignIn";
+        const showAccount = isAuthPill && Boolean(user);
+        const href = showAccount ? "/dashboard/account" : p.href;
+        const labelKey = showAccount ? "navAccount" : p.labelKey;
+        const on = showAccount ? pathname.startsWith("/dashboard/account") : p.active(pathname);
         return (
           <Link
             key={p.labelKey}
-            href={p.href}
+            href={href}
             style={{
               background: on ? c.lime : "transparent",
               color: on ? c.ink : c.muted,
@@ -95,7 +101,7 @@ export function DemoPill() {
               borderRadius: r.radiusSm,
             }}
           >
-            {t[p.labelKey]}
+            {t[labelKey]}
           </Link>
         );
       })}
