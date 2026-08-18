@@ -313,3 +313,48 @@ export async function setLifecycle(
   });
   return getAgentDetail(agentId, workspaceId);
 }
+
+/** Stop the runtime first, then permanently remove the agent and its seat. */
+export async function deleteAgent(agentId: string, workspaceId: string): Promise<boolean> {
+  const row = await getAgentRow(agentId, workspaceId);
+  if (!row) return false;
+
+  // setLifecycle intentionally treats a manager outage as a terminated local
+  // state, so deletion cannot leave the dashboard record behind indefinitely.
+  await setLifecycle(agentId, workspaceId, "terminate");
+
+  const seatRows = await db
+    .select({ planId: subscriptions.planId })
+    .from(subscriptions)
+    .where(eq(subscriptions.agentId, agentId));
+  const seatPlanIds = Array.from(new Set(seatRows.map((seat) => seat.planId)));
+  const seatPlans = seatPlanIds.length
+    ? await db
+        .select({ id: plans.id, includedCredits: plans.includedCredits })
+        .from(plans)
+        .where(inArray(plans.id, seatPlanIds))
+    : [];
+  const planCredits = new Map(seatPlans.map((plan) => [plan.id, plan.includedCredits]));
+  const creditReduction = seatRows.reduce(
+    (total, seat) => total + (planCredits.get(seat.planId) ?? 0),
+    0,
+  );
+
+  const deleted = await db.transaction(async (tx) => {
+    await tx.delete(subscriptions).where(eq(subscriptions.agentId, agentId));
+    const removed = await tx
+      .delete(agents)
+      .where(and(eq(agents.id, agentId), eq(agents.workspaceId, workspaceId)))
+      .returning({ id: agents.id });
+    if (removed.length > 0 && creditReduction > 0) {
+      await tx
+        .update(workspaces)
+        .set({
+          creditsIncluded: sql`greatest(0, ${workspaces.creditsIncluded} - ${creditReduction})`,
+        })
+        .where(eq(workspaces.id, workspaceId));
+    }
+    return removed;
+  });
+  return deleted.length > 0;
+}

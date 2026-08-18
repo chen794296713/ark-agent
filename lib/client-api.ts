@@ -74,6 +74,7 @@ export const api = {
     req<{ agent: AgentDetailDTO }>("PATCH", `/api/agents/${id}`, body),
   lifecycle: (id: string, action: "pause" | "resume" | "terminate") =>
     req<{ agent: AgentDetailDTO }>("POST", `/api/agents/${id}/lifecycle`, { action }),
+  deleteAgent: (id: string) => req<{ ok: true }>("DELETE", `/api/agents/${id}`),
   resolveImprovement: (agentId: string, improvementId: string, action: "approve" | "dismiss") =>
     req<{ agent: AgentDetailDTO }>("POST", `/api/agents/${agentId}/improvements/${improvementId}`, { action }),
 

@@ -1608,6 +1608,9 @@ function SettingsTab({ cur, onRefresh }: { cur: AgentDetailDTO; onRefresh: () =>
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [lifeBusy, setLifeBusy] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deleteBusy, setDeleteBusy] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [channelState, setChannelState] = useState<ChannelState>({
@@ -1891,10 +1894,24 @@ function SettingsTab({ cur, onRefresh }: { cur: AgentDetailDTO; onRefresh: () =>
     }
   };
 
+  const removeAgent = async () => {
+    if (deleteBusy) return;
+    setDeleteBusy(true);
+    setDeleteError(null);
+    try {
+      await api.deleteAgent(cur.id);
+      router.push("/dashboard/fleet");
+    } catch (e) {
+      setDeleteError(e instanceof ApiError ? e.message : t.deleteError);
+      setDeleteBusy(false);
+    }
+  };
+
   const autonomyDesc = AUTONOMY_LEVELS.find((a) => a.id === s.autonomy)?.desc;
 
   return (
-    <div style={{ display: "grid", gridTemplateColumns: r.detailSettings, gap: 20, alignItems: "start" }}>
+    <>
+      <div style={{ display: "grid", gridTemplateColumns: r.detailSettings, gap: 20, alignItems: "start" }}>
       {/* ---- Form column ---- */}
       <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
         <SettingCard title={t.identityTitle} desc={t.identityDesc}>
@@ -2427,6 +2444,27 @@ function SettingsTab({ cur, onRefresh }: { cur: AgentDetailDTO; onRefresh: () =>
         >
           {t.terminateAgent}
         </Btn>
+        <Btn
+          onClick={() => {
+            setDeleteError(null);
+            setDeleteOpen(true);
+          }}
+          disabled={lifeBusy || deleteBusy}
+          hoverStyle={{ background: c.red, color: c.ink }}
+          style={{
+            border: `1px solid ${c.redBorder}`,
+            background: "transparent",
+            color: c.red,
+            padding: 12,
+            borderRadius: r.radiusSm,
+            fontFamily: font.space,
+            fontSize: 14,
+            cursor: lifeBusy || deleteBusy ? "default" : "pointer",
+            opacity: lifeBusy || deleteBusy ? 0.6 : 1,
+          }}
+        >
+          {t.deleteAgent}
+        </Btn>
         <div style={{ border: `1px dashed ${c.border}`, padding: "12px 14px", fontSize: 12.5, color: c.faint, borderRadius: r.radiusSm }}>
           {t.dangerNote}
         </div>
@@ -2454,7 +2492,79 @@ function SettingsTab({ cur, onRefresh }: { cur: AgentDetailDTO; onRefresh: () =>
           />
         )}
       </div>
-    </div>
+      </div>
+      {deleteOpen && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          onClick={() => {
+            if (!deleteBusy) setDeleteOpen(false);
+          }}
+          style={{
+            position: "fixed",
+            inset: 0,
+            zIndex: 100,
+            background: "rgba(8, 10, 14, 0.62)",
+            display: "grid",
+            placeItems: "center",
+            padding: 20,
+          }}
+        >
+          <div
+            onClick={(event) => event.stopPropagation()}
+            style={{
+              width: "min(440px, 100%)",
+              border: `1px solid ${c.redBorder}`,
+              background: c.panel,
+              padding: 22,
+              borderRadius: r.radiusMd,
+            }}
+          >
+            <div style={{ fontFamily: font.space, fontWeight: 700, fontSize: 18, marginBottom: 10 }}>
+              {t.deleteConfirmTitle}
+            </div>
+            <div style={{ color: c.muted, fontSize: 13.5, lineHeight: 1.55, marginBottom: 20 }}>
+              {t.deleteConfirmBody}
+            </div>
+            {deleteError && <div style={{ color: c.red, fontSize: 13, marginBottom: 14 }}>{deleteError}</div>}
+            <div style={{ display: "flex", justifyContent: "flex-end", gap: 10 }}>
+              <button
+                type="button"
+                onClick={() => setDeleteOpen(false)}
+                disabled={deleteBusy}
+                style={{
+                  border: `1px solid ${c.borderStrong}`,
+                  background: "transparent",
+                  color: c.text,
+                  padding: "9px 14px",
+                  cursor: deleteBusy ? "default" : "pointer",
+                  borderRadius: r.radiusSm,
+                }}
+              >
+                {t.cancelDelete}
+              </button>
+              <button
+                type="button"
+                onClick={removeAgent}
+                disabled={deleteBusy}
+                style={{
+                  border: `1px solid ${c.redBorder}`,
+                  background: c.red,
+                  color: c.ink,
+                  padding: "9px 14px",
+                  cursor: deleteBusy ? "default" : "pointer",
+                  opacity: deleteBusy ? 0.6 : 1,
+                  fontWeight: 600,
+                  borderRadius: r.radiusSm,
+                }}
+              >
+                {deleteBusy ? t.deletingAgent : t.deleteConfirm}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 }
 

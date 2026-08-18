@@ -190,6 +190,13 @@ export interface FleetDetailDict {
   terminateAgent: string;
   dangerNote: string;
   lifecycleError: string;
+  deleteAgent: string;
+  deleteConfirmTitle: string;
+  deleteConfirmBody: string;
+  deleteConfirm: string;
+  cancelDelete: string;
+  deletingAgent: string;
+  deleteError: string;
   viewInstanceInfo: string;
   instanceInfoTitle: string;
   instanceInfoSubtitle: string;
@@ -445,6 +452,13 @@ const en: FleetDetailDict = {
   terminateAgent: "Terminate agent",
   dangerNote: "Pausing keeps memory and state. Terminating archives the agent and its VM after 30 days.",
   lifecycleError: "Lifecycle action failed.",
+  deleteAgent: "Delete agent",
+  deleteConfirmTitle: "Delete this agent?",
+  deleteConfirmBody: "The agent will be terminated first, then permanently deleted.",
+  deleteConfirm: "Delete permanently",
+  cancelDelete: "Cancel",
+  deletingAgent: "Deleting...",
+  deleteError: "Could not delete the agent.",
   viewInstanceInfo: "View instance info",
   instanceInfoTitle: "Instance info",
   instanceInfoSubtitle: "Raw data returned by the Agent Manager at provision time.",
@@ -699,6 +713,13 @@ const zh: FleetDetailDict = {
   terminateAgent: "终止智能体",
   dangerNote: "暂停会保留记忆与状态。终止将在 30 天后归档智能体及其虚拟机。",
   lifecycleError: "生命周期操作失败。",
+  deleteAgent: "删除智能体",
+  deleteConfirmTitle: "确认删除智能体？",
+  deleteConfirmBody: "系统会先终止智能体，然后永久删除。",
+  deleteConfirm: "永久删除",
+  cancelDelete: "取消",
+  deletingAgent: "删除中...",
+  deleteError: "无法删除智能体，请重试。",
   viewInstanceInfo: "查看智能体信息",
   instanceInfoTitle: "智能体信息",
   instanceInfoSubtitle: "Agent Manager 在创建时返回的原始数据。",
@@ -953,6 +974,13 @@ const zht: FleetDetailDict = {
   terminateAgent: "終止智能體",
   dangerNote: "暫停會保留記憶與狀態。終止將在 30 天後封存智能體及其虛擬機。",
   lifecycleError: "生命週期操作失敗。",
+  deleteAgent: "刪除智能體",
+  deleteConfirmTitle: "確認刪除智能體？",
+  deleteConfirmBody: "系統會先終止智能體，然後永久刪除。",
+  deleteConfirm: "永久刪除",
+  cancelDelete: "取消",
+  deletingAgent: "刪除中...",
+  deleteError: "無法刪除智能體，請重試。",
   viewInstanceInfo: "檢視實例資訊",
   instanceInfoTitle: "實例資訊",
   instanceInfoSubtitle: "Agent Manager 在建立時回傳的原始資料。",
@@ -1207,6 +1235,13 @@ const ja: FleetDetailDict = {
   terminateAgent: "エージェントを終了",
   dangerNote: "一時停止してもメモリーと状態は保持されます。終了すると30日後にエージェントとそのVMがアーカイブされます。",
   lifecycleError: "ライフサイクル操作に失敗しました。",
+  deleteAgent: "エージェントを削除",
+  deleteConfirmTitle: "このエージェントを削除しますか？",
+  deleteConfirmBody: "先にエージェントを終了してから、完全に削除します。",
+  deleteConfirm: "完全に削除",
+  cancelDelete: "キャンセル",
+  deletingAgent: "削除中...",
+  deleteError: "エージェントを削除できませんでした。",
   viewInstanceInfo: "インスタンス情報を表示",
   instanceInfoTitle: "インスタンス情報",
   instanceInfoSubtitle: "Agent Manager が作成時に返した生のデータです。",
