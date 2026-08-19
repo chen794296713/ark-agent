@@ -285,18 +285,21 @@ export async function setLifecycle(
   let status: Agent["status"] = row.status;
 
   try {
-    if (row.agentManagerId) {
-      // OpenClaw agents: also call the /stop or /start API
-      if (row.engine === "openclaw") {
-        const openclawConfig = await getOpenclawConfigByAgentId(agentId);
-        if (openclawConfig) {
-          if (action === "pause") {
-            await stopOpenclawInstance(openclawConfig.externalId);
-          } else if (action === "resume") {
-            await startOpenclawInstance(openclawConfig.externalId);
-          }
+    // OpenClaw agents use the instance API for runtime lifecycle changes.
+    // Termination is also a stop operation here because the Manager client
+    // currently exposes no instance-delete endpoint. Do not require the
+    // denormalized agentManagerId field: the provider config is authoritative.
+    if (row.engine === "openclaw") {
+      const openclawConfig = await getOpenclawConfigByAgentId(agentId);
+      if (openclawConfig) {
+        if (action === "pause" || action === "terminate") {
+          await stopOpenclawInstance(openclawConfig.externalId);
+        } else if (action === "resume") {
+          await startOpenclawInstance(openclawConfig.externalId);
         }
       }
+    }
+    if (row.agentManagerId) {
       const res = await am.setLifecycle(row.agentManagerId, action);
       status = res.status as Agent["status"];
     } else {
