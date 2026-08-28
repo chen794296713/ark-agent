@@ -15,6 +15,15 @@ export interface FleetDict {
   pause: string;
   resume: string;
   chat: string;
+  filterPlaceholder: string;
+  filterAll: string;
+  filterByEngine: string;
+  filterByStatus: string;
+  statusWorking: string;
+  statusError: string;
+  statusTerminated: string;
+  clearFilters: string;
+  noResults: string;
 }
 
 const en: FleetDict = {
@@ -31,6 +40,15 @@ const en: FleetDict = {
   pause: "Pause",
   resume: "Resume",
   chat: "Chat",
+  filterPlaceholder: "Search by name…",
+  filterAll: "All",
+  filterByEngine: "Engine",
+  filterByStatus: "Status",
+  statusWorking: "Working",
+  statusError: "Error",
+  statusTerminated: "Terminated",
+  clearFilters: "Clear filters",
+  noResults: "No matching agents",
 };
 
 const zh: FleetDict = {
@@ -47,6 +65,15 @@ const zh: FleetDict = {
   pause: "暂停",
   resume: "恢复",
   chat: "对话",
+  filterPlaceholder: "搜索名称…",
+  filterAll: "全部",
+  filterByEngine: "引擎",
+  filterByStatus: "状态",
+  statusWorking: "工作中",
+  statusError: "错误",
+  statusTerminated: "已终止",
+  clearFilters: "清除筛选",
+  noResults: "没有匹配的智能体",
 };
 
 const zht: FleetDict = {
@@ -63,6 +90,15 @@ const zht: FleetDict = {
   pause: "暫停",
   resume: "恢復",
   chat: "對話",
+  filterPlaceholder: "搜尋名稱…",
+  filterAll: "全部",
+  filterByEngine: "引擎",
+  filterByStatus: "狀態",
+  statusWorking: "工作中",
+  statusError: "錯誤",
+  statusTerminated: "已終止",
+  clearFilters: "清除篩選",
+  noResults: "沒有匹配的智能體",
 };
 
 const ja: FleetDict = {
@@ -79,6 +115,15 @@ const ja: FleetDict = {
   pause: "一時停止",
   resume: "再開",
   chat: "チャット",
+  filterPlaceholder: "名前で検索…",
+  filterAll: "すべて",
+  filterByEngine: "エンジン",
+  filterByStatus: "ステータス",
+  statusWorking: "稼働中",
+  statusError: "エラー",
+  statusTerminated: "終了",
+  clearFilters: "フィルターをクリア",
+  noResults: "一致するエージェントなし",
 };
 
 export const fleet: Record<Lang, FleetDict> = { en, zh, zht, ja };

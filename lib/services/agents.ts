@@ -26,6 +26,9 @@ import {
 } from "@/lib/serializers";
 import {
   createOpenclawInstance,
+  getOpenclawConfigByAgentId,
+  stopOpenclawInstance,
+  startOpenclawInstance,
 } from "@/lib/services/openclaw_instances";
 
 type ChannelType = typeof channels.$inferInsert["type"];
@@ -129,24 +132,27 @@ export async function getAgentRow(agentId: string, workspaceId: string): Promise
 export async function getAgentDetail(agentId: string, workspaceId: string) {
   const row = await getAgentRow(agentId, workspaceId);
   if (!row) return null;
-  const [roleNames, chans, lines, tasks, activities, metrics, improvements] = await Promise.all([
-    roleNameMap([row.roleId]),
-    channelsForAgents([agentId]),
-    latestLines([agentId]),
-    db.select().from(agentTasks).where(eq(agentTasks.agentId, agentId)).orderBy(asc(agentTasks.sortOrder)),
-    db.select().from(agentActivities).where(eq(agentActivities.agentId, agentId)).orderBy(desc(agentActivities.occurredAt)),
-    db.select().from(agentMetrics).where(eq(agentMetrics.agentId, agentId)),
-    db
-      .select()
-      .from(agentImprovements)
-      .where(and(eq(agentImprovements.agentId, agentId), eq(agentImprovements.status, "pending")))
-      .orderBy(desc(agentImprovements.createdAt)),
-  ]);
+  const [roleNames, chans, lines, tasks, activities, metrics, improvements, openclawCfg] =
+    await Promise.all([
+      roleNameMap([row.roleId]),
+      channelsForAgents([agentId]),
+      latestLines([agentId]),
+      db.select().from(agentTasks).where(eq(agentTasks.agentId, agentId)).orderBy(asc(agentTasks.sortOrder)),
+      db.select().from(agentActivities).where(eq(agentActivities.agentId, agentId)).orderBy(desc(agentActivities.occurredAt)),
+      db.select().from(agentMetrics).where(eq(agentMetrics.agentId, agentId)),
+      db
+        .select()
+        .from(agentImprovements)
+        .where(and(eq(agentImprovements.agentId, agentId), eq(agentImprovements.status, "pending")))
+        .orderBy(desc(agentImprovements.createdAt)),
+      getOpenclawConfigByAgentId(agentId),
+    ]);
   return {
     ...serializeAgent(row, {
       roleName: roleNames.get(row.roleId),
       channels: chans.get(agentId) ?? [],
       line: lines.get(agentId) ?? null,
+      instanceUuid: openclawCfg?.externalId ?? undefined,
     }),
     tasks: tasks.map(serializeTask),
     activities: activities.map(serializeActivity),
@@ -158,6 +164,7 @@ export async function getAgentDetail(agentId: string, workspaceId: string) {
 export interface CreateAgentInput {
   name: string;
   roleId: string;
+  managerAgentId?: number;
   engine: "openclaw" | "hermes";
   planTier: PlanTier;
   instructions: string;
@@ -205,9 +212,13 @@ export async function createAgent(ctx: AuthContext, input: CreateAgentInput) {
     const categoryId = input.engine === "openclaw" ? 2 : 4;
     const { config, preprocessed } = await createOpenclawInstance({
       agentId: agent.id,
+      managerAgentId: input.roleId === "custom" ? undefined : input.managerAgentId,
       name: input.name,
       categoryId,
       targetUserId: ctx.user.id,
+      instructions: input.instructions,
+      rules: input.rules,
+      tasks: input.tasks,
     });
     const dockerContainerName =
       typeof config.config.docker_container_name === "string"
@@ -272,7 +283,22 @@ export async function setLifecycle(
   if (!row) return null;
   const am = getAgentManager();
   let status: Agent["status"] = row.status;
+
   try {
+    // OpenClaw agents use the instance API for runtime lifecycle changes.
+    // Termination is also a stop operation here because the Manager client
+    // currently exposes no instance-delete endpoint. Do not require the
+    // denormalized agentManagerId field: the provider config is authoritative.
+    if (row.engine === "openclaw") {
+      const openclawConfig = await getOpenclawConfigByAgentId(agentId);
+      if (openclawConfig) {
+        if (action === "pause" || action === "terminate") {
+          await stopOpenclawInstance(openclawConfig.externalId);
+        } else if (action === "resume") {
+          await startOpenclawInstance(openclawConfig.externalId);
+        }
+      }
+    }
     if (row.agentManagerId) {
       const res = await am.setLifecycle(row.agentManagerId, action);
       status = res.status as Agent["status"];
@@ -289,4 +315,49 @@ export async function setLifecycle(
     tag: "system",
   });
   return getAgentDetail(agentId, workspaceId);
+}
+
+/** Stop the runtime first, then permanently remove the agent and its seat. */
+export async function deleteAgent(agentId: string, workspaceId: string): Promise<boolean> {
+  const row = await getAgentRow(agentId, workspaceId);
+  if (!row) return false;
+
+  // setLifecycle intentionally treats a manager outage as a terminated local
+  // state, so deletion cannot leave the dashboard record behind indefinitely.
+  await setLifecycle(agentId, workspaceId, "terminate");
+
+  const seatRows = await db
+    .select({ planId: subscriptions.planId })
+    .from(subscriptions)
+    .where(eq(subscriptions.agentId, agentId));
+  const seatPlanIds = Array.from(new Set(seatRows.map((seat) => seat.planId)));
+  const seatPlans = seatPlanIds.length
+    ? await db
+        .select({ id: plans.id, includedCredits: plans.includedCredits })
+        .from(plans)
+        .where(inArray(plans.id, seatPlanIds))
+    : [];
+  const planCredits = new Map(seatPlans.map((plan) => [plan.id, plan.includedCredits]));
+  const creditReduction = seatRows.reduce(
+    (total, seat) => total + (planCredits.get(seat.planId) ?? 0),
+    0,
+  );
+
+  const deleted = await db.transaction(async (tx) => {
+    await tx.delete(subscriptions).where(eq(subscriptions.agentId, agentId));
+    const removed = await tx
+      .delete(agents)
+      .where(and(eq(agents.id, agentId), eq(agents.workspaceId, workspaceId)))
+      .returning({ id: agents.id });
+    if (removed.length > 0 && creditReduction > 0) {
+      await tx
+        .update(workspaces)
+        .set({
+          creditsIncluded: sql`greatest(0, ${workspaces.creditsIncluded} - ${creditReduction})`,
+        })
+        .where(eq(workspaces.id, workspaceId));
+    }
+    return removed;
+  });
+  return deleted.length > 0;
 }

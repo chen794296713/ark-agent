@@ -63,6 +63,7 @@ export interface AgentManagerClient {
   updateAgent(agentManagerId: string, input: UpdateInput): Promise<LifecycleResult>;
   sendMessage(agentManagerId: string, input: SendMessageInput): Promise<SendMessageResult>;
   setLifecycle(agentManagerId: string, action: LifecycleAction): Promise<LifecycleResult>;
+  upsertChannel(agentManagerId: string, channelType: string, enabled: boolean, config: Record<string, unknown>): Promise<void>;
 }
 
 /** Inbound webhook events (Agent Manager -> ArkAgent). */

@@ -160,7 +160,7 @@ export default function ChannelsPage() {
             const note = ch?.label || d.note;
             const rErr = rowError[d.name];
             return (
-              <div key={d.name} style={{ border: `1px solid ${c.border}`, background: c.panel }}>
+              <div key={d.name} style={{ border: `1px solid ${c.border}`, background: c.panel, borderRadius: r.radiusMd, overflow: "hidden" }}>
                 <div
                   onClick={() => setChanOpen(isOpen ? "" : d.name)}
                   style={{ display: "flex", alignItems: "center", gap: 14, padding: "16px 20px", cursor: "pointer" }}
@@ -185,7 +185,7 @@ export default function ChannelsPage() {
                               value={chanCfg[key] || ""}
                               onChange={(e) => setChanCfg((s) => ({ ...s, [key]: e.target.value }))}
                               placeholder={f.ph}
-                              style={{ width: "100%", background: c.panelDeep, border: `1px solid ${c.border}`, color: c.text, padding: "11px 13px", fontSize: 14, fontFamily: font.mono, outline: "none" }}
+                              style={{ width: "100%", background: c.panelDeep, border: `1px solid ${c.border}`, color: c.text, padding: "11px 13px", fontSize: 14, fontFamily: font.mono, outline: "none", borderRadius: r.radiusSm }}
                             />
                           </div>
                         );

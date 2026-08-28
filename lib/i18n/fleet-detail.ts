@@ -8,17 +8,25 @@ export interface FleetDetailDict {
   tabChat: string;
   tabPerformance: string;
   tabSettings: string;
+  tabUsage: string;
+  tabChannels: string;
 
   // Activity tab
   activityEmpty: string;
 
   // Tasks tab
   tasksEmpty: string;
+  taskViewResult: string;
+  taskResultTitle: string;
+  taskCloseResult: string;
 
   // Chat tab
   chatLoadError: string;
   chatSendError: string;
   chatWebConsole: string;
+  chatSession: string;
+  chatSessionLoading: string;
+  chatSessionDefault: string;
   chatAlsoOn: (channels: string) => string;
   chatLoading: string;
   chatEmpty: (name: string) => string;
@@ -42,6 +50,28 @@ export interface FleetDetailDict {
   perfApprove: string;
   perfDismiss: string;
   perfFootnote: string;
+
+  // Usage tab (token report)
+  usageRangeToday: string;
+  usageRangeD3: string;
+  usageRangeD7: string;
+  usageRangeD30: string;
+  usageLoading: string;
+  usageLoadError: string;
+  usageEmpty: string;
+  usageNotOpenclaw: string;
+  usageMetricInput: string;
+  usageMetricOutput: string;
+  usageMetricCache: string;
+  usageMetricTotal: string;
+  usageMetricCalls: string;
+  usageTotalsTitle: string;
+  usageChartTitle: (range: string) => string;
+  usageSeriesInput: string;
+  usageSeriesOutput: string;
+  usageSeriesCache: string;
+  usageSeriesTotal: string;
+  usageNoData: string;
 
   // Settings — Identity
   identityTitle: string;
@@ -164,6 +194,13 @@ export interface FleetDetailDict {
   terminateAgent: string;
   dangerNote: string;
   lifecycleError: string;
+  deleteAgent: string;
+  deleteConfirmTitle: string;
+  deleteConfirmBody: string;
+  deleteConfirm: string;
+  cancelDelete: string;
+  deletingAgent: string;
+  deleteError: string;
   viewInstanceInfo: string;
   instanceInfoTitle: string;
   instanceInfoSubtitle: string;
@@ -195,6 +232,48 @@ export interface FleetDetailDict {
   instanceOpenApp: string;
   instanceOpenVnc: string;
 
+  // Channel management
+  channelsTabTitle: string;
+  channelsTabDesc: string;
+  channelsTabGuideTitle: string;
+  channelsTabGuideDesc: string;
+  edit: string;
+  cancel: string;
+  channelFeishu: string;
+  channelDingtalk: string;
+  channelWechat: string;
+  channelWecom: string;
+  channelEnabled: string;
+  channelDisabled: string;
+  channelSaveSuccess: string;
+  channelSaveError: string;
+  channelToggleSuccess: string;
+  channelToggleError: string;
+  channelFeishuAppId: string;
+  channelFeishuAppSecret: string;
+  channelFeishuDmPolicy: string;
+  channelFeishuDmPolicyOpen: string;
+  channelFeishuGroupPolicy: string;
+  channelFeishuGroupPolicyOpen: string;
+  channelDingtalkClientId: string;
+  channelDingtalkClientSecret: string;
+  channelDingtalkRobotCode: string;
+  channelDingtalkCorpId: string;
+  channelDingtalkAgentId: string;
+  channelDingtalkMessageType: string;
+  channelDingtalkAllowFrom: string;
+  channelWechatScanLogin: string;
+  channelWechatScanLoginDesc: string;
+  channelWechatLoginPending: string;
+  channelWechatLoginExpired: string;
+  channelWechatLoginRefresh: string;
+  channelWechatLoginQrcode: string;
+  channelWecomBotId: string;
+  channelWecomSecret: string;
+  channelLoginQrcode: string;
+  channelLoginExpired: string;
+  channelLoginRefresh: string;
+
   // Detail shell
   loadAgentError: string;
   loadingAgent: string;
@@ -212,14 +291,22 @@ const en: FleetDetailDict = {
   tabChat: "Chat",
   tabPerformance: "Performance",
   tabSettings: "Settings",
+  tabUsage: "Usage",
+  tabChannels: "Channels",
 
   activityEmpty: "No activity yet — this agent hasn’t logged anything.",
 
   tasksEmpty: "No tasks queued for this agent.",
+  taskViewResult: "VIEW RESULT",
+  taskResultTitle: "Task result",
+  taskCloseResult: "Close result",
 
   chatLoadError: "Couldn’t load chat history.",
   chatSendError: "Message failed to send.",
   chatWebConsole: "WEB CONSOLE",
+  chatSession: "SESSION",
+  chatSessionLoading: "Loading sessions…",
+  chatSessionDefault: "Select a session",
   chatAlsoOn: (channels) => ` · ALSO ON ${channels}`,
   chatLoading: "Loading conversation…",
   chatEmpty: (name) => `No messages yet. Say hello to ${name}.`,
@@ -242,6 +329,27 @@ const en: FleetDetailDict = {
   perfApprove: "Approve",
   perfDismiss: "Dismiss",
   perfFootnote: "Approved changes apply at the next self-review cycle. The agent never changes its own rules.",
+
+  usageRangeToday: "Today",
+  usageRangeD3: "Last 3 days",
+  usageRangeD7: "Last 7 days",
+  usageRangeD30: "Last 30 days",
+  usageLoading: "Loading token usage…",
+  usageLoadError: "Couldn’t load token usage.",
+  usageEmpty: "No token usage recorded for this range.",
+  usageNotOpenclaw: "Token usage is only available for OpenClaw providers.",
+  usageMetricInput: "Input",
+  usageMetricOutput: "Output",
+  usageMetricCache: "Cache",
+  usageMetricTotal: "Total",
+  usageMetricCalls: "Calls",
+  usageTotalsTitle: "TOTALS",
+  usageChartTitle: (range) => `TOKEN USAGE · ${range}`,
+  usageSeriesInput: "Input tokens",
+  usageSeriesOutput: "Output tokens",
+  usageSeriesCache: "Cache tokens",
+  usageSeriesTotal: "Total tokens",
+  usageNoData: "No data in this range.",
 
   identityTitle: "IDENTITY",
   identityDesc: "Who this agent is and what powers it.",
@@ -352,6 +460,13 @@ const en: FleetDetailDict = {
   terminateAgent: "Terminate agent",
   dangerNote: "Pausing keeps memory and state. Terminating archives the agent and its VM after 30 days.",
   lifecycleError: "Lifecycle action failed.",
+  deleteAgent: "Delete agent",
+  deleteConfirmTitle: "Delete this agent?",
+  deleteConfirmBody: "The agent will be terminated first, then permanently deleted.",
+  deleteConfirm: "Delete permanently",
+  cancelDelete: "Cancel",
+  deletingAgent: "Deleting...",
+  deleteError: "Could not delete the agent.",
   viewInstanceInfo: "View instance info",
   instanceInfoTitle: "Instance info",
   instanceInfoSubtitle: "Raw data returned by the Agent Manager at provision time.",
@@ -383,6 +498,48 @@ const en: FleetDetailDict = {
   instanceOpenApp: "Open instance",
   instanceOpenVnc: "Open browser (VNC)",
 
+  // Channel management
+  channelsTabTitle: "CHANNELS",
+  channelsTabDesc: "Configure messaging channels for this agent.",
+  channelsTabGuideTitle: "Setup Guide",
+  channelsTabGuideDesc: "Enable a channel, then click Edit to configure its credentials and options. Each channel is saved independently.",
+  edit: "Edit",
+  cancel: "Cancel",
+  channelFeishu: "飞书",
+  channelDingtalk: "钉钉",
+  channelWechat: "微信",
+  channelWecom: "企微",
+  channelEnabled: "Enabled",
+  channelDisabled: "Disabled",
+  channelSaveSuccess: "Configuration saved.",
+  channelSaveError: "Failed to save configuration.",
+  channelToggleSuccess: "Channel updated.",
+  channelToggleError: "Failed to update channel.",
+  channelFeishuAppId: "App ID",
+  channelFeishuAppSecret: "App Secret",
+  channelFeishuDmPolicy: "DM Policy",
+  channelFeishuDmPolicyOpen: "Open",
+  channelFeishuGroupPolicy: "Group Policy",
+  channelFeishuGroupPolicyOpen: "Open",
+  channelDingtalkClientId: "Client ID",
+  channelDingtalkClientSecret: "Client Secret",
+  channelDingtalkRobotCode: "Robot Code",
+  channelDingtalkCorpId: "Corp ID",
+  channelDingtalkAgentId: "Agent ID",
+  channelDingtalkMessageType: "Message Type",
+  channelDingtalkAllowFrom: "Allow From",
+  channelWechatScanLogin: "Scan to Login",
+  channelWechatScanLoginDesc: "Click to generate a QR code for WeChat login.",
+  channelWechatLoginPending: "Waiting for scan…",
+  channelWechatLoginExpired: "QR code expired.",
+  channelWechatLoginRefresh: "Refresh QR code",
+  channelWechatLoginQrcode: "Scan with WeChat",
+  channelWecomBotId: "Bot ID",
+  channelWecomSecret: "Secret",
+  channelLoginQrcode: "QR Code",
+  channelLoginExpired: "Expired",
+  channelLoginRefresh: "Refresh",
+
   loadAgentError: "Couldn’t load this agent.",
   loadingAgent: "Loading agent…",
   notFoundTitle: "Agent not found",
@@ -399,14 +556,22 @@ const zh: FleetDetailDict = {
   tabChat: "对话",
   tabPerformance: "表现",
   tabSettings: "设置",
+  tabUsage: "使用统计",
+  tabChannels: "渠道管理",
 
   activityEmpty: "暂无动态——这位智能体还没有记录任何内容。",
 
   tasksEmpty: "该智能体暂无排队任务。",
+  taskViewResult: "查看结果",
+  taskResultTitle: "任务执行结果",
+  taskCloseResult: "关闭结果",
 
   chatLoadError: "无法加载聊天记录。",
   chatSendError: "消息发送失败。",
   chatWebConsole: "网页控制台",
+  chatSession: "会话",
+  chatSessionLoading: "正在加载会话…",
+  chatSessionDefault: "选择会话",
   chatAlsoOn: (channels) => ` · 同时接入 ${channels}`,
   chatLoading: "正在加载对话…",
   chatEmpty: (name) => `还没有消息，跟 ${name} 打个招呼吧。`,
@@ -429,6 +594,27 @@ const zh: FleetDetailDict = {
   perfApprove: "批准",
   perfDismiss: "忽略",
   perfFootnote: "已批准的改动将在下一次自我复盘周期生效。智能体永远不会修改自身规则。",
+
+  usageRangeToday: "今天",
+  usageRangeD3: "近 3 天",
+  usageRangeD7: "近 7 天",
+  usageRangeD30: "近 30 天",
+  usageLoading: "正在加载使用统计…",
+  usageLoadError: "无法加载使用统计。",
+  usageEmpty: "该时间范围内暂无使用记录。",
+  usageNotOpenclaw: "使用统计功能仅支持 OpenClaw 提供方。",
+  usageMetricInput: "输入",
+  usageMetricOutput: "输出",
+  usageMetricCache: "缓存",
+  usageMetricTotal: "总计",
+  usageMetricCalls: "调用",
+  usageTotalsTitle: "汇总",
+  usageChartTitle: (range) => `Token 用量 · ${range}`,
+  usageSeriesInput: "输入 Token",
+  usageSeriesOutput: "输出 Token",
+  usageSeriesCache: "缓存 Token",
+  usageSeriesTotal: "总 Token",
+  usageNoData: "该时间范围内暂无数据。",
 
   identityTitle: "身份",
   identityDesc: "这位智能体是谁，由什么驱动。",
@@ -539,6 +725,13 @@ const zh: FleetDetailDict = {
   terminateAgent: "终止智能体",
   dangerNote: "暂停会保留记忆与状态。终止将在 30 天后归档智能体及其虚拟机。",
   lifecycleError: "生命周期操作失败。",
+  deleteAgent: "删除智能体",
+  deleteConfirmTitle: "确认删除智能体？",
+  deleteConfirmBody: "系统会先终止智能体，然后永久删除。",
+  deleteConfirm: "永久删除",
+  cancelDelete: "取消",
+  deletingAgent: "删除中...",
+  deleteError: "无法删除智能体，请重试。",
   viewInstanceInfo: "查看智能体信息",
   instanceInfoTitle: "智能体信息",
   instanceInfoSubtitle: "Agent Manager 在创建时返回的原始数据。",
@@ -570,6 +763,48 @@ const zh: FleetDetailDict = {
   instanceOpenApp: "打开智能体",
   instanceOpenVnc: "打开浏览器",
 
+  // Channel management
+  channelsTabTitle: "渠道管理",
+  channelsTabDesc: "配置该智能体的消息渠道。",
+  channelsTabGuideTitle: "设置指南",
+  channelsTabGuideDesc: "先开启渠道，再点击「编辑」配置凭证和选项。每个渠道独立保存。",
+  edit: "编辑",
+  cancel: "取消",
+  channelFeishu: "飞书",
+  channelDingtalk: "钉钉",
+  channelWechat: "微信",
+  channelWecom: "企微",
+  channelEnabled: "已启用",
+  channelDisabled: "已停用",
+  channelSaveSuccess: "配置已保存。",
+  channelSaveError: "保存配置失败。",
+  channelToggleSuccess: "渠道已更新。",
+  channelToggleError: "更新渠道失败。",
+  channelFeishuAppId: "App ID",
+  channelFeishuAppSecret: "App Secret",
+  channelFeishuDmPolicy: "私信策略",
+  channelFeishuDmPolicyOpen: "开放",
+  channelFeishuGroupPolicy: "群策略",
+  channelFeishuGroupPolicyOpen: "开放",
+  channelDingtalkClientId: "Client ID",
+  channelDingtalkClientSecret: "Client Secret",
+  channelDingtalkRobotCode: "Robot Code",
+  channelDingtalkCorpId: "Corp ID",
+  channelDingtalkAgentId: "Agent ID",
+  channelDingtalkMessageType: "消息类型",
+  channelDingtalkAllowFrom: "允许来源",
+  channelWechatScanLogin: "扫码登录",
+  channelWechatScanLoginDesc: "点击生成微信登录二维码。",
+  channelWechatLoginPending: "等待扫码…",
+  channelWechatLoginExpired: "二维码已过期。",
+  channelWechatLoginRefresh: "刷新二维码",
+  channelWechatLoginQrcode: "请使用微信扫码",
+  channelWecomBotId: "Bot ID",
+  channelWecomSecret: "Secret",
+  channelLoginQrcode: "二维码",
+  channelLoginExpired: "已过期",
+  channelLoginRefresh: "刷新",
+
   loadAgentError: "无法加载该智能体。",
   loadingAgent: "正在加载智能体…",
   notFoundTitle: "找不到智能体",
@@ -586,14 +821,22 @@ const zht: FleetDetailDict = {
   tabChat: "對話",
   tabPerformance: "表現",
   tabSettings: "設定",
+  tabUsage: "使用統計",
+  tabChannels: "渠道管理",
 
   activityEmpty: "尚無動態——這位智能體還沒有記錄任何內容。",
 
   tasksEmpty: "該智能體目前沒有排隊任務。",
+  taskViewResult: "查看結果",
+  taskResultTitle: "任務執行結果",
+  taskCloseResult: "關閉結果",
 
   chatLoadError: "無法載入聊天記錄。",
   chatSendError: "訊息傳送失敗。",
   chatWebConsole: "網頁主控台",
+  chatSession: "工作階段",
+  chatSessionLoading: "正在載入工作階段…",
+  chatSessionDefault: "選擇工作階段",
   chatAlsoOn: (channels) => ` · 同時接入 ${channels}`,
   chatLoading: "正在載入對話…",
   chatEmpty: (name) => `還沒有訊息，跟 ${name} 打個招呼吧。`,
@@ -616,6 +859,27 @@ const zht: FleetDetailDict = {
   perfApprove: "核准",
   perfDismiss: "忽略",
   perfFootnote: "已核准的變更會在下一次自我檢視週期生效。智能體永遠不會修改自身規則。",
+
+  usageRangeToday: "今天",
+  usageRangeD3: "近 3 天",
+  usageRangeD7: "近 7 天",
+  usageRangeD30: "近 30 天",
+  usageLoading: "正在載入使用統計…",
+  usageLoadError: "無法載入使用統計。",
+  usageEmpty: "該時間範圍內暫無使用記錄。",
+  usageNotOpenclaw: "使用統計功能僅支援 OpenClaw 提供方。",
+  usageMetricInput: "輸入",
+  usageMetricOutput: "輸出",
+  usageMetricCache: "快取",
+  usageMetricTotal: "總計",
+  usageMetricCalls: "呼叫",
+  usageTotalsTitle: "彙總",
+  usageChartTitle: (range) => `Token 用量 · ${range}`,
+  usageSeriesInput: "輸入 Token",
+  usageSeriesOutput: "輸出 Token",
+  usageSeriesCache: "快取 Token",
+  usageSeriesTotal: "總 Token",
+  usageNoData: "該時間範圍內暫無資料。",
 
   identityTitle: "身分",
   identityDesc: "這位智能體是誰，由什麼驅動。",
@@ -726,6 +990,13 @@ const zht: FleetDetailDict = {
   terminateAgent: "終止智能體",
   dangerNote: "暫停會保留記憶與狀態。終止將在 30 天後封存智能體及其虛擬機。",
   lifecycleError: "生命週期操作失敗。",
+  deleteAgent: "刪除智能體",
+  deleteConfirmTitle: "確認刪除智能體？",
+  deleteConfirmBody: "系統會先終止智能體，然後永久刪除。",
+  deleteConfirm: "永久刪除",
+  cancelDelete: "取消",
+  deletingAgent: "刪除中...",
+  deleteError: "無法刪除智能體，請重試。",
   viewInstanceInfo: "檢視實例資訊",
   instanceInfoTitle: "實例資訊",
   instanceInfoSubtitle: "Agent Manager 在建立時回傳的原始資料。",
@@ -757,6 +1028,48 @@ const zht: FleetDetailDict = {
   instanceOpenApp: "開啟實例",
   instanceOpenVnc: "開啟瀏覽器 (VNC)",
 
+  // Channel management
+  channelsTabTitle: "渠道管理",
+  channelsTabDesc: "設定該智能體的訊息渠道。",
+  channelsTabGuideTitle: "設定指南",
+  channelsTabGuideDesc: "先啟用渠道，再點擊「編輯」設定憑證和選項。每個渠道獨立儲存。",
+  edit: "編輯",
+  cancel: "取消",
+  channelFeishu: "飛書",
+  channelDingtalk: "釘釘",
+  channelWechat: "微信",
+  channelWecom: "企微",
+  channelEnabled: "已啟用",
+  channelDisabled: "已停用",
+  channelSaveSuccess: "設定已儲存。",
+  channelSaveError: "儲存設定失敗。",
+  channelToggleSuccess: "渠道已更新。",
+  channelToggleError: "更新渠道失敗。",
+  channelFeishuAppId: "App ID",
+  channelFeishuAppSecret: "App Secret",
+  channelFeishuDmPolicy: "私信策略",
+  channelFeishuDmPolicyOpen: "開放",
+  channelFeishuGroupPolicy: "群策略",
+  channelFeishuGroupPolicyOpen: "開放",
+  channelDingtalkClientId: "Client ID",
+  channelDingtalkClientSecret: "Client Secret",
+  channelDingtalkRobotCode: "Robot Code",
+  channelDingtalkCorpId: "Corp ID",
+  channelDingtalkAgentId: "Agent ID",
+  channelDingtalkMessageType: "訊息類型",
+  channelDingtalkAllowFrom: "允許來源",
+  channelWechatScanLogin: "掃碼登入",
+  channelWechatScanLoginDesc: "點擊產生微信登入二維碼。",
+  channelWechatLoginPending: "等待掃碼…",
+  channelWechatLoginExpired: "二維碼已過期。",
+  channelWechatLoginRefresh: "刷新二維碼",
+  channelWechatLoginQrcode: "請使用微信掃碼",
+  channelWecomBotId: "Bot ID",
+  channelWecomSecret: "Secret",
+  channelLoginQrcode: "二維碼",
+  channelLoginExpired: "已過期",
+  channelLoginRefresh: "刷新",
+
   loadAgentError: "無法載入該智能體。",
   loadingAgent: "正在載入智能體…",
   notFoundTitle: "找不到智能體",
@@ -773,14 +1086,22 @@ const ja: FleetDetailDict = {
   tabChat: "チャット",
   tabPerformance: "パフォーマンス",
   tabSettings: "設定",
+  tabUsage: "使用統計",
+  tabChannels: "チャネル管理",
 
   activityEmpty: "アクティビティはまだありません。このエージェントは何も記録していません。",
 
   tasksEmpty: "このエージェントに待機中のタスクはありません。",
+  taskViewResult: "結果を見る",
+  taskResultTitle: "タスク実行結果",
+  taskCloseResult: "結果を閉じる",
 
   chatLoadError: "チャット履歴を読み込めませんでした。",
   chatSendError: "メッセージの送信に失敗しました。",
   chatWebConsole: "ウェブコンソール",
+  chatSession: "セッション",
+  chatSessionLoading: "セッションを読み込み中…",
+  chatSessionDefault: "セッションを選択",
   chatAlsoOn: (channels) => ` · 連携中: ${channels}`,
   chatLoading: "会話を読み込み中…",
   chatEmpty: (name) => `まだメッセージがありません。${name} に挨拶してみましょう。`,
@@ -803,6 +1124,27 @@ const ja: FleetDetailDict = {
   perfApprove: "承認",
   perfDismiss: "却下",
   perfFootnote: "承認した変更は次のセルフレビュー時に適用されます。エージェントが自身のルールを変更することはありません。",
+
+  usageRangeToday: "今日",
+  usageRangeD3: "直近 3 日",
+  usageRangeD7: "直近 7 日",
+  usageRangeD30: "直近 30 日",
+  usageLoading: "使用統計を読み込み中…",
+  usageLoadError: "使用統計を読み込めませんでした。",
+  usageEmpty: "この期間の使用記録はありません。",
+  usageNotOpenclaw: "使用統計は OpenClaw プロバイダーでのみ利用可能です。",
+  usageMetricInput: "入力",
+  usageMetricOutput: "出力",
+  usageMetricCache: "キャッシュ",
+  usageMetricTotal: "合計",
+  usageMetricCalls: "呼び出し",
+  usageTotalsTitle: "合計",
+  usageChartTitle: (range) => `トークン使用量 · ${range}`,
+  usageSeriesInput: "入力トークン",
+  usageSeriesOutput: "出力トークン",
+  usageSeriesCache: "キャッシュトークン",
+  usageSeriesTotal: "合計トークン",
+  usageNoData: "この期間のデータはありません。",
 
   identityTitle: "アイデンティティ",
   identityDesc: "このエージェントが何者で、何で動いているか。",
@@ -913,6 +1255,13 @@ const ja: FleetDetailDict = {
   terminateAgent: "エージェントを終了",
   dangerNote: "一時停止してもメモリーと状態は保持されます。終了すると30日後にエージェントとそのVMがアーカイブされます。",
   lifecycleError: "ライフサイクル操作に失敗しました。",
+  deleteAgent: "エージェントを削除",
+  deleteConfirmTitle: "このエージェントを削除しますか？",
+  deleteConfirmBody: "先にエージェントを終了してから、完全に削除します。",
+  deleteConfirm: "完全に削除",
+  cancelDelete: "キャンセル",
+  deletingAgent: "削除中...",
+  deleteError: "エージェントを削除できませんでした。",
   viewInstanceInfo: "インスタンス情報を表示",
   instanceInfoTitle: "インスタンス情報",
   instanceInfoSubtitle: "Agent Manager が作成時に返した生のデータです。",
@@ -943,6 +1292,48 @@ const ja: FleetDetailDict = {
   instanceFieldRawConfig: "完全な設定 JSON",
   instanceOpenApp: "インスタンスを開く",
   instanceOpenVnc: "ブラウザを開く (VNC)",
+
+  // Channel management
+  channelsTabTitle: "チャネル管理",
+  channelsTabDesc: "このエージェントのメッセージチャネルを設定します。",
+  channelsTabGuideTitle: "セットアップガイド",
+  channelsTabGuideDesc: "チャネルを有効にしてから「編集」をクリックし、認証情報とオプションを設定します。各チャネルは個別に保存されます。",
+  edit: "編集",
+  cancel: "キャンセル",
+  channelFeishu: "飛書",
+  channelDingtalk: "钉钉",
+  channelWechat: "微信",
+  channelWecom: "企業微信",
+  channelEnabled: "有効",
+  channelDisabled: "無効",
+  channelSaveSuccess: "設定が保存されました。",
+  channelSaveError: "設定の保存に失敗しました。",
+  channelToggleSuccess: "チャネルが更新されました。",
+  channelToggleError: "チャネルの更新に失敗しました。",
+  channelFeishuAppId: "App ID",
+  channelFeishuAppSecret: "App Secret",
+  channelFeishuDmPolicy: "DMポリシー",
+  channelFeishuDmPolicyOpen: "オープン",
+  channelFeishuGroupPolicy: "グループポリシー",
+  channelFeishuGroupPolicyOpen: "オープン",
+  channelDingtalkClientId: "Client ID",
+  channelDingtalkClientSecret: "Client Secret",
+  channelDingtalkRobotCode: "Robot Code",
+  channelDingtalkCorpId: "Corp ID",
+  channelDingtalkAgentId: "Agent ID",
+  channelDingtalkMessageType: "メッセージタイプ",
+  channelDingtalkAllowFrom: "許可元",
+  channelWechatScanLogin: "スキャンログイン",
+  channelWechatScanLoginDesc: "クリックして微信ログイン用QRコードを生成します。",
+  channelWechatLoginPending: "スキャン待ち…",
+  channelWechatLoginExpired: "QRコードの有効期限が切れました。",
+  channelWechatLoginRefresh: "QRコードを再取得",
+  channelWechatLoginQrcode: "微信でスキャンしてください",
+  channelWecomBotId: "Bot ID",
+  channelWecomSecret: "Secret",
+  channelLoginQrcode: "QRコード",
+  channelLoginExpired: "期限切れ",
+  channelLoginRefresh: "再取得",
 
   loadAgentError: "このエージェントを読み込めませんでした。",
   loadingAgent: "エージェントを読み込み中…",

@@ -272,6 +272,7 @@ export default function AuthPage() {
                       fontFamily: font.sans,
                       fontSize: 14,
                       cursor: "pointer",
+                      borderRadius: r.radiusSm,
                     }}
                   >
                     {t.ssoGoogle}
@@ -287,6 +288,7 @@ export default function AuthPage() {
                       fontFamily: font.sans,
                       fontSize: 14,
                       cursor: "pointer",
+                      borderRadius: r.radiusSm,
                     }}
                   >
                     {t.ssoWeChat}
@@ -334,6 +336,7 @@ export default function AuthPage() {
                     fontSize: 15,
                     fontFamily: font.sans,
                     outline: "none",
+                    borderRadius: r.radiusSm,
                   }}
                 />
               </div>
@@ -363,6 +366,7 @@ export default function AuthPage() {
                   fontSize: 15,
                   fontFamily: font.sans,
                   outline: "none",
+                  borderRadius: r.radiusSm,
                 }}
               />
             </div>
@@ -393,6 +397,7 @@ export default function AuthPage() {
                     fontSize: 15,
                     fontFamily: font.sans,
                     outline: "none",
+                    borderRadius: r.radiusSm,
                   }}
                 />
               </div>
@@ -412,6 +417,7 @@ export default function AuthPage() {
                 cursor: busy ? "default" : "pointer",
                 opacity: busy ? 0.7 : 1,
                 marginTop: 4,
+                borderRadius: r.radiusSm,
               }}
             >
               {busy ? t.btnPleaseWait : authBtnLabel}

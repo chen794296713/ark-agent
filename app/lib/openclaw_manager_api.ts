@@ -3,8 +3,10 @@
  * 对接 manager_api.md 中的所有接口
  */
 
-const BASE_URL = process.env.OPENCLAW_MANAGER_API_URL || "http://10.21.27.155:18090";
-const API_KEY = process.env.OPENCLAW_MANAGER_API_KEY || "MToxNzgyMjA1NzY4.1DyMW7eTT0x95QgCGlZfNBBWlmsua_YfuVQg5WM8VOo";
+const BASE_URL = (
+  process.env.OPENCLAW_MANAGER_API_URL || "https://clawmanager.lightark.cc"
+).replace(/\/+$/, "");
+const API_KEY = process.env.OPENCLAW_MANAGER_API_KEY || "";
 
 function getHeaders(): HeadersInit {
   return {
@@ -14,7 +16,63 @@ function getHeaders(): HeadersInit {
   };
 }
 
+function logRequest(url: string, options?: RequestInit): void {
+  if (process.env.OPENCLAW_DEBUG_LOG !== "1") return;
+
+  const parsedUrl = new URL(url);
+  let body: unknown;
+  if (typeof options?.body === "string") {
+    try {
+      body = JSON.parse(options.body);
+    } catch {
+      body = options.body;
+    }
+  } else if (options?.body !== undefined) {
+    body = "[non-string body]";
+  }
+
+  console.info(
+    "[openclaw-manager:request]",
+    JSON.stringify({
+      method: options?.method || "GET",
+      url: `${parsedUrl.origin}${parsedUrl.pathname}`,
+      query: Object.fromEntries(parsedUrl.searchParams.entries()),
+      ...(body !== undefined ? { body } : {}),
+    }),
+  );
+}
+
+export interface OpenClawManagerAgent {
+  id: number;
+  user_id: number;
+  category_id: number;
+  category_name: string;
+  name: string;
+  description: string;
+  upload_filename: string;
+  created_at: string;
+  updated_at: string;
+}
+
+/**
+ * 获取 OpenClaw Manager 中可用于岗位选择的模板列表。
+ * GET /api/agents
+ */
+export async function listOpenClawManagerAgents(): Promise<OpenClawManagerAgent[]> {
+  const raw = await request<{ items?: unknown }>(`${BASE_URL}/api/agents`, {
+    method: "GET",
+  });
+
+  if (!Array.isArray(raw.items)) return [];
+  return raw.items.filter((item): item is OpenClawManagerAgent => {
+    if (!item || typeof item !== "object") return false;
+    const value = item as Record<string, unknown>;
+    return typeof value.id === "number" && typeof value.name === "string";
+  });
+}
+
 async function request<T>(url: string, options?: RequestInit): Promise<T> {
+  logRequest(url, options);
   const res = await fetch(url, {
     ...options,
     headers: {
@@ -63,6 +121,12 @@ function preprocessInstance(raw: Record<string, unknown>): PreprocessedInstance 
     createdAt: raw.created_at as string,
     updatedAt: raw.updated_at as string,
     lastActiveAt: raw.last_active_at as string | null,
+    tasks: Array.isArray(raw.tasks)
+      ? raw.tasks
+          .filter((task): task is Record<string, unknown> => !!task && typeof task === "object")
+          .map(preprocessTask)
+          .sort((a, b) => a.sortOrder - b.sortOrder)
+      : [],
     isReady: raw.provisioning_status === "running",
     isFailed: raw.provisioning_status === "failed" || !!raw.provisioning_error,
   };
@@ -111,6 +175,30 @@ function preprocessMessage(raw: Record<string, unknown>): PreprocessedMessage {
   };
 }
 
+export interface PreprocessedTask {
+  id: number;
+  content: string;
+  sortOrder: number;
+  sessionKey: string | null;
+  result: string | null;
+  status: string;
+  createdAt: string | null;
+  updatedAt: string | null;
+}
+
+function preprocessTask(raw: Record<string, unknown>): PreprocessedTask {
+  return {
+    id: raw.id as number,
+    content: (raw.content ?? "") as string,
+    sortOrder: (raw.sort_order ?? raw.sortOrder ?? 0) as number,
+    sessionKey: (raw.session_key ?? raw.sessionKey ?? null) as string | null,
+    result: (raw.result ?? null) as string | null,
+    status: (raw.status ?? "pending") as string,
+    createdAt: (raw.created_at ?? raw.createdAt ?? null) as string | null,
+    updatedAt: (raw.updated_at ?? raw.updatedAt ?? null) as string | null,
+  };
+}
+
 // ============ 预处理后的类型定义 ============
 
 export interface PreprocessedInstance {
@@ -139,6 +227,7 @@ export interface PreprocessedInstance {
   createdAt: string;
   updatedAt: string;
   lastActiveAt: string | null;
+  tasks: PreprocessedTask[];
   isReady: boolean;
   isFailed: boolean;
 }
@@ -190,6 +279,8 @@ export interface CreateInstanceParams {
   name: string;
   category_id: number;
   target_user_id: string;
+  agent_id?: number;
+  tasks: string[];
 }
 
 export interface SendChatParams {
@@ -201,6 +292,26 @@ export interface StreamChatParams {
   agent: string;
   message: string;
   sessionKey?: string;
+}
+
+export interface OpenClawSession {
+  id: string;
+  key: string;
+  historyId: string;
+  label: string;
+  status: string | null;
+  createdAt: string | null;
+  updatedAt: number | null;
+  preview: string | null;
+  archived: boolean;
+  pinned: boolean;
+}
+
+export interface OpenClawSessionHistory {
+  sessionId: string;
+  sessionKey: string;
+  status: string | null;
+  messages: PreprocessedMessage[];
 }
 
 // SSE 事件类型（参考 OpenAI Responses API 流式协议）
@@ -344,9 +455,12 @@ export async function sendChat(
  */
 export async function getChatHistory(
   instanceUuid: string,
-  agent = "main"
+  agent = "main",
+  sessionKey?: string
 ): Promise<PreprocessedChatHistory> {
-  const url = `${BASE_URL}/api/openclaw/instances/${instanceUuid}/chat/history?agent=${agent}`;
+  const params = new URLSearchParams({ agent });
+  if (sessionKey) params.set("sessionKey", sessionKey);
+  const url = `${BASE_URL}/api/openclaw/instances/${instanceUuid}/chat/history?${params.toString()}`;
   const raw = await request<Record<string, unknown>>(url, {
     method: "GET",
   });
@@ -369,6 +483,65 @@ export async function getChatHistory(
 }
 
 /**
+ * 获取实例的 session 列表。
+ * GET /api/openclaw/instances/:uuid/sessions
+ *
+ * Hermes 使用 sessionId / conversation，OpenClaw 使用 sessionId / key。
+ * 这里在 manager API 层统一成前端可消费的结构。
+ */
+export async function listOpenClawSessions(
+  instanceUuid: string
+): Promise<OpenClawSession[]> {
+  const url = `${BASE_URL}/api/openclaw/instances/${instanceUuid}/sessions`;
+  const raw = await request<Record<string, unknown>>(url, { method: "GET" });
+  if (!Array.isArray(raw.sessions)) return [];
+
+  return raw.sessions
+    .filter((item): item is Record<string, unknown> => !!item && typeof item === "object")
+    .map((item, index) => {
+      const id = String(item.sessionId ?? item.id ?? item.key ?? `session-${index}`);
+      const key = String(item.key ?? item.conversation ?? item.sessionId ?? id);
+      const historyId = typeof item.key === "string" ? item.key : id;
+      const preview = typeof item.preview === "string" ? item.preview : null;
+      return {
+        id,
+        key,
+        historyId,
+        label: preview && preview !== "—" ? preview : key,
+        status: typeof item.status === "string" ? item.status : null,
+        createdAt: typeof item.created_at === "string" ? item.created_at : null,
+        updatedAt: typeof item.updatedAt === "number" ? item.updatedAt : null,
+        preview,
+        archived: item.archived === true,
+        pinned: item.pinned === true,
+      };
+    });
+}
+
+/**
+ * 获取指定 session 的历史。
+ * GET /api/openclaw/instances/:uuid/sessions/:sessionId/history
+ */
+export async function getOpenClawSessionHistory(
+  instanceUuid: string,
+  sessionId: string
+): Promise<OpenClawSessionHistory> {
+  const url =
+    `${BASE_URL}/api/openclaw/instances/${encodeURIComponent(instanceUuid)}` +
+    `/sessions/${encodeURIComponent(sessionId)}/history`;
+  const raw = await request<Record<string, unknown>>(url, { method: "GET" });
+  const rawMessages = Array.isArray(raw.messages) ? raw.messages : [];
+  return {
+    sessionId: String(raw.sessionId ?? sessionId),
+    sessionKey: String(raw.sessionKey ?? raw.sessionId ?? sessionId),
+    status: typeof raw.status === "string" ? raw.status : null,
+    messages: rawMessages
+      .filter((item): item is Record<string, unknown> => !!item && typeof item === "object")
+      .map(preprocessMessage),
+  };
+}
+
+/**
  * Stream chat (SSE)
  */
 export async function streamChat(
@@ -377,13 +550,16 @@ export async function streamChat(
   options?: { signal?: AbortSignal; onEvent?: (e: StreamChatEvent) => void }
 ): Promise<StreamChatHandle> {
   const url = BASE_URL + "/api/openclaw/instances/" + instanceUuid + "/chat/stream";
-  const res = await fetch(url, {
+  const requestOptions: RequestInit = {
     method: "POST",
-    headers: getHeaders(),
     body: JSON.stringify(params),
     signal: options?.signal,
+  };
+  logRequest(url, requestOptions);
+  const res = await fetch(url, {
+    ...requestOptions,
+    headers: getHeaders(),
   });
-  console.log("stream_chat:", url,JSON.stringify(params));
   if (!res.ok) {
     const text = await res.text().catch(() => "Unknown error");
     throw new Error("OpenClaw API error " + res.status + ": " + text);
@@ -545,4 +721,403 @@ export async function chat(
 ): Promise<PreprocessedMessage> {
   const handle = await streamChat(instanceUuid, params, options);
   return streamHandleToMessage(handle);
+}
+
+/**
+ * 停止智能体
+ * POST /api/instances/:uuid/stop
+ * 返回预处理后的实例数据
+ */
+export async function stopInstance(instanceUuid: string): Promise<PreprocessedInstance> {
+  const url = `${BASE_URL}/api/instances/${instanceUuid}/stop`;
+  const raw = await request<Record<string, unknown>>(url, { method: "POST" });
+  return preprocessInstance(raw);
+}
+
+/**
+ * 启动智能体
+ * POST /api/instances/:uuid/start
+ * 返回预处理后的实例数据
+ */
+export async function startInstance(instanceUuid: string): Promise<PreprocessedInstance> {
+  const url = `${BASE_URL}/api/instances/${instanceUuid}/start`;
+  const raw = await request<Record<string, unknown>>(url, { method: "POST" });
+  return preprocessInstance(raw);
+}
+
+/**
+ * 获取智能体详细信息（实时）
+ * GET /api/instances/:uuid
+ * 返回预处理后的实例数据（包含最新状态）
+ */
+export async function getInstance(instanceUuid: string): Promise<PreprocessedInstance> {
+  const url = `${BASE_URL}/api/instances/${instanceUuid}`;
+  const raw = await request<Record<string, unknown>>(url, { method: "GET" });
+  return preprocessInstance(raw);
+}
+
+// ============ Token 消耗报告 ============
+
+/**
+ * 单日单实例的 token 消耗记录
+ */
+export interface TokenReportEntry {
+  date: string;
+  instanceId: number;
+  instanceName: string;
+  inputTokens: number;
+  outputTokens: number;
+  cacheTokens: number;
+  totalTokens: number;
+  calls: number;
+}
+
+/**
+ * 实例摘要（仅包含 id 和 name）
+ */
+export interface TokenReportInstance {
+  id: number;
+  name: string;
+}
+
+/**
+ * token 报告汇总
+ */
+export interface TokenReportTotals {
+  inputTokens: number;
+  outputTokens: number;
+  cacheTokens: number;
+  totalTokens: number;
+  calls: number;
+}
+
+/**
+ * 预处理后的 token 报告
+ */
+export interface PreprocessedTokenReport {
+  instances: TokenReportInstance[];
+  report: TokenReportEntry[];
+  totals: TokenReportTotals;
+}
+
+/**
+ * 预处理 token 报告返回数据，统一字段命名
+ */
+function preprocessTokenReport(raw: Record<string, unknown>): PreprocessedTokenReport {
+  return {
+    instances: ((raw.instances as Record<string, unknown>[]) ?? []).map((i) => ({
+      id: i.id as number,
+      name: i.name as string,
+    })),
+    report: ((raw.report as Record<string, unknown>[]) ?? []).map((e) => ({
+      date: e.date as string,
+      instanceId: e.instance_id as number,
+      instanceName: e.instance_name as string,
+      inputTokens: (e.input_tokens as number) ?? 0,
+      outputTokens: (e.output_tokens as number) ?? 0,
+      cacheTokens: (e.cache_tokens as number) ?? 0,
+      totalTokens: (e.total_tokens as number) ?? 0,
+      calls: (e.calls as number) ?? 0,
+    })),
+    totals: (() => {
+      const t = raw.totals as Record<string, unknown>;
+      return {
+        inputTokens: (t.input_tokens as number) ?? 0,
+        outputTokens: (t.output_tokens as number) ?? 0,
+        cacheTokens: (t.cache_tokens as number) ?? 0,
+        totalTokens: (t.total_tokens as number) ?? 0,
+        calls: (t.calls as number) ?? 0,
+      };
+    })(),
+  };
+}
+
+export interface GetTokenReportParams {
+  instanceId: string;
+  /** 统计粒度，按天 / 按小时 */
+  period?: "day" | "hour";
+  /** 统计天数 */
+  days: number;
+}
+
+/**
+ * 查询 token 消耗报告
+ * GET /api/admin/token-report/instances?period=&days=&instance_id=
+ */
+export async function getTokenReport(
+  params: GetTokenReportParams
+): Promise<PreprocessedTokenReport> {
+  const period = params.period ?? "day";
+  const url =
+    `${BASE_URL}/api/admin/token-report/instances` +
+    `?period=${encodeURIComponent(period)}` +
+    `&by=uuid` +
+    `&days=${encodeURIComponent(String(params.days))}` +
+    `&instance_uuid=${encodeURIComponent(params.instanceId)}`;
+  const raw = await request<Record<string, unknown>>(url, { method: "GET" });
+  return preprocessTokenReport(raw);
+}
+
+// ============ 渠道管理 ============
+
+// OpenClaw /api/channels/status response shape
+export interface OpenClawChannelStatus {
+  instance_uuid: string;
+  instance_type: string;
+  source: string;
+  channels: Record<string, OpenClawChannelEntry>;
+}
+
+export interface OpenClawChannelEntry {
+  channel_type: string;
+  label: string;
+  enabled: boolean;
+  configured: boolean;
+  config: Record<string, unknown>;
+}
+
+/**
+ * 获取渠道状态（完整配置）— 回显用
+ * GET /api/channels/status?instance_uuid=<uuid>
+ *
+ * 返回每个渠道的 enabled / configured / config 信息。
+ */
+export async function getChannelStatus(instanceUuid: string): Promise<OpenClawChannelStatus | null> {
+  const url = `${BASE_URL}/api/channels/status?instance_uuid=${encodeURIComponent(instanceUuid)}`;
+  try {
+    const raw = await request<OpenClawChannelStatus>(url, { method: "GET" });
+    return raw ?? null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * 渠道配置 upsert（飞书/钉钉/微信/企微）
+ * POST /api/channels/upsert
+ */
+export async function upsertChannel(params: {
+  instanceUuid: string;
+  channelType: string;
+  enabled: boolean;
+  config: Record<string, unknown>;
+}): Promise<void> {
+  const url = `${BASE_URL}/api/channels/upsert`;
+  await request<void>(url, {
+    method: "POST",
+    body: JSON.stringify({
+      instance_uuid: params.instanceUuid,
+      channel_type: params.channelType,
+      enabled: params.enabled,
+      config: params.config,
+    }),
+  });
+}
+
+/**
+ * 微信扫码登录 — 流式返回 (POST /api/channels/:uuid/flows 返回 SSE)
+ *
+ * 上游会以 SSE 形式推送若干事件:
+ *   - wait_matched:    等待扫码命中,data.stdout 内含 ASCII QR 码 + fallback URL
+ *   - step_completed:  单步完成
+ *   - heartbeat:       心跳
+ *   - session_completed: 整个会话结束
+ *
+ * 该函数会消费整条流,聚合成最终结果返回;同时通过 options.onEvent
+ * 实时把每个事件吐给调用方,用于前端展示中间状态。
+ */
+export type WechatLoginStatus = "pending" | "connected" | "expired" | "error";
+
+export interface WechatLoginResponse {
+  status: WechatLoginStatus;
+  qrcodeUrl: string | null;
+  qrcodeImage: string | null;
+  expiresIn: number;
+  message: string;
+  rawOutput: string | null;
+  sessionId: string | null;
+  finalStdout: string | null;
+  connected: boolean;
+  exitCode: number | null;
+  events: WechatLoginEvent[];
+}
+
+/** SSE 事件载荷 (与上游保持一致). */
+export interface WechatLoginEvent {
+  event: string;
+  sessionId: string | null;
+  ts: number | null;
+  data: Record<string, unknown> | null;
+  raw: string;
+}
+
+export interface WechatLoginOptions {
+  signal?: AbortSignal;
+  onEvent?: (e: WechatLoginEvent) => void;
+}
+
+/**
+ * 从 wait_matched.data.stdout 里尝试抽取 fallback URL (二维码加载失败时使用).
+ */
+function extractFallbackUrl(stdout: string | null | undefined): string | null {
+  if (!stdout) return null;
+  const m = stdout.match(/https?:\/\/\S+/);
+  return m ? m[0].replace(/[)\]】。.,;]+$/, "") : null;
+}
+
+/**
+ * 发起微信扫码登录,并以 SSE 流的方式返回过程事件.
+ * POST /api/channels/:uuid/flows
+ */
+export async function wechatLogin(
+  instanceUuid: string,
+  options?: WechatLoginOptions
+): Promise<WechatLoginResponse> {
+  const url = `${BASE_URL}/api/channels/${encodeURIComponent(instanceUuid)}/flows`;
+  const res = await fetch(url, {
+    method: "POST",
+    headers: {
+      ...getHeaders(),
+      Accept: "text/event-stream, */*",
+      "Content-Length": "0",
+    },
+    body: "",
+    signal: options?.signal,
+  });
+
+  if (!res.ok) {
+    const text = await res.text().catch(() => "Unknown error");
+    throw new Error(`OpenClaw API error ${res.status}: ${text}`);
+  }
+
+  const reader = res.body?.getReader();
+  if (!reader) throw new Error("No response body");
+
+  const decoder = new TextDecoder();
+  let buffer = "";
+
+  // 聚合结果
+  let status: WechatLoginResponse["status"] = "pending";
+  let qrcodeUrl: string | null = null;
+  let qrcodeImage: string | null = null;
+  let expiresIn = 120;
+  let message = "";
+  let rawOutput: string | null = null;
+  let sessionId: string | null = null;
+  let finalStdout: string | null = null;
+  let exitCode: number | null = null;
+  const events: WechatLoginEvent[] = [];
+
+  const pushEvent = (ev: WechatLoginEvent) => {
+    events.push(ev);
+    if (ev.sessionId) sessionId = ev.sessionId;
+    const payload = ev.data;
+    if (!payload) {
+      options?.onEvent?.(ev);
+      return;
+    }
+    if (ev.event === "wait_matched") {
+      const inner = (payload.data as Record<string, unknown> | undefined) ?? {};
+      const stdout = typeof inner.stdout === "string" ? inner.stdout : null;
+      const matchedText = typeof inner.matched_text === "string" ? inner.matched_text : null;
+      if (stdout) {
+        rawOutput = stdout;
+        finalStdout = stdout;
+        // 上游没有直接给图;优先尝试 stdout 里的 fallback URL,否则就地用 stdout 渲染.
+        qrcodeUrl = extractFallbackUrl(stdout);
+        qrcodeImage = stdout; // 浏览器用 <pre> 渲染 ASCII QR,见 ChannelModal
+      }
+      if (matchedText) message = matchedText;
+    } else if (ev.event === "session_completed") {
+      const inner = (payload.data as Record<string, unknown> | undefined) ?? {};
+      exitCode = (inner.exit_code as number | null | undefined) ?? null;
+      const fs = typeof inner.final_stdout === "string" ? inner.final_stdout : null;
+      if (fs) {
+        finalStdout = fs;
+        if (!rawOutput) rawOutput = fs;
+      }
+      // exit_code 为 null 通常是超时;非 0 也视作异常.
+      if (exitCode === 0) {
+        status = "connected";
+        message = "WeChat login successful";
+      } else if (exitCode === null) {
+        status = "expired";
+        message = "WeChat login session expired";
+      } else {
+        status = "error";
+        message = `WeChat login failed (exit ${exitCode})`;
+      }
+    } else if (ev.event === "step_completed") {
+      // 单步完成;继续等扫码命中.
+    } else if (ev.event === "heartbeat") {
+      // 心跳 — 不改变 UI 状态.
+    }
+    options?.onEvent?.(ev);
+  };
+
+  // SSE 协议: 事件之间用 \n\n 分隔, 单个事件由 event: / data: 等行组成.
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+
+    let idx;
+    while ((idx = buffer.indexOf("\n\n")) >= 0) {
+      const rawEvent = buffer.slice(0, idx);
+      buffer = buffer.slice(idx + 2);
+      parseSseEventBlock(rawEvent, pushEvent);
+    }
+  }
+  if (buffer.trim()) parseSseEventBlock(buffer, pushEvent);
+
+  // 流结束但从未收到 session_completed 时, 标记为 expired.
+  if (status === "pending") status = "expired";
+
+  return {
+    status,
+    qrcodeUrl,
+    qrcodeImage,
+    expiresIn,
+    message,
+    rawOutput,
+    sessionId,
+    finalStdout,
+    connected: (status as WechatLoginStatus) === "connected",
+    exitCode,
+    events,
+  };
+}
+
+function parseSseEventBlock(
+  block: string,
+  emit: (e: WechatLoginEvent) => void
+) {
+  if (!block.trim()) return;
+  let eventName = "message";
+  let dataLines: string[] = [];
+  for (const rawLine of block.split("\n")) {
+    const line = rawLine.replace(/\r$/, "");
+    if (!line || line.startsWith(":")) continue;
+    if (line.startsWith("event:")) {
+      eventName = line.slice(6).trim() || "message";
+    } else if (line.startsWith("data:")) {
+      dataLines.push(line.slice(5).trim());
+    }
+  }
+  if (dataLines.length === 0) return;
+  const dataStr = dataLines.join("\n");
+  let parsed: Record<string, unknown> | null = null;
+  try {
+    parsed = JSON.parse(dataStr) as Record<string, unknown>;
+  } catch {
+    parsed = null;
+  }
+  if (!parsed) return;
+  emit({
+    event: eventName,
+    sessionId: (parsed.session_id as string | undefined) ?? null,
+    ts: typeof parsed.ts === "number" ? parsed.ts : null,
+    data: parsed,
+    raw: dataStr,
+  });
 }

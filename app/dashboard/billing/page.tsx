@@ -151,6 +151,7 @@ export default function BillingPage() {
             border: `1px solid ${c.border}`,
             padding: 3,
             width: "fit-content",
+            borderRadius: r.radiusSm,
           }}
         >
           {billTabIds.map((id: BillTabId) => {
@@ -168,6 +169,7 @@ export default function BillingPage() {
                   fontSize: 11,
                   letterSpacing: ".04em",
                   cursor: "pointer",
+                  borderRadius: r.radiusSm,
                 }}
               >
                 {t.tabs[id]}
@@ -254,7 +256,7 @@ export default function BillingPage() {
             }}
           >
             {/* Credits card */}
-            <div style={{ border: `1px solid ${c.border}`, background: c.panel, padding: 24 }}>
+            <div style={{ border: `1px solid ${c.border}`, background: c.panel, padding: 24, borderRadius: r.radiusMd }}>
               <div
                 style={{
                   display: "flex",
@@ -280,7 +282,7 @@ export default function BillingPage() {
                   </span>
                 </span>
               </div>
-              <div style={{ height: 8, background: c.line, marginBottom: 20 }}>
+              <div style={{ height: 8, background: c.line, marginBottom: 20, borderRadius: 4, overflow: "hidden" }}>
                 <div style={{ height: 8, width: `${usedPct}%`, background: c.lime }} />
               </div>
               <div style={{ display: "flex", alignItems: "flex-end", gap: 5, height: 90 }}>
@@ -315,6 +317,7 @@ export default function BillingPage() {
                 padding: 24,
                 display: "flex",
                 flexDirection: "column",
+                borderRadius: r.radiusMd,
               }}
             >
               <span

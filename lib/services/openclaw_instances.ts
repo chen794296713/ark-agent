@@ -1,19 +1,28 @@
 import "server-only";
 import { and, eq } from "drizzle-orm";
 import { db } from "@/lib/db";
-import { agentManagerConfig } from "@/lib/db/schema";
+import { agentManagerConfig, agents } from "@/lib/db/schema";
 import {
   createInstance,
   getInstanceEvents,
   getChatHistory,
+  listOpenClawSessions,
+  getOpenClawSessionHistory,
   sendChat,
   streamChat,
   chat,
   streamHandleToMessage,
+  stopInstance,
+  startInstance,
+  getInstance,
+  getTokenReport,
   type PreprocessedInstance,
   type PreprocessedEvent,
   type PreprocessedChatHistory,
   type PreprocessedMessage,
+  type OpenClawSession,
+  type OpenClawSessionHistory,
+  type PreprocessedTokenReport,
   type StreamChatEvent,
   type StreamChatHandle,
   type StreamChatParams,
@@ -24,9 +33,13 @@ const PROVIDER = "openclaw";
 
 export interface CreateOpenclawInstanceInput {
   agentId: string;
+  managerAgentId?: number;
   name: string;
   categoryId: number;
   targetUserId: string;
+  instructions: string;
+  rules: string;
+  tasks: string[];
 }
 
 export interface CreateOpenclawInstanceResult {
@@ -40,10 +53,17 @@ export interface CreateOpenclawInstanceResult {
 export async function createOpenclawInstance(
   input: CreateOpenclawInstanceInput
 ): Promise<CreateOpenclawInstanceResult> {
+  const brief = [input.instructions.trim(), input.rules.trim()]
+    .filter(Boolean)
+    .join("\n\n");
   const preprocessed = await createInstance({
     name: input.name,
     category_id: input.categoryId,
     target_user_id: input.targetUserId,
+    tasks: brief ? [brief, ...input.tasks] : input.tasks,
+    ...(input.managerAgentId !== undefined
+      ? { agent_id: input.managerAgentId }
+      : {}),
   });
 
   const [row] = await db
@@ -78,6 +98,54 @@ export async function getOpenclawConfigByAgentId(
     )
     .limit(1);
   return row ?? null;
+}
+
+export interface OpenclawVisibleTask {
+  id: string;
+  text: string;
+  status: string;
+  meta: string | null;
+  sortOrder: number;
+  result: string | null;
+}
+
+/** Fetch current user tasks while hiding the internal brief task. */
+export async function getOpenclawVisibleTasks(
+  agentId: string,
+): Promise<OpenclawVisibleTask[] | null> {
+  const config = await getOpenclawConfigByAgentId(agentId);
+  if (!config) return null;
+
+  try {
+    const latest = await getInstance(config.externalId);
+    return latest.tasks
+      .slice()
+      .sort((a, b) => a.sortOrder - b.sortOrder)
+      .slice(1)
+      .map((task) => ({
+        id: String(task.id),
+        text: task.content,
+        status: task.status,
+        meta: null,
+        sortOrder: task.sortOrder,
+        result: task.result,
+      }));
+  } catch {
+    const cachedTasks = (config.config as Record<string, unknown> | null)?.tasks;
+    if (!Array.isArray(cachedTasks)) return [];
+    return cachedTasks
+      .filter((task): task is Record<string, unknown> => !!task && typeof task === "object")
+      .map((task) => ({
+        id: String(task.id),
+        text: String(task.content ?? ""),
+        status: String(task.status ?? "pending"),
+        meta: null,
+        sortOrder: Number(task.sortOrder ?? task.sort_order ?? 0),
+        result: task.result == null ? null : String(task.result),
+      }))
+      .sort((a, b) => a.sortOrder - b.sortOrder)
+      .slice(1);
+  }
 }
 
 /**
@@ -145,9 +213,21 @@ export async function sendOpenclawChat(
  */
 export async function getOpenclawChatHistory(
   externalId: string,
-  agent = "main"
+  agent = "main",
+  sessionKey?: string
 ): Promise<PreprocessedChatHistory> {
-  return getChatHistory(externalId, agent);
+  return getChatHistory(externalId, agent, sessionKey);
+}
+
+export async function getOpenclawSessions(externalId: string): Promise<OpenClawSession[]> {
+  return listOpenClawSessions(externalId);
+}
+
+export async function getOpenclawSessionHistory(
+  externalId: string,
+  sessionId: string
+): Promise<OpenClawSessionHistory> {
+  return getOpenClawSessionHistory(externalId, sessionId);
 }
 
 /**
@@ -179,3 +259,113 @@ export async function chatOpenclaw(
 }
 
 export { streamHandleToMessage };
+
+/**
+ * 停止 OpenClaw 实例
+ */
+export async function stopOpenclawInstance(externalId: string): Promise<PreprocessedInstance> {
+  return stopInstance(externalId);
+}
+
+/**
+ * 启动 OpenClaw 实例
+ */
+export async function startOpenclawInstance(externalId: string): Promise<PreprocessedInstance> {
+  return startInstance(externalId);
+}
+
+/**
+ * 获取 OpenClaw 实例详细信息（实时）
+ */
+export async function getOpenclawInstance(externalId: string): Promise<PreprocessedInstance> {
+  return getInstance(externalId);
+}
+
+/**
+ * 查询 token 消耗报告
+ * @param externalId OpenClaw 实例 UUID（即 agent_manager_config.externalId）
+ * @param period 统计粒度
+ * @param days 统计天数
+ */
+export async function getOpenclawTokenReport(
+  externalId: string,
+  period: "day" | "hour" = "day",
+  days: number = 30,
+): Promise<PreprocessedTokenReport> {
+  return getTokenReport({ instanceId: externalId, period, days });
+}
+
+/**
+ * 同步 OpenClaw 实例最新状态到 DB。
+ * 1. 更新 agentManagerConfig 表（status / config / lastError）
+ *    status 列直接存储 OpenClaw 返回的 status（running/stopped/provisioning 等）
+ * 2. 如果 status 发生变化，同步更新 agents 表的 status
+ *    status -> agents.status 映射：
+ *    "running" -> "working"
+ *    "provisioning" -> "provisioning"
+ *    "stopped" | "stopping" -> "paused"
+ *    其他/失败 -> "error"
+ * 3. 如果 status 从非 running 变为 running，
+ *    自动调用 /stop 将实例暂停（符合"查看即暂停"的产品行为）
+ */
+export async function syncOpenclawInstanceToDb(
+  externalId: string
+): Promise<{ statusChanged: boolean; newStatus: string; autoStopped: boolean }> {
+  const latest = await getInstance(externalId);
+  const existing = await getOpenclawConfigByExternalId(externalId);
+  if (!existing) return { statusChanged: false, newStatus: latest.status, autoStopped: false };
+
+  const oldStatus = existing.status;
+  const newStatus = latest.status;
+
+  await db
+    .update(agentManagerConfig)
+    .set({
+      status: newStatus,
+      lastError: latest.provisioningError,
+      config: latest as unknown as Record<string, unknown>,
+      updatedAt: new Date(),
+    })
+    .where(eq(agentManagerConfig.id, existing.id));
+
+  const statusChanged = oldStatus !== newStatus;
+  let autoStopped = false;
+
+  // Map upstream status to agent status
+  if (statusChanged && existing.agentId) {
+    let agentStatus: "working" | "provisioning" | "paused" | "error" = "error";
+    if (newStatus === "running") {
+      agentStatus = "working";
+    } else if (newStatus === "provisioning") {
+      agentStatus = "provisioning";
+    } else if (newStatus === "stopped" || newStatus === "stopping") {
+      agentStatus = "paused";
+    }
+    await db
+      .update(agents)
+      .set({ status: agentStatus, updatedAt: new Date() })
+      .where(eq(agents.id, existing.agentId));
+
+    // Auto-pause: if upstream just became running, stop the running instance.
+    // This matches the "view info → instance pauses" product behaviour.
+    if (agentStatus === "working" && (oldStatus === "provisioning" || oldStatus === "pending" || oldStatus === null)) {
+      try {
+        const stopped = await stopInstance(externalId);
+        // Update DB immediately so the UI reflects the paused state.
+        await db
+          .update(agentManagerConfig)
+          .set({ status: stopped.status, updatedAt: new Date() })
+          .where(eq(agentManagerConfig.id, existing.id));
+        await db
+          .update(agents)
+          .set({ status: "paused", updatedAt: new Date() })
+          .where(eq(agents.id, existing.agentId));
+        autoStopped = true;
+      } catch {
+        /* best-effort; will reconcile on next sync */
+      }
+    }
+  }
+
+  return { statusChanged, newStatus, autoStopped };
+}

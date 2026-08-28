@@ -85,6 +85,15 @@ export const mockClient: AgentManagerClient = {
       status: action === "pause" ? "paused" : action === "terminate" ? "terminated" : "working",
     };
   },
+
+  async upsertChannel(
+    _agentManagerId: string,
+    _channelType: string,
+    _enabled: boolean,
+    _config: Record<string, unknown>,
+  ): Promise<void> {
+    // Mock: no-op, always succeeds
+  },
 };
 
 /** Exposed so a route can generate a role-flavored mock reply. */

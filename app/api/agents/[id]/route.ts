@@ -1,11 +1,12 @@
-import { and, eq, inArray } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { agents, agentChannels, channels } from "@/lib/db/schema";
 import { getAgentManager } from "@/lib/agent-manager";
 import { requireAuth, parseBody, json, notFound } from "@/lib/api";
 import { updateAgentSchema } from "@/lib/validation";
 import { mergeSettings } from "@/lib/agent-settings";
-import { getAgentDetail, getAgentRow, setLifecycle } from "@/lib/services/agents";
+import { deleteAgent, getAgentDetail, getAgentRow } from "@/lib/services/agents";
+import { getOpenclawVisibleTasks } from "@/lib/services/openclaw_instances";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -19,7 +20,10 @@ export async function GET(_req: Request, { params }: Ctx) {
   const { id } = await params;
   const detail = await getAgentDetail(id, auth.ctx.workspace.id);
   if (!detail) return notFound("Agent not found");
-  return json({ agent: detail });
+  const runtimeTasks = detail.engine === "openclaw"
+    ? await getOpenclawVisibleTasks(id)
+    : null;
+  return json({ agent: runtimeTasks ? { ...detail, tasks: runtimeTasks } : detail });
 }
 
 export async function PATCH(req: Request, { params }: Ctx) {
@@ -96,7 +100,7 @@ export async function DELETE(_req: Request, { params }: Ctx) {
   const auth = await requireAuth();
   if (auth.res) return auth.res;
   const { id } = await params;
-  const detail = await setLifecycle(id, auth.ctx.workspace.id, "terminate");
-  if (!detail) return notFound("Agent not found");
-  return json({ agent: detail });
+  const deleted = await deleteAgent(id, auth.ctx.workspace.id);
+  if (!deleted) return notFound("Agent not found");
+  return json({ ok: true as const });
 }

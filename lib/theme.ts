@@ -150,4 +150,9 @@ export const r = {
   pillOverflow: "var(--r-pill-overflow)" as CSSProperties["overflowX"],
   pillPad: "var(--r-pill-pad)",
   pillFs: "var(--r-pill-fs)",
+
+  // border radius
+  radiusSm: "var(--r-radius-sm)",
+  radiusMd: "var(--r-radius-md)",
+  radiusLg: "var(--r-radius-lg)",
 } as const;

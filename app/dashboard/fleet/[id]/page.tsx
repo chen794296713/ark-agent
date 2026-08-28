@@ -2,11 +2,20 @@
 
 import { Suspense, useCallback, useEffect, useRef, useState } from "react";
 import type { CSSProperties, ReactNode } from "react";
+import Image from "next/image";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import { c, font, r } from "@/lib/theme";
 import { Btn } from "@/components/ui";
 import { api, ApiError } from "@/lib/client-api";
-import type { AgentDetailDTO, AgentManagerProviderInfo, MessageDTO } from "@/lib/client-api";
+import type {
+  AgentDetailDTO,
+  AgentManagerProviderInfo,
+  MessageDTO,
+  SessionDTO,
+  TokenReportDTO,
+} from "@/lib/client-api";
 import {
   statusDisplay,
   ENGINE_LABEL,
@@ -31,9 +40,9 @@ import {
   type AgentSettings,
 } from "@/lib/agent-settings";
 import { useApp } from "@/lib/store";
-import { fleetDetail } from "@/lib/i18n/fleet-detail";
+import { fleetDetail, type FleetDetailDict } from "@/lib/i18n/fleet-detail";
 
-const TAB_IDS = ["activity", "tasks", "chat", "performance", "settings"] as const;
+const TAB_IDS = ["activity", "tasks", "chat", "performance", "usage", "settings"] as const;
 
 const CHANNEL_OPTIONS = ["telegram", "whatsapp", "wechat", "line", "slack", "email", "web"];
 
@@ -50,6 +59,7 @@ function ActivityTab({ cur }: { cur: AgentDetailDTO }) {
           textAlign: "center",
           fontSize: 14,
           color: c.faint,
+          borderRadius: r.radiusMd,
         }}
       >
         {t.activityEmpty}
@@ -57,7 +67,7 @@ function ActivityTab({ cur }: { cur: AgentDetailDTO }) {
     );
   }
   return (
-    <div style={{ border: `1px solid ${c.border}`, background: c.panel }}>
+    <div style={{ border: `1px solid ${c.border}`, background: c.panel, borderRadius: r.radiusMd, overflow: "hidden" }}>
       {cur.activities.map((e) => (
         <div
           key={e.id}
@@ -100,7 +110,10 @@ function ActivityTab({ cur }: { cur: AgentDetailDTO }) {
 function TasksTab({ cur }: { cur: AgentDetailDTO }) {
   const { lang } = useApp();
   const t = fleetDetail[lang];
-  if (cur.tasks.length === 0) {
+  const [selectedTask, setSelectedTask] = useState<AgentDetailDTO["tasks"][number] | null>(null);
+  const tasks = cur.tasks;
+
+  if (tasks.length === 0) {
     return (
       <div
         style={{
@@ -110,17 +123,22 @@ function TasksTab({ cur }: { cur: AgentDetailDTO }) {
           textAlign: "center",
           fontSize: 14,
           color: c.faint,
+          borderRadius: r.radiusMd,
         }}
       >
         {t.tasksEmpty}
       </div>
     );
   }
-  return (
-    <div style={{ border: `1px solid ${c.border}`, background: c.panel }}>
-      {cur.tasks.map((k) => {
-        const sym = TASK_SYMBOL[k.status] ?? TASK_SYMBOL.queued;
-        const done = k.status === "done";
+  const taskList = (
+    <div style={{ border: `1px solid ${c.border}`, background: c.panel, borderRadius: r.radiusMd, overflow: "hidden" }}>
+      {tasks.map((k) => {
+        const normalizedStatus = k.status === "completed" ? "done" : k.status;
+        const sym = TASK_SYMBOL[normalizedStatus] ?? {
+          sym: normalizedStatus === "failed" || normalizedStatus === "error" ? "!" : "◌",
+          color: normalizedStatus === "failed" || normalizedStatus === "error" ? c.red : c.accent,
+        };
+        const done = normalizedStatus === "done" || normalizedStatus === "completed";
         return (
           <div
             key={k.id}
@@ -135,12 +153,110 @@ function TasksTab({ cur }: { cur: AgentDetailDTO }) {
             <span style={{ fontFamily: font.mono, fontSize: 13, color: sym.color, width: 18 }}>
               {sym.sym}
             </span>
-            <span style={{ fontSize: 14.5, color: done ? c.faint : c.text2, flex: 1 }}>{k.text}</span>
-            <span style={{ fontFamily: font.mono, fontSize: 11, color: c.faint }}>{k.meta}</span>
+            <span style={{ fontSize: 14.5, color: done ? c.faint : c.text2, flex: 1, whiteSpace: "pre-wrap" }}>{k.text}</span>
+            <span style={{ fontFamily: font.mono, fontSize: 10.5, color: sym.color, textTransform: "uppercase" }}>
+              {k.status}
+            </span>
+            {k.result ? (
+              <button
+                type="button"
+                onClick={() => setSelectedTask(k)}
+                style={{
+                  border: `1px solid ${c.borderStrong}`,
+                  background: "transparent",
+                  color: c.accent,
+                  padding: "6px 9px",
+                  fontFamily: font.mono,
+                  fontSize: 10.5,
+                  cursor: "pointer",
+                  borderRadius: r.radiusSm,
+                  flexShrink: 0,
+                }}
+              >
+                {t.taskViewResult}
+              </button>
+            ) : null}
           </div>
         );
       })}
     </div>
+  );
+
+  const resultTask = selectedTask;
+  return (
+    <>
+      {taskList}
+      {resultTask && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          onClick={() => setSelectedTask(null)}
+          style={{
+            position: "fixed",
+            inset: 0,
+            zIndex: 100,
+            background: "rgba(8, 10, 14, 0.62)",
+            display: "grid",
+            placeItems: "center",
+            padding: 20,
+          }}
+        >
+          <div
+            onClick={(event) => event.stopPropagation()}
+            style={{
+              width: "min(720px, 100%)",
+              maxHeight: "min(80vh, 680px)",
+              overflow: "auto",
+              border: `1px solid ${c.borderStrong}`,
+              background: c.panel,
+              padding: 22,
+              borderRadius: r.radiusMd,
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16 }}>
+              <div style={{ fontFamily: font.space, fontWeight: 700, fontSize: 16, flex: 1 }}>
+                {t.taskResultTitle}
+              </div>
+              <button
+                type="button"
+                aria-label={t.taskCloseResult}
+                onClick={() => setSelectedTask(null)}
+                style={{
+                  border: `1px solid ${c.borderStrong}`,
+                  background: "transparent",
+                  color: c.muted,
+                  width: 30,
+                  height: 30,
+                  cursor: "pointer",
+                  borderRadius: r.radiusSm,
+                }}
+              >
+                ×
+              </button>
+            </div>
+            <div style={{ color: c.muted, fontSize: 13.5, marginBottom: 14, whiteSpace: "pre-wrap" }}>
+              {resultTask.text}
+            </div>
+            <pre
+              style={{
+                margin: 0,
+                padding: 16,
+                border: `1px solid ${c.line}`,
+                background: c.bg,
+                color: c.text2,
+                fontFamily: font.mono,
+                fontSize: 12.5,
+                lineHeight: 1.65,
+                whiteSpace: "pre-wrap",
+                overflowWrap: "anywhere",
+              }}
+            >
+              {resultTask.result}
+            </pre>
+          </div>
+        </div>
+      )}
+    </>
   );
 }
 
@@ -148,6 +264,9 @@ function ChatTab({ cur }: { cur: AgentDetailDTO }) {
   const { lang } = useApp();
   const t = fleetDetail[lang];
   const [messages, setMessages] = useState<MessageDTO[]>([]);
+  const [sessions, setSessions] = useState<SessionDTO[]>([]);
+  const [selectedSessionKey, setSelectedSessionKey] = useState("");
+  const [sessionsLoading, setSessionsLoading] = useState(true);
   const [draft, setDraft] = useState("");
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
@@ -157,19 +276,59 @@ function ChatTab({ cur }: { cur: AgentDetailDTO }) {
   useEffect(() => {
     let alive = true;
     (async () => {
+      setSessionsLoading(true);
+      setLoading(true);
+      setError(null);
       try {
-        const res = await api.messages(cur.id);
-        if (alive) setMessages(res.messages);
+        const sessionRes = await api.sessions(cur.id);
+        if (!alive) return;
+
+        setSessions(sessionRes.sessions);
+        const firstSession = sessionRes.sessions[0];
+        if (firstSession) {
+          setSelectedSessionKey(firstSession.key);
+          const history = await api.sessionHistory(cur.id, firstSession.historyId);
+          if (alive) setMessages(history.messages);
+        } else {
+          const res = await api.messages(cur.id);
+          if (alive) setMessages(res.messages);
+        }
       } catch (e) {
-        if (alive) setError(e instanceof ApiError ? e.message : t.chatLoadError);
+        try {
+          const res = await api.messages(cur.id);
+          if (alive) setMessages(res.messages);
+        } catch {
+          if (alive) setError(e instanceof ApiError ? e.message : t.chatLoadError);
+        }
       } finally {
-        if (alive) setLoading(false);
+        if (alive) {
+          setSessionsLoading(false);
+          setLoading(false);
+        }
       }
     })();
     return () => {
       alive = false;
     };
   }, [cur.id]);
+
+  const selectSession = async (sessionKey: string) => {
+    if (sessionKey === selectedSessionKey || sending) return;
+    const session = sessions.find((item) => item.key === sessionKey);
+    if (!session) return;
+
+    setSelectedSessionKey(sessionKey);
+    setLoading(true);
+    setError(null);
+    try {
+      const history = await api.sessionHistory(cur.id, session.historyId);
+      setMessages(history.messages);
+    } catch (e) {
+      setError(e instanceof ApiError ? e.message : t.chatLoadError);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
     if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
@@ -214,14 +373,19 @@ function ChatTab({ cur }: { cur: AgentDetailDTO }) {
     };
 
     try {
-      const res = await api.streamMessage(cur.id, body, { onDelta: applyDelta });
+      const res = await api.streamMessage(cur.id, body, {
+        onDelta: applyDelta,
+        sessionKey: selectedSessionKey || undefined,
+      });
       setMessages((prev) => {
-        const withoutTemp = prev.filter((m) => m.id !== tempId);
-        const replaced = withoutTemp.map((m) =>
-          m.id === streamId ? res.replyMessage : m
-        );
-        if (replaced.some((m) => m.id === res.replyMessage.id)) return replaced;
-        return replaced;
+        // Replace both temp entries: use server-persisted user message (if any)
+        // and the final assistant reply.
+        const updated = prev.map((m) => {
+          if (m.id === tempId && res.userMessage) return res.userMessage;
+          if (m.id === streamId) return res.replyMessage;
+          return m;
+        });
+        return updated;
       });
     } catch (e) {
       // Roll back the optimistic bubbles so the input + history stay consistent.
@@ -243,6 +407,8 @@ function ChatTab({ cur }: { cur: AgentDetailDTO }) {
         display: "flex",
         flexDirection: "column",
         height: r.chatH,
+        borderRadius: r.radiusMd,
+        overflow: "hidden",
       }}
     >
       <div
@@ -255,6 +421,62 @@ function ChatTab({ cur }: { cur: AgentDetailDTO }) {
         }}
       >
         {t.chatWebConsole}{channelsText(cur.channels) ? t.chatAlsoOn(channelsText(cur.channels)) : ""}
+      </div>
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 12,
+          padding: "10px 16px",
+          borderBottom: `1px solid ${c.line}`,
+          background: c.bg,
+        }}
+      >
+        <label
+          htmlFor={`chat-session-${cur.id}`}
+          style={{
+            fontFamily: font.mono,
+            fontSize: 10.5,
+            color: c.faint,
+            flexShrink: 0,
+          }}
+        >
+          {t.chatSession}
+        </label>
+        <select
+          id={`chat-session-${cur.id}`}
+          value={selectedSessionKey}
+          onChange={(e) => void selectSession(e.target.value)}
+          disabled={sessionsLoading || sending || sessions.length === 0}
+          aria-label={t.chatSession}
+          style={{
+            minWidth: 0,
+            flex: 1,
+            background: c.panel,
+            border: `1px solid ${c.border}`,
+            color: c.text,
+            padding: "8px 10px",
+            fontSize: 12.5,
+            fontFamily: font.sans,
+            outline: "none",
+            cursor: sessionsLoading || sending || sessions.length === 0 ? "default" : "pointer",
+            opacity: sessionsLoading ? 0.65 : 1,
+            borderRadius: r.radiusSm,
+          }}
+        >
+          {sessionsLoading ? (
+            <option value="">{t.chatSessionLoading}</option>
+          ) : sessions.length === 0 ? (
+            <option value="">{t.chatSessionDefault}</option>
+          ) : (
+            sessions.map((session) => (
+              <option key={session.key} value={session.key}>
+                {session.label}
+                {session.label !== session.key ? ` · ${session.key}` : ""}
+              </option>
+            ))
+          )}
+        </select>
       </div>
       <div
         ref={scrollRef}
@@ -286,16 +508,30 @@ function ChatTab({ cur }: { cur: AgentDetailDTO }) {
                 }}
               >
                 <div
+                  className={`ark-chat-markdown${me ? " ark-chat-markdown-user" : ""}`}
                   style={{
                     maxWidth: "72%",
+                    minWidth: 0,
                     background: me ? c.lime : c.panel,
                     color: me ? c.ink : c.text,
                     padding: "11px 15px",
                     fontSize: 14.5,
                     border: `1px solid ${me ? c.accent : c.border}`,
+                    borderRadius: r.radiusMd,
                   }}
                 >
-                  {m.body}
+                  <ReactMarkdown
+                    remarkPlugins={[remarkGfm]}
+                    components={{
+                      a: ({ href, children }) => (
+                        <a href={href} target="_blank" rel="noreferrer">
+                          {children}
+                        </a>
+                      ),
+                    }}
+                  >
+                    {m.body}
+                  </ReactMarkdown>
                 </div>
                 <div
                   style={{
@@ -350,6 +586,7 @@ function ChatTab({ cur }: { cur: AgentDetailDTO }) {
             fontSize: 14.5,
             fontFamily: font.sans,
             outline: "none",
+            borderRadius: r.radiusSm,
           }}
         />
         <button
@@ -365,6 +602,7 @@ function ChatTab({ cur }: { cur: AgentDetailDTO }) {
             fontSize: 14,
             cursor: sending ? "default" : "pointer",
             opacity: sending ? 0.6 : 1,
+            borderRadius: r.radiusSm,
           }}
         >
           {sending ? t.chatSending : t.chatSend}
@@ -423,7 +661,7 @@ function PerformanceTab({ cur, onRefresh }: { cur: AgentDetailDTO; onRefresh: ()
         alignItems: "start",
       }}
     >
-      <div style={{ border: `1px solid ${c.border}`, background: c.panel, padding: 24 }}>
+      <div style={{ border: `1px solid ${c.border}`, background: c.panel, padding: 24, borderRadius: r.radiusMd }}>
         <div
           style={{
             fontFamily: font.mono,
@@ -455,7 +693,7 @@ function PerformanceTab({ cur, onRefresh }: { cur: AgentDetailDTO; onRefresh: ()
                     {p.delta && <span style={{ color: c.green, fontSize: 11 }}>{p.delta}</span>}
                   </span>
                 </div>
-                <div style={{ height: 4, background: c.line }}>
+                <div style={{ height: 4, background: c.line, borderRadius: 2, overflow: "hidden" }}>
                   <div style={{ height: 4, width: `${p.weight}%`, background: c.lime }} />
                 </div>
               </div>
@@ -515,6 +753,7 @@ function PerformanceTab({ cur, onRefresh }: { cur: AgentDetailDTO; onRefresh: ()
               padding: "16px 18px",
               fontSize: 14,
               color: c.faint,
+              borderRadius: r.radiusMd,
             }}
           >
             {t.perfNoImprovements}
@@ -534,6 +773,7 @@ function PerformanceTab({ cur, onRefresh }: { cur: AgentDetailDTO; onRefresh: ()
                   justifyContent: "space-between",
                   alignItems: "center",
                   gap: 16,
+                  borderRadius: r.radiusMd,
                 }}
               >
                 <div>
@@ -579,6 +819,7 @@ function PerformanceTab({ cur, onRefresh }: { cur: AgentDetailDTO; onRefresh: ()
                         cursor: busy[q.id] ? "default" : "pointer",
                         whiteSpace: "nowrap",
                         opacity: busy[q.id] ? 0.6 : 1,
+                        borderRadius: r.radiusSm,
                       }}
                     >
                       {t.perfApprove}
@@ -598,6 +839,7 @@ function PerformanceTab({ cur, onRefresh }: { cur: AgentDetailDTO; onRefresh: ()
                         cursor: busy[q.id] ? "default" : "pointer",
                         whiteSpace: "nowrap",
                         opacity: busy[q.id] ? 0.6 : 1,
+                        borderRadius: r.radiusSm,
                       }}
                     >
                       {t.perfDismiss}
@@ -623,6 +865,553 @@ function PerformanceTab({ cur, onRefresh }: { cur: AgentDetailDTO; onRefresh: ()
   );
 }
 
+type UsageRangeKey = 1 | 3 | 7 | 30;
+
+const USAGE_RANGES: { key: UsageRangeKey; i18n: "usageRangeToday" | "usageRangeD3" | "usageRangeD7" | "usageRangeD30" }[] = [
+  { key: 1, i18n: "usageRangeToday" },
+  { key: 3, i18n: "usageRangeD3" },
+  { key: 7, i18n: "usageRangeD7" },
+  { key: 30, i18n: "usageRangeD30" },
+];
+
+const fmtInt = (n: number) => n.toLocaleString("en-US");
+
+/**
+ * Format a number with thousands separators. If `+` is true (default), prepend
+ * an explicit sign on positive numbers so the chart's per-bar labels read
+ * naturally: e.g. "+1,234" / "−512".
+ */
+function fmtTokens(n: number, withSign = false): string {
+  const abs = Math.abs(n).toLocaleString("en-US");
+  if (!withSign || n === 0) return abs;
+  return n > 0 ? `+${abs}` : `−${abs}`;
+}
+
+/**
+ * Compact token formatter for chart axis labels / hover: collapses to k / M.
+ */
+function fmtCompact(n: number): string {
+  const abs = Math.abs(n);
+  if (abs >= 1_000_000) return `${(n / 1_000_000).toFixed(abs >= 10_000_000 ? 0 : 1)}M`;
+  if (abs >= 1_000) return `${(n / 1_000).toFixed(abs >= 10_000 ? 0 : 1)}k`;
+  return String(n);
+}
+
+/**
+ * Format an ISO-ish date (yyyy-mm-dd) into a compact "MM/DD" string.
+ */
+function shortDate(date: string): string {
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(date);
+  if (!m) return date;
+  return `${m[2]}/${m[3]}`;
+}
+
+function UsageTab({ cur }: { cur: AgentDetailDTO }) {
+  const { lang } = useApp();
+  const t = fleetDetail[lang];
+  const [range, setRange] = useState<UsageRangeKey>(7);
+  const [report, setReport] = useState<TokenReportDTO | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const isOpenclaw = cur.engine === "openclaw";
+  const notOpenclaw = !isOpenclaw;
+
+  useEffect(() => {
+    if (!isOpenclaw) {
+      return;
+    }
+    let alive = true;
+    (async () => {
+      try {
+        if (alive) {
+          setLoading(true);
+          setError(null);
+        }
+        const data = await api.getAgentTokenReport(cur.id, range);
+        if (!alive) return;
+        setReport(data);
+      } catch (e) {
+        if (!alive) return;
+        setError(e instanceof ApiError ? e.message : t.usageLoadError);
+      } finally {
+        if (alive) setLoading(false);
+      }
+    })();
+    return () => {
+      alive = false;
+    };
+  }, [cur.id, range, isOpenclaw, t.usageLoadError]);
+
+  // For non-OpenClaw engines we never load anything; reflect that without
+  // touching state inside the effect above.
+  const renderLoading = loading && !notOpenclaw;
+
+  const rangeLabel =
+    range === 1
+      ? t.usageRangeToday
+      : range === 3
+        ? t.usageRangeD3
+        : range === 7
+          ? t.usageRangeD7
+          : t.usageRangeD30;
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+      {/* Range tabs */}
+      <div style={{ display: "flex", gap: 2, border: `1px solid ${c.border}`, padding: 3, width: "fit-content", borderRadius: r.radiusSm }}>
+        {USAGE_RANGES.map((r2) => {
+          const on = range === r2.key;
+          return (
+            <button
+              key={r2.key}
+              type="button"
+              onClick={() => setRange(r2.key)}
+              style={{
+                background: on ? c.lime : "transparent",
+                color: on ? c.ink : c.muted,
+                border: "none",
+                padding: "7px 14px",
+                fontFamily: font.mono,
+                fontSize: 11,
+                letterSpacing: ".04em",
+                cursor: "pointer",
+                borderRadius: r.radiusSm,
+              }}
+            >
+              {t[r2.i18n]}
+            </button>
+          );
+        })}
+      </div>
+
+      {notOpenclaw && (
+        <div
+          style={{
+            border: `1px solid ${c.border}`,
+            background: c.panel,
+            padding: "40px 22px",
+            textAlign: "center",
+            fontSize: 13.5,
+            color: c.faint,
+            borderRadius: r.radiusMd,
+          }}
+        >
+          {t.usageNotOpenclaw}
+        </div>
+      )}
+
+      {!notOpenclaw && error && (
+        <div
+          style={{
+            border: `1px solid ${c.redBorder}`,
+            background: c.redWash,
+            color: c.red,
+            padding: "12px 16px",
+            fontFamily: font.mono,
+            fontSize: 12.5,
+            borderRadius: r.radiusMd,
+          }}
+        >
+          {error}
+        </div>
+      )}
+
+      {!notOpenclaw && renderLoading && (
+        <div
+          style={{
+            border: `1px solid ${c.border}`,
+            background: c.panel,
+            padding: 40,
+            fontFamily: font.mono,
+            fontSize: 12,
+            letterSpacing: ".08em",
+            color: c.faint,
+            textAlign: "center",
+            borderRadius: r.radiusMd,
+          }}
+        >
+          {t.usageLoading}
+        </div>
+      )}
+
+      {!notOpenclaw && !renderLoading && !error && report && (
+        <>
+          {/* Totals strip */}
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(5, 1fr)",
+              gap: 0,
+              border: `1px solid ${c.border}`,
+              background: c.panel,
+              borderRadius: r.radiusMd,
+              overflow: "hidden",
+            }}
+          >
+            {(
+              [
+                { k: "inputTokens", label: t.usageMetricInput, color: c.accent },
+                { k: "outputTokens", label: t.usageMetricOutput, color: c.blue },
+                { k: "cacheTokens", label: t.usageMetricCache, color: c.muted },
+                { k: "totalTokens", label: t.usageMetricTotal, color: c.text },
+                { k: "calls", label: t.usageMetricCalls, color: c.green },
+              ] as { k: keyof TokenReportDTO["totals"]; label: string; color: string }[]
+            ).map((m, i) => (
+              <div
+                key={m.k}
+                style={{
+                  padding: "18px 18px",
+                  borderLeft: i === 0 ? "none" : `1px solid ${c.line}`,
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 6,
+                }}
+              >
+                <div
+                  style={{
+                    fontFamily: font.mono,
+                    fontSize: 10.5,
+                    letterSpacing: ".1em",
+                    color: c.faint,
+                    textTransform: "uppercase",
+                  }}
+                >
+                  {m.label}
+                </div>
+                <div
+                  style={{
+                    fontFamily: font.space,
+                    fontWeight: 700,
+                    fontSize: 20,
+                    color: m.color,
+                  }}
+                >
+                  {fmtInt(report.totals[m.k] ?? 0)}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Bar chart card */}
+          <div
+            style={{
+              border: `1px solid ${c.border}`,
+              background: c.panel,
+              padding: 22,
+              borderRadius: r.radiusMd,
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                flexWrap: "wrap",
+                gap: 12,
+                marginBottom: 16,
+              }}
+            >
+              <div
+                style={{
+                  fontFamily: font.mono,
+                  fontSize: 11,
+                  letterSpacing: ".1em",
+                  color: c.muted,
+                  textTransform: "uppercase",
+                }}
+              >
+                {t.usageChartTitle(rangeLabel)}
+              </div>
+            </div>
+
+            {report.report.length === 0 ? (
+              <div
+                style={{
+                  padding: "32px 16px",
+                  fontFamily: font.mono,
+                  fontSize: 12,
+                  color: c.faint,
+                  textAlign: "center",
+                }}
+              >
+                {t.usageNoData}
+              </div>
+            ) : (() => {
+                // Stacked bar chart: each day is a stack of
+                //   [input (lime), output (blue), cache (muted)]
+                // Y-axis max is the largest daily *sum* — independent of the
+                // top series switcher, which only affects the legend/totals.
+                const stackMax = report.report.reduce(
+                  (acc, e) =>
+                    Math.max(acc, e.inputTokens + e.outputTokens + e.cacheTokens),
+                  0,
+                );
+                // Nice tick grid (5 horizontal lines, 0 → max).
+                const tickValues = (() => {
+                  if (stackMax <= 0) return [0];
+                  const stepCandidates = [1, 2, 5];
+                  const niceStep = (() => {
+                    const raw = stackMax / 4;
+                    const pow = Math.pow(10, Math.floor(Math.log10(raw)));
+                    for (const s of stepCandidates) {
+                      const v = s * pow;
+                      if (v >= raw) return v;
+                    }
+                    return 10 * pow;
+                  })();
+                  const ticks: number[] = [0];
+                  for (let v = niceStep; v < stackMax; v += niceStep) ticks.push(v);
+                  if (ticks[ticks.length - 1] !== stackMax) ticks.push(stackMax);
+                  return ticks.slice(-5);
+                })();
+                const chartHeight = 200;
+                const innerH = chartHeight - 12; // reserve top space for hover labels
+                // Per-segment colour tied to the project's semantic palette.
+                const segColors = {
+                  input: c.lime,
+                  output: c.blue,
+                  cache: c.muted,
+                };
+                return (
+                  <>
+                    <div
+                      style={{
+                        position: "relative",
+                        height: chartHeight,
+                        marginBottom: 8,
+                      }}
+                    >
+                      {/* Gridlines + left-axis tick labels */}
+                      <div
+                        style={{
+                          position: "absolute",
+                          inset: 0,
+                          display: "flex",
+                          flexDirection: "column",
+                          justifyContent: "space-between",
+                          pointerEvents: "none",
+                        }}
+                      >
+                        {tickValues
+                          .slice()
+                          .reverse()
+                          .map((v) => (
+                            <div
+                              key={`g-${v}`}
+                              style={{
+                                position: "relative",
+                                flex: 1,
+                                borderTop: `1px dashed ${c.lineSoft}`,
+                              }}
+                            >
+                              <span
+                                style={{
+                                  position: "absolute",
+                                  top: -7,
+                                  left: 0,
+                                  fontFamily: font.mono,
+                                  fontSize: 10,
+                                  color: c.faint,
+                                  background: c.panel,
+                                  paddingRight: 6,
+                                }}
+                              >
+                                {fmtCompact(v)}
+                              </span>
+                            </div>
+                          ))}
+                      </div>
+
+                      {/* Stacked bars row */}
+                      <div
+                        style={{
+                          position: "absolute",
+                          inset: "12px 0 0 42px",
+                          display: "flex",
+                          alignItems: "flex-end",
+                          justifyContent: "space-between",
+                          gap: 6,
+                        }}
+                      >
+                        {report.report.map((e, i) => {
+                          const sum = e.inputTokens + e.outputTokens + e.cacheTokens;
+                          const inH =
+                            stackMax > 0
+                              ? Math.max(0, (e.inputTokens / stackMax) * innerH)
+                              : 0;
+                          const outH =
+                            stackMax > 0
+                              ? Math.max(0, (e.outputTokens / stackMax) * innerH)
+                              : 0;
+                          const cacheH =
+                            stackMax > 0
+                              ? Math.max(0, (e.cacheTokens / stackMax) * innerH)
+                              : 0;
+                          const totalH = inH + outH + cacheH;
+                          const isLast = i === report.report.length - 1;
+                          const roundedTop =
+                            totalH > 0 && totalH < 4 ? 0 : 2;
+                          return (
+                            <div
+                              key={`${e.date}-${i}`}
+                              title={
+                                `${e.date}\n` +
+                                `  ${t.usageSeriesInput}: ${fmtTokens(e.inputTokens)}\n` +
+                                `  ${t.usageSeriesOutput}: ${fmtTokens(e.outputTokens)}\n` +
+                                `  ${t.usageSeriesCache}: ${fmtTokens(e.cacheTokens)}\n` +
+                                `  ${t.usageMetricTotal}: ${fmtTokens(sum)}`
+                              }
+                              style={{
+                                flex: "0 1 auto",
+                                width: "100%",
+                                maxWidth: 56,
+                                height: "100%",
+                                display: "flex",
+                                flexDirection: "column",
+                                alignItems: "center",
+                                justifyContent: "flex-end",
+                                position: "relative",
+                                cursor: "default",
+                              }}
+                            >
+                              {/* Bars: cache on top, output middle, input bottom */}
+                              {cacheH > 0 && (
+                                <div
+                                  style={{
+                                    width: "100%",
+                                    height: cacheH,
+                                    background: segColors.cache,
+                                    borderTop:
+                                      outH + cacheH > 0
+                                        ? `1px solid ${c.border}`
+                                        : "none",
+                                    transition: "height .25s ease",
+                                  }}
+                                />
+                              )}
+                              {outH > 0 && (
+                                <div
+                                  style={{
+                                    width: "100%",
+                                    height: outH,
+                                    background: segColors.output,
+                                    transition: "height .25s ease",
+                                  }}
+                                />
+                              )}
+                              {inH > 0 && (
+                                <div
+                                  style={{
+                                    width: "100%",
+                                    height: inH,
+                                    background: segColors.input,
+                                    borderTop:
+                                      inH + outH + cacheH > 0
+                                        ? `2px solid ${c.accent}`
+                                        : "none",
+                                    borderTopLeftRadius: roundedTop,
+                                    borderTopRightRadius: roundedTop,
+                                    transition: "height .25s ease",
+                                  }}
+                                />
+                              )}
+                              <span
+                                style={{
+                                  marginTop: 6,
+                                  fontFamily: font.mono,
+                                  fontSize: 10,
+                                  color: isLast ? c.text2 : c.faint,
+                                  transform: "rotate(-30deg)",
+                                  transformOrigin: "left top",
+                                  whiteSpace: "nowrap",
+                                }}
+                              >
+                                {shortDate(e.date)}
+                              </span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    {/* Stacked legend with totals — replaces the old broken footer
+                        that referenced `report.totals.totalTokens` regardless of
+                        the active series and produced "NaN". */}
+                    <div
+                      style={{
+                        display: "flex",
+                        flexWrap: "wrap",
+                        gap: 18,
+                        borderTop: `1px solid ${c.line}`,
+                        paddingTop: 12,
+                        marginTop: 4,
+                        fontFamily: font.mono,
+                        fontSize: 11,
+                        color: c.muted,
+                      }}
+                    >
+                      <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                        <span
+                          style={{
+                            width: 10,
+                            height: 10,
+                            background: segColors.input,
+                            border: `1px solid ${c.accent}`,
+                          }}
+                        />
+                        {t.usageSeriesInput}
+                        <strong style={{ color: c.text, fontWeight: 600 }}>
+                          {fmtTokens(report.totals.inputTokens)}
+                        </strong>
+                      </span>
+                      <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                        <span
+                          style={{
+                            width: 10,
+                            height: 10,
+                            background: segColors.output,
+                            border: `1px solid ${c.borderStrong}`,
+                          }}
+                        />
+                        {t.usageSeriesOutput}
+                        <strong style={{ color: c.text, fontWeight: 600 }}>
+                          {fmtTokens(report.totals.outputTokens)}
+                        </strong>
+                      </span>
+                      <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                        <span
+                          style={{
+                            width: 10,
+                            height: 10,
+                            background: segColors.cache,
+                            border: `1px solid ${c.borderStrong}`,
+                          }}
+                        />
+                        {t.usageSeriesCache}
+                        <strong style={{ color: c.text, fontWeight: 600 }}>
+                          {fmtTokens(report.totals.cacheTokens)}
+                        </strong>
+                      </span>
+                      <span style={{ marginLeft: "auto", display: "inline-flex", alignItems: "center", gap: 6 }}>
+                        {t.usageMetricCalls}:{" "}
+                        <strong style={{ color: c.text, fontWeight: 600 }}>
+                          {fmtInt(report.totals.calls)}
+                        </strong>
+                      </span>
+                    </div>
+                  </>
+                );
+              })()}
+          </div>
+
+          {/* /Per-day table removed */}
+        </>
+      )}
+    </div>
+  );
+}
+
 // ---------------------------------------------------------------------------
 // Settings UI primitives
 // ---------------------------------------------------------------------------
@@ -638,6 +1427,7 @@ const sInput: CSSProperties = {
   width: "100%",
   background: c.bg,
   border: `1px solid ${c.border}`,
+  borderRadius: r.radiusSm,
   color: c.text,
   padding: "10px 12px",
   fontSize: 14,
@@ -664,6 +1454,7 @@ function SettingCard({
         border: `1px solid ${c.border}`,
         background: c.panel,
         padding: 22,
+        borderRadius: r.radiusMd,
         display: "flex",
         flexDirection: "column",
         gap: 16,
@@ -859,22 +1650,231 @@ function SettingsTab({ cur, onRefresh }: { cur: AgentDetailDTO; onRefresh: () =>
   );
   const [instr, setInstr] = useState(cur.instructions ?? "");
   const [rules, setRules] = useState(cur.rules ?? "");
-  const [channels, setChannels] = useState<string[]>(cur.channels);
   const [s, setS] = useState<AgentSettings>(() => mergeSettings(cur.settings));
   const [knowledgeDraft, setKnowledgeDraft] = useState("");
 
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [lifeBusy, setLifeBusy] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deleteBusy, setDeleteBusy] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [channelState, setChannelState] = useState<ChannelState>({
+    feishu: { enabled: false, appId: "", appSecret: "", dmPolicy: "open", groupPolicy: "open" },
+    dingtalk: { enabled: false, clientId: "", clientSecret: "", robotCode: "", corpId: "", agentId: "", messageType: "markdown", allowFrom: "*" },
+    wechat: { enabled: false },
+    wecom: { enabled: false, botId: "", secret: "" },
+  });
+  const [channelLoading, setChannelLoading] = useState(true);
+  const [channelSaving, setChannelSaving] = useState<ChannelType | null>(null);
+  const [channelBusyToggle, setChannelBusyToggle] = useState<Record<ChannelType, boolean>>({ feishu: false, dingtalk: false, wechat: false, wecom: false });
+  const [channelError, setChannelError] = useState<string | null>(null);
+  const [channelSuccessMsg, setChannelSuccessMsg] = useState<string | null>(null);
+  const [qrcode, setQrcode] = useState<{ qrcodeUrl: string | null; qrcodeImage: string | null; expiresIn: number; message: string; status: string; rawOutput?: string | null; connected?: boolean; sessionId?: string | null; finalStdout?: string | null; exitCode?: number | null } | null>(null);
+  const [qrcodeLoading, setQrcodeLoading] = useState(false);
+  const [editingChannel, setEditingChannel] = useState<ChannelType | null>(null);
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const instanceUuid = (cur as unknown as Record<string, unknown>).instanceUuid as string | undefined;
 
   const display = statusDisplay(cur.status);
   const paused = cur.status === "paused";
 
   const openDrawer = () => setDrawerOpen(true);
   const closeDrawer = () => setDrawerOpen(false);
+
+  // Channel loading effect
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      try {
+        const res = await api.getChannels(instanceUuid ?? cur.id);
+        if (!alive) return;
+        const found = res.channels;
+        if (found.length > 0) {
+          const updateChannel = (type: ChannelType, ch: typeof found[0]) => {
+            const cfg = ch.config ?? {};
+            if (type === "feishu") {
+              setChannelState(prev => ({ ...prev, feishu: {
+                enabled: Boolean(ch.enabled),
+                appId: String((cfg.accounts as Record<string, {appId?:string}> | undefined)?.default?.appId ?? cfg.appId ?? ""),
+                appSecret: String((cfg.accounts as Record<string, {appSecret?:string}> | undefined)?.default?.appSecret ?? cfg.appSecret ?? ""),
+                dmPolicy: String(cfg.dmPolicy ?? "open"),
+                groupPolicy: String(cfg.groupPolicy ?? "open"),
+              }}));
+            } else if (type === "dingtalk") {
+              setChannelState(prev => ({ ...prev, dingtalk: {
+                enabled: Boolean(ch.enabled),
+                clientId: String(cfg.clientId ?? ""),
+                clientSecret: String(cfg.clientSecret ?? ""),
+                robotCode: String(cfg.robotCode ?? ""),
+                corpId: String(cfg.corpId ?? ""),
+                agentId: String(cfg.agentId ?? ""),
+                messageType: String(cfg.messageType ?? "markdown"),
+                allowFrom: Array.isArray(cfg.allowFrom) ? cfg.allowFrom.join(", ") : String(cfg.allowFrom ?? "*"),
+              }}));
+            } else if (type === "wechat") {
+              setChannelState(prev => ({ ...prev, wechat: { enabled: Boolean(ch.enabled) }}));
+            } else if (type === "wecom") {
+              setChannelState(prev => ({ ...prev, wecom: {
+                enabled: Boolean(ch.enabled),
+                botId: String(cfg.botId ?? ""),
+                secret: String(cfg.secret ?? ""),
+              }}));
+            }
+          };
+          found.forEach(ch => {
+            const key = ch.type?.toLowerCase();
+            const norm = key === "ddingtalk" ? "dingtalk" : key;
+            if (norm === "feishu") updateChannel("feishu", ch);
+            else if (norm === "dingtalk") updateChannel("dingtalk", ch);
+            else if (norm === "wechat") updateChannel("wechat", ch);
+            else if (norm === "wecom") updateChannel("wecom", ch);
+          });
+        }
+      } catch (e) {
+        if (alive) setChannelError(e instanceof ApiError ? e.message : t.channelSaveError);
+      } finally {
+        if (alive) setChannelLoading(false);
+      }
+    })();
+    return () => { alive = false; };
+  }, [instanceUuid, cur.id, t.channelSaveError]);
+
+  const showChannelSuccess = (msg: string) => {
+    setChannelSuccessMsg(msg);
+    setTimeout(() => setChannelSuccessMsg(null), 2500);
+  };
+
+  const saveChannel = async (type: ChannelType) => {
+    if (channelSaving) return;
+    setChannelSaving(type);
+    setChannelError(null);
+    try {
+      const instUuid = instanceUuid ?? cur.id;
+      if (type === "feishu") {
+        const ch = channelState.feishu;
+        await api.upsertChannel({
+          instanceUuid: instUuid, channelType: "feishu", enabled: ch.enabled,
+          config: { appId: ch.appId, appSecret: ch.appSecret, domain: "feishu", defaultAccount: "default", dmPolicy: ch.dmPolicy, groupPolicy: ch.groupPolicy },
+        });
+      } else if (type === "dingtalk") {
+        const ch = channelState.dingtalk;
+        await api.upsertChannel({
+          instanceUuid: instUuid, channelType: "dingtalk", enabled: ch.enabled,
+          config: { clientId: ch.clientId, clientSecret: ch.clientSecret, robotCode: ch.robotCode, corpId: ch.corpId, agentId: ch.agentId ? Number(ch.agentId) : 0, dmPolicy: "open", groupPolicy: "open", messageType: ch.messageType, allowFrom: ch.allowFrom.split(",").map((s: string) => s.trim()).filter(Boolean), enabled: ch.enabled },
+        });
+      } else if (type === "wechat") {
+        await api.upsertChannel({ instanceUuid: instUuid, channelType: "wechat", enabled: channelState.wechat.enabled, config: {} });
+      } else if (type === "wecom") {
+        const ch = channelState.wecom;
+        await api.upsertChannel({
+          instanceUuid: instUuid, channelType: "wecom", enabled: ch.enabled,
+          config: { botId: ch.botId, secret: ch.secret },
+        });
+      }
+      showChannelSuccess(t.channelSaveSuccess);
+      setEditingChannel(null);
+    } catch (e) {
+      setChannelError(e instanceof ApiError ? e.message : t.channelSaveError);
+    } finally {
+      setChannelSaving(null);
+    }
+  };
+
+  const toggleChannel = async (type: ChannelType, enabled: boolean) => {
+    setChannelBusyToggle(prev => ({ ...prev, [type]: true }));
+    setChannelError(null);
+    const instUuid = instanceUuid ?? cur.id;
+    try {
+      if (type === "feishu") {
+        const ch = channelState.feishu;
+        setChannelState(prev => ({ ...prev, feishu: { ...prev.feishu, enabled } }));
+        await api.upsertChannel({
+          instanceUuid: instUuid, channelType: "feishu", enabled,
+          config: { appId: ch.appId, appSecret: ch.appSecret, domain: "feishu", defaultAccount: "default", dmPolicy: ch.dmPolicy, groupPolicy: ch.groupPolicy },
+        });
+      } else if (type === "dingtalk") {
+        const ch = channelState.dingtalk;
+        setChannelState(prev => ({ ...prev, dingtalk: { ...prev.dingtalk, enabled } }));
+        await api.upsertChannel({
+          instanceUuid: instUuid, channelType: "dingtalk", enabled,
+          config: { clientId: ch.clientId, clientSecret: ch.clientSecret, robotCode: ch.robotCode, corpId: ch.corpId, agentId: ch.agentId ? Number(ch.agentId) : 0, dmPolicy: "open", groupPolicy: "open", messageType: ch.messageType, allowFrom: ch.allowFrom.split(",").map((s: string) => s.trim()).filter(Boolean), enabled },
+        });
+      } else if (type === "wechat") {
+        setChannelState(prev => ({ ...prev, wechat: { ...prev.wechat, enabled } }));
+        await api.upsertChannel({ instanceUuid: instUuid, channelType: "wechat", enabled, config: {} });
+      } else if (type === "wecom") {
+        const ch = channelState.wecom;
+        setChannelState(prev => ({ ...prev, wecom: { ...prev.wecom, enabled } }));
+        await api.upsertChannel({ instanceUuid: instUuid, channelType: "wecom", enabled, config: { botId: ch.botId, secret: ch.secret } });
+      }
+    } catch (e) {
+      setChannelState(prev => ({ ...prev, [type]: { ...prev[type], enabled: !enabled } as typeof prev[typeof type] }));
+      setChannelError(e instanceof ApiError ? e.message : t.channelToggleError);
+    } finally {
+      setChannelBusyToggle(prev => ({ ...prev, [type]: false }));
+    }
+  };
+
+  const setChannel = <T extends ChannelType>(type: T, patch: Partial<ChannelState[T]>) => {
+    setChannelState(prev => ({ ...prev, [type]: { ...prev[type], ...patch } as ChannelState[T] }));
+  };
+
+  const fetchWechatQrcode = async () => {
+    setQrcodeLoading(true);
+    setQrcode(null);
+    try {
+      const res = await api.getWechatLoginQrcode(instanceUuid ?? cur.id, {
+        // 仅用 wait_matched 来即时渲染 QR;其它事件 (heartbeat / step_completed
+        // / session_completed) 直接忽略,最终结果走 `done` 的聚合响应.
+        onEvent: (e) => {
+          if (e.event !== "wait_matched") return;
+          const inner = (e.data?.data as { stdout?: string; matched_text?: string } | undefined) ?? {};
+          const stdout = typeof inner.stdout === "string" ? inner.stdout : null;
+          if (!stdout) return;
+          const fallbackUrl = (stdout.match(/https?:\/\/\S+/) ?? [""])[0]
+            .replace(/[)\]】。.,;]+$/, "");
+          setQrcode({
+            qrcodeUrl: fallbackUrl || null,
+            qrcodeImage: stdout,
+            expiresIn: 120,
+            message: inner.matched_text || "waiting for scan…",
+            status: "pending",
+            rawOutput: stdout,
+          });
+          setQrcodeLoading(false);
+        },
+      });
+      // 流结束:用聚合结果合并最终状态 (connected / expired / error).
+      setQrcode((prev) => ({
+        ...(res as NonNullable<typeof prev>),
+        rawOutput: prev?.rawOutput ?? res.rawOutput ?? null,
+        qrcodeImage: prev?.qrcodeImage ?? res.qrcodeImage ?? null,
+        qrcodeUrl: prev?.qrcodeUrl ?? res.qrcodeUrl ?? null,
+      }));
+    } catch (e) {
+      setChannelError(e instanceof ApiError ? e.message : t.channelToggleError);
+    } finally {
+      setQrcodeLoading(false);
+    }
+  };
+
+  const CHANNEL_ICONS: Record<ChannelType, ReactNode> = {
+    feishu: <Image src="/feishu.png" alt="feishu" width={20} height={20} style={{ borderRadius: 4 }} />,
+    dingtalk: <Image src="/dingding.png" alt="dingtalk" width={20} height={20} style={{ borderRadius: 4 }} />,
+    wechat: <Image src="/weixin.png" alt="wechat" width={20} height={20} style={{ borderRadius: 4 }} />,
+    wecom: <Image src="/qiwei.png" alt="wecom" width={20} height={20} style={{ borderRadius: 4 }} />,
+  };
+
+  const CHANNEL_LABELS: Record<ChannelType, string> = {
+    feishu: t.channelFeishu,
+    dingtalk: t.channelDingtalk,
+    wechat: t.channelWechat,
+    wecom: t.channelWecom,
+  };
 
   function set<K extends keyof AgentSettings>(k: K, v: AgentSettings[K]) {
     setS((p) => ({ ...p, [k]: v }));
@@ -886,8 +1886,6 @@ function SettingsTab({ cur, onRefresh }: { cur: AgentDetailDTO; onRefresh: () =>
     };
   }, []);
 
-  const toggleChannel = (type: string) =>
-    setChannels((prev) => (prev.includes(type) ? prev.filter((x) => x !== type) : [...prev, type]));
   const toggleSkill = (id: string) =>
     set("skills", s.skills.includes(id) ? s.skills.filter((x) => x !== id) : [...s.skills, id]);
   const toggleDay = (d: number) =>
@@ -911,7 +1909,6 @@ function SettingsTab({ cur, onRefresh }: { cur: AgentDetailDTO; onRefresh: () =>
         name: name.trim() || cur.name,
         instructions: instr,
         rules,
-        channels,
         engine,
         planTier,
         settings: s,
@@ -945,10 +1942,24 @@ function SettingsTab({ cur, onRefresh }: { cur: AgentDetailDTO; onRefresh: () =>
     }
   };
 
+  const removeAgent = async () => {
+    if (deleteBusy) return;
+    setDeleteBusy(true);
+    setDeleteError(null);
+    try {
+      await api.deleteAgent(cur.id);
+      router.push("/dashboard/fleet");
+    } catch (e) {
+      setDeleteError(e instanceof ApiError ? e.message : t.deleteError);
+      setDeleteBusy(false);
+    }
+  };
+
   const autonomyDesc = AUTONOMY_LEVELS.find((a) => a.id === s.autonomy)?.desc;
 
   return (
-    <div style={{ display: "grid", gridTemplateColumns: r.detailSettings, gap: 20, alignItems: "start" }}>
+    <>
+      <div style={{ display: "grid", gridTemplateColumns: r.detailSettings, gap: 20, alignItems: "start" }}>
       {/* ---- Form column ---- */}
       <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
         <SettingCard title={t.identityTitle} desc={t.identityDesc}>
@@ -1252,17 +2263,112 @@ function SettingsTab({ cur, onRefresh }: { cur: AgentDetailDTO; onRefresh: () =>
           </Field>
         </SettingCard>
 
+        {editingChannel && (
+          <ChannelModal
+            type={editingChannel}
+            channel={channelState[editingChannel]}
+            onChange={(type, patch) => setChannel(type, patch)}
+            onSave={async (type) => { await saveChannel(type); }}
+            onCancel={() => setEditingChannel(null)}
+            saving={channelSaving === editingChannel}
+            t={t}
+            qrcode={qrcode}
+            qrcodeLoading={qrcodeLoading}
+            onFetchQrcode={() => fetchWechatQrcode()}
+          />
+        )}
+
         <SettingCard title={t.channelsTitle} desc={t.channelsDesc}>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-            {CHANNEL_OPTIONS.map((type) => (
-              <Chip
-                key={type}
-                label={CHANNEL_LABEL[type] ?? type}
-                on={channels.includes(type)}
-                onClick={() => toggleChannel(type)}
-              />
-            ))}
-          </div>
+          {channelLoading ? (
+            <div style={{ fontFamily: font.mono, fontSize: 12, color: c.faint, textAlign: "center", padding: 20 }}>
+              Loading channels…
+            </div>
+          ) : (
+            <>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                {(["feishu", "dingtalk", "wechat", "wecom"] as ChannelType[]).map(type => (
+                  <div
+                    key={type}
+                    style={{
+                      border: `1px solid ${channelState[type].enabled ? c.limeBorder : c.borderStrong}`,
+                      background: c.bg,
+                      padding: 14,
+                      borderRadius: r.radiusMd,
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: 10,
+                      opacity: channelBusyToggle[type] ? 0.6 : 1,
+                      transition: "opacity .15s",
+                    }}
+                  >
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                        <span style={{ fontSize: 18 }}>{CHANNEL_ICONS[type]}</span>
+                        <span style={{ fontFamily: font.mono, fontSize: 11.5, letterSpacing: ".08em", color: c.text2 }}>
+                          {CHANNEL_LABELS[type]}
+                        </span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => toggleChannel(type, !channelState[type].enabled)}
+                        disabled={channelBusyToggle[type]}
+                        aria-pressed={channelState[type].enabled}
+                        style={{
+                          width: 40, height: 22, borderRadius: 11,
+                          border: `1px solid ${channelState[type].enabled ? c.limeBorder : c.borderStrong}`,
+                          background: channelState[type].enabled ? c.lime : "transparent",
+                          cursor: channelBusyToggle[type] ? "default" : "pointer",
+                          position: "relative", flexShrink: 0,
+                          transition: "background .15s ease, border-color .15s ease",
+                        }}
+                      >
+                        <span style={{
+                          position: "absolute", top: 2,
+                          left: channelState[type].enabled ? 19 : 2,
+                          width: 16, height: 16, borderRadius: "50%",
+                          background: channelState[type].enabled ? c.ink : c.muted,
+                          transition: "left .15s ease",
+                        }} />
+                      </button>
+                    </div>
+                    <div style={{ fontFamily: font.mono, fontSize: 10, color: channelState[type].enabled ? c.accent : c.faint, letterSpacing: ".06em" }}>
+                      {channelState[type].enabled ? t.channelEnabled : t.channelDisabled}
+                    </div>
+                    {channelState[type].enabled && (
+                      <button
+                        onClick={() => setEditingChannel(type)}
+                        style={{
+                          background: "none",
+                          border: `1px solid ${c.border}`,
+                          borderRadius: r.radiusSm,
+                          color: c.text2,
+                          fontFamily: font.space,
+                          fontWeight: 600,
+                          fontSize: 11.5,
+                          padding: "6px 12px",
+                          cursor: "pointer",
+                          textAlign: "center",
+                          transition: "border-color .1s, color .1s",
+                        }}
+                      >
+                        {t.edit}
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
+              {channelError && (
+                <div style={{ fontFamily: font.mono, fontSize: 11, color: c.red, marginTop: 8 }}>
+                  {channelError}
+                </div>
+              )}
+              {channelSuccessMsg && (
+                <div style={{ fontFamily: font.mono, fontSize: 11, color: c.accent, marginTop: 8 }}>
+                  {channelSuccessMsg}
+                </div>
+              )}
+            </>
+          )}
         </SettingCard>
 
         <SettingCard title={t.escalationTitle} desc={t.escalationDesc}>
@@ -1302,7 +2408,7 @@ function SettingsTab({ cur, onRefresh }: { cur: AgentDetailDTO; onRefresh: () =>
 
       {/* ---- Sidebar: save + runtime + danger ---- */}
       <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-        <div style={{ border: `1px solid ${c.border}`, background: c.panel, padding: 20, display: "flex", flexDirection: "column", gap: 12 }}>
+        <div style={{ border: `1px solid ${c.border}`, background: c.panel, padding: 20, display: "flex", flexDirection: "column", gap: 12, borderRadius: r.radiusMd }}>
           <button
             onClick={save}
             disabled={saving}
@@ -1310,6 +2416,7 @@ function SettingsTab({ cur, onRefresh }: { cur: AgentDetailDTO; onRefresh: () =>
               background: c.lime,
               color: c.ink,
               border: "none",
+              borderRadius: r.radiusSm,
               padding: "13px 20px",
               fontFamily: font.space,
               fontWeight: 700,
@@ -1326,7 +2433,7 @@ function SettingsTab({ cur, onRefresh }: { cur: AgentDetailDTO; onRefresh: () =>
           {error && <div style={{ fontFamily: font.mono, fontSize: 11, color: c.red }}>{error}</div>}
         </div>
 
-        <div style={{ border: `1px solid ${c.border}`, background: c.panel, padding: 20 }}>
+        <div style={{ border: `1px solid ${c.border}`, background: c.panel, padding: 20, borderRadius: r.radiusMd }}>
           <div style={{ fontFamily: font.mono, fontSize: 11, letterSpacing: ".12em", color: c.muted, marginBottom: 14 }}>
             {t.runtime}
           </div>
@@ -1357,6 +2464,7 @@ function SettingsTab({ cur, onRefresh }: { cur: AgentDetailDTO; onRefresh: () =>
             background: "transparent",
             color: c.text,
             padding: 12,
+            borderRadius: r.radiusSm,
             fontFamily: font.space,
             fontWeight: 500,
             fontSize: 14,
@@ -1375,6 +2483,7 @@ function SettingsTab({ cur, onRefresh }: { cur: AgentDetailDTO; onRefresh: () =>
             background: "transparent",
             color: c.red,
             padding: 12,
+            borderRadius: r.radiusSm,
             fontFamily: font.space,
             fontSize: 14,
             cursor: lifeBusy ? "default" : "pointer",
@@ -1383,7 +2492,28 @@ function SettingsTab({ cur, onRefresh }: { cur: AgentDetailDTO; onRefresh: () =>
         >
           {t.terminateAgent}
         </Btn>
-        <div style={{ border: `1px dashed ${c.border}`, padding: "12px 14px", fontSize: 12.5, color: c.faint }}>
+        <Btn
+          onClick={() => {
+            setDeleteError(null);
+            setDeleteOpen(true);
+          }}
+          disabled={lifeBusy || deleteBusy}
+          hoverStyle={{ background: c.red, color: c.ink }}
+          style={{
+            border: `1px solid ${c.redBorder}`,
+            background: "transparent",
+            color: c.red,
+            padding: 12,
+            borderRadius: r.radiusSm,
+            fontFamily: font.space,
+            fontSize: 14,
+            cursor: lifeBusy || deleteBusy ? "default" : "pointer",
+            opacity: lifeBusy || deleteBusy ? 0.6 : 1,
+          }}
+        >
+          {t.deleteAgent}
+        </Btn>
+        <div style={{ border: `1px dashed ${c.border}`, padding: "12px 14px", fontSize: 12.5, color: c.faint, borderRadius: r.radiusSm }}>
           {t.dangerNote}
         </div>
         <Btn
@@ -1393,6 +2523,7 @@ function SettingsTab({ cur, onRefresh }: { cur: AgentDetailDTO; onRefresh: () =>
             background: "transparent",
             color: c.text,
             padding: 12,
+            borderRadius: r.radiusSm,
             fontFamily: font.space,
             fontWeight: 500,
             fontSize: 14,
@@ -1405,14 +2536,87 @@ function SettingsTab({ cur, onRefresh }: { cur: AgentDetailDTO; onRefresh: () =>
           <InstanceInfoDrawer
             agentId={cur.id}
             onClose={closeDrawer}
+            onAfterSync={onRefresh}
           />
         )}
       </div>
-    </div>
+      </div>
+      {deleteOpen && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          onClick={() => {
+            if (!deleteBusy) setDeleteOpen(false);
+          }}
+          style={{
+            position: "fixed",
+            inset: 0,
+            zIndex: 100,
+            background: "rgba(8, 10, 14, 0.62)",
+            display: "grid",
+            placeItems: "center",
+            padding: 20,
+          }}
+        >
+          <div
+            onClick={(event) => event.stopPropagation()}
+            style={{
+              width: "min(440px, 100%)",
+              border: `1px solid ${c.redBorder}`,
+              background: c.panel,
+              padding: 22,
+              borderRadius: r.radiusMd,
+            }}
+          >
+            <div style={{ fontFamily: font.space, fontWeight: 700, fontSize: 18, marginBottom: 10 }}>
+              {t.deleteConfirmTitle}
+            </div>
+            <div style={{ color: c.muted, fontSize: 13.5, lineHeight: 1.55, marginBottom: 20 }}>
+              {t.deleteConfirmBody}
+            </div>
+            {deleteError && <div style={{ color: c.red, fontSize: 13, marginBottom: 14 }}>{deleteError}</div>}
+            <div style={{ display: "flex", justifyContent: "flex-end", gap: 10 }}>
+              <button
+                type="button"
+                onClick={() => setDeleteOpen(false)}
+                disabled={deleteBusy}
+                style={{
+                  border: `1px solid ${c.borderStrong}`,
+                  background: "transparent",
+                  color: c.text,
+                  padding: "9px 14px",
+                  cursor: deleteBusy ? "default" : "pointer",
+                  borderRadius: r.radiusSm,
+                }}
+              >
+                {t.cancelDelete}
+              </button>
+              <button
+                type="button"
+                onClick={removeAgent}
+                disabled={deleteBusy}
+                style={{
+                  border: `1px solid ${c.redBorder}`,
+                  background: c.red,
+                  color: c.ink,
+                  padding: "9px 14px",
+                  cursor: deleteBusy ? "default" : "pointer",
+                  opacity: deleteBusy ? 0.6 : 1,
+                  fontWeight: 600,
+                  borderRadius: r.radiusSm,
+                }}
+              >
+                {deleteBusy ? t.deletingAgent : t.deleteConfirm}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 }
 
-function InstanceInfoDrawer({ agentId, onClose }: { agentId: string; onClose: () => void }) {
+function InstanceInfoDrawer({ agentId, onClose, onAfterSync }: { agentId: string; onClose: () => void; onAfterSync?: () => void }) {
   const { lang } = useApp();
   const t = fleetDetail[lang];
   const [data, setData] = useState<{ providers: AgentManagerProviderInfo[] } | null>(null);
@@ -1426,6 +2630,9 @@ function InstanceInfoDrawer({ agentId, onClose }: { agentId: string; onClose: ()
       try {
         const res = await api.getAgentInstanceInfo(agentId);
         if (alive) setData(res);
+        // Only ask parent to re-fetch when an auto-stop actually happened,
+        // so the badge reflects the paused state.
+        if (alive && res.autoStopped && onAfterSync) onAfterSync();
       } catch (e) {
         if (alive) setError(e instanceof ApiError ? e.message : t.instanceInfoLoadError);
       } finally {
@@ -1435,7 +2642,7 @@ function InstanceInfoDrawer({ agentId, onClose }: { agentId: string; onClose: ()
     return () => {
       alive = false;
     };
-  }, [agentId, t.instanceInfoLoadError]);
+  }, [agentId, t.instanceInfoLoadError, onAfterSync]);
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
@@ -1943,6 +3150,305 @@ function InfoField({
   );
 }
 
+
+// ---------------------------------------------------------------------------
+// Channel Management Tab
+// ---------------------------------------------------------------------------
+
+type ChannelType = "feishu" | "dingtalk" | "wechat" | "wecom";
+
+interface ChannelState {
+  feishu: { enabled: boolean; appId: string; appSecret: string; dmPolicy: string; groupPolicy: string };
+  dingtalk: { enabled: boolean; clientId: string; clientSecret: string; robotCode: string; corpId: string; agentId: string; messageType: string; allowFrom: string };
+  wechat: { enabled: boolean };
+  wecom: { enabled: boolean; botId: string; secret: string };
+}
+
+interface ChannelModalProps {
+  type: ChannelType;
+  channel: ChannelState[ChannelType];
+  onChange: (type: ChannelType, patch: Partial<ChannelState[ChannelType]>) => void;
+  onSave: (type: ChannelType) => void;
+  onCancel: () => void;
+  saving: boolean;
+  t: FleetDetailDict;
+  qrcode?: { qrcodeUrl: string | null; qrcodeImage: string | null; expiresIn: number; message: string; status: string; rawOutput?: string | null; connected?: boolean; sessionId?: string | null; finalStdout?: string | null; exitCode?: number | null } | null;
+  qrcodeLoading: boolean;
+  onFetchQrcode: () => void;
+}
+
+function ChannelModal({ type, channel, onChange, onSave, onCancel, saving, t, qrcode, qrcodeLoading, onFetchQrcode }: ChannelModalProps) {
+  const [draft, setDraft] = useState(channel);
+
+  // Sync draft when channel changes externally
+  useEffect(() => { setDraft(channel); }, [channel]);
+
+  const set = (patch: Partial<ChannelState[typeof type]>) => {
+    setDraft(prev => ({ ...prev, ...patch }));
+    onChange(type, patch);
+  };
+
+  // Keep terminal QR output compact without changing the QR rows themselves.
+  const qrOutput = qrcode?.rawOutput?.trim();
+
+  const label: Record<ChannelType, string> = {
+    feishu: t.channelFeishu,
+    dingtalk: t.channelDingtalk,
+    wechat: t.channelWechat,
+    wecom: t.channelWecom,
+  };
+
+  const icon: Record<ChannelType, string> = {
+    feishu: "📱", dingtalk: "💬", wechat: "💚", wecom: "💙",
+  };
+
+  return (
+    <div style={{
+      position: "fixed", inset: 0, zIndex: 1000,
+      display: "flex", alignItems: "center", justifyContent: "center",
+      background: "rgba(0,0,0,0.55)",
+      backdropFilter: "blur(3px)",
+    }}
+      onClick={e => { if (e.target === e.currentTarget) onCancel(); }}
+    >
+      <div style={{
+        background: c.panel,
+        border: `1px solid ${c.borderStrong}`,
+        borderRadius: r.radiusLg,
+        padding: 28,
+        width: 480,
+        maxHeight: "85vh",
+        overflowY: "auto",
+        display: "flex",
+        flexDirection: "column",
+        gap: 20,
+        boxShadow: "0 20px 60px rgba(0,0,0,0.4)",
+      }}>
+        {/* Header */}
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <span style={{ fontSize: 22 }}>{icon[type]}</span>
+            <span style={{ fontFamily: font.space, fontWeight: 700, fontSize: 16, color: c.text }}>
+              {t.edit} {label[type]}
+            </span>
+          </div>
+          <button onClick={onCancel} style={{
+            background: "none", border: "none", cursor: "pointer",
+            color: c.muted, fontSize: 20, padding: 4, lineHeight: 1,
+          }}>✕</button>
+        </div>
+
+        {/* Feishu form */}
+        {type === "feishu" && (() => {
+          const d = draft as ChannelState["feishu"];
+          return (
+          <>
+            <Field label={t.channelFeishuAppId}>
+              <input value={d.appId} onChange={e => set({ appId: e.target.value })} style={sInput} />
+            </Field>
+            <Field label={t.channelFeishuAppSecret}>
+              <input type="password" value={d.appSecret} onChange={e => set({ appSecret: e.target.value })} style={sInput} />
+            </Field>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+              {/* <Field label={t.channelFeishuDmPolicy}>
+                <SelectField value={d.dmPolicy} onChange={v => set({ dmPolicy: v })} options={[
+                  { id: "open", label: t.channelFeishuDmPolicyOpen },
+                  { id: "close", label: "Close" },
+                ]} />
+              </Field> */}
+              {/* <Field label={t.channelFeishuGroupPolicy}>
+                <SelectField value={d.groupPolicy} onChange={v => set({ groupPolicy: v })} options={[
+                  { id: "open", label: t.channelFeishuGroupPolicyOpen },
+                  { id: "close", label: "Close" },
+                ]} />
+              </Field> */}
+            </div>
+          </>
+          );
+        })()}
+
+        {/* Dingtalk form */}
+        {type === "dingtalk" && (() => {
+          const d = draft as ChannelState["dingtalk"];
+          return (
+          <>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+              <Field label={t.channelDingtalkClientId}>
+                <input value={d.clientId} onChange={e => set({ clientId: e.target.value })} style={sInput} />
+              </Field>
+              <Field label={t.channelDingtalkClientSecret}>
+                <input type="password" value={d.clientSecret} onChange={e => set({ clientSecret: e.target.value })} style={sInput} />
+              </Field>
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+              {/* <Field label={t.channelDingtalkRobotCode}>
+                <input value={d.robotCode} onChange={e => set({ robotCode: e.target.value })} style={sInput} />
+              </Field> */}
+              <Field label={t.channelDingtalkCorpId}>
+                <input value={d.corpId} onChange={e => set({ corpId: e.target.value })} style={sInput} />
+              </Field>
+              <Field label={t.channelDingtalkAgentId}>
+                <input value={d.agentId} onChange={e => set({ agentId: e.target.value })} style={sInput} />
+              </Field>
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+           
+              {/* <Field label={t.channelDingtalkMessageType}>
+                <SelectField value={d.messageType} onChange={v => set({ messageType: v })} options={[
+                  { id: "markdown", label: "Markdown" },
+                  { id: "text", label: "Text" },
+                ]} />
+              </Field> */}
+            </div>
+            {/* <Field label={t.channelDingtalkAllowFrom} hint="Comma-separated, e.g. * or @user">
+              <input value={d.allowFrom} onChange={e => set({ allowFrom: e.target.value })} style={sInput} placeholder="*" />
+            </Field> */}
+          </>
+          );
+        })()}
+
+        {/* WeChat — QR code login (SSE driven) */}
+        {type === "wechat" && (
+          <div style={{ display: "flex", flexDirection: "column", gap: 16, alignItems: "center" }}>
+            <div style={{ fontFamily: font.mono, fontSize: 13, color: c.faint, textAlign: "center", lineHeight: 1.6 }}>
+              {t.channelWechatScanLoginDesc}
+            </div>
+            <button
+              onClick={onFetchQrcode}
+              disabled={qrcodeLoading}
+              style={{
+                background: c.lime, color: c.ink, border: "none",
+                padding: "10px 20px", fontFamily: font.space,
+                fontWeight: 700, fontSize: 13,
+                cursor: qrcodeLoading ? "default" : "pointer",
+                opacity: qrcodeLoading ? 0.6 : 1,
+                borderRadius: r.radiusSm, width: "100%",
+              }}
+            >
+              {qrcodeLoading
+                ? "…"
+                : qrcode?.connected
+                ? "Connected"
+                : qrcode?.status === "expired"
+                ? "Expired — retry"
+                : t.channelWechatScanLogin}
+            </button>
+            {qrcode && (
+              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 10, width: "100%" }}>
+                {qrcode.connected ? (
+                  <div style={{
+                    fontFamily: font.mono, fontSize: 12.5, color: c.green,
+                    padding: "10px 14px", border: `1px solid ${c.greenBorder ?? c.border}`,
+                    borderRadius: r.radiusSm, textAlign: "center",
+                  }}>
+                    WeChat login successful
+                  </div>
+                ) : qrcode.status === "error" ? (
+                  <div style={{
+                    fontFamily: font.mono, fontSize: 12, color: c.red,
+                    padding: "10px 14px", border: `1px solid ${c.redBorder}`,
+                    borderRadius: r.radiusSm, textAlign: "center",
+                  }}>
+                    {qrcode.message || "Login failed"}
+                  </div>
+                ) : qrOutput ? (
+                  <pre style={{
+                    background: "#111",
+                    padding: "8px 12px",
+                    borderRadius: r.radiusSm,
+                    border: `1px solid ${c.border}`,
+                    fontFamily: "monospace",
+                    fontSize: 9,
+                    lineHeight: 1,
+                    color: "#00ff88",
+                    textAlign: "left",
+                    overflowX: "auto",
+                    margin: 0,
+                    maxWidth: "100%",
+                  }}>
+                    {qrOutput}
+                  </pre>
+                ) : qrcode.qrcodeUrl ? (
+                  <img
+                    src={qrcode.qrcodeUrl}
+                    alt={t.channelWechatLoginQrcode}
+                    style={{ width: 180, height: 180, border: `1px solid ${c.border}`, borderRadius: r.radiusSm, display: "block", margin: "0 auto" }}
+                  />
+                ) : null}
+                {qrcode.qrcodeUrl && qrcode.rawOutput && (
+                  <a
+                    href={qrcode.qrcodeUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    style={{ fontFamily: font.mono, fontSize: 10.5, color: c.muted, textAlign: "center", wordBreak: "break-all" }}
+                  >
+                    {qrcode.qrcodeUrl}
+                  </a>
+                )}
+                <div style={{ fontFamily: font.mono, fontSize: 11, color: c.faint, textAlign: "center" }}>
+                  {qrcode.message}
+                </div>
+                <div style={{ fontFamily: font.mono, fontSize: 10.5, color: c.muted, textAlign: "center" }}>
+                  {qrcode.expiresIn > 0 && !qrcode.connected && qrcode.status !== "error"
+                    ? `${qrcode.expiresIn}s`
+                    : t.channelLoginExpired}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* WeCom form */}
+        {type === "wecom" && (() => {
+          const d = draft as ChannelState["wecom"];
+          return (
+          <>
+            <Field label={t.channelWecomBotId}>
+              <input value={d.botId} onChange={e => set({ botId: e.target.value })} style={sInput} />
+            </Field>
+            <Field label={t.channelWecomSecret}>
+              <input type="password" value={d.secret} onChange={e => set({ secret: e.target.value })} style={sInput} />
+            </Field>
+          </>
+          );
+        })()}
+
+        {/* Actions */}
+        <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", paddingTop: 4 }}>
+          <button onClick={onCancel} style={{
+            padding: "10px 18px",
+            background: "none",
+            border: `1px solid ${c.borderStrong}`,
+            borderRadius: r.radiusSm,
+            color: c.text2,
+            fontFamily: font.space,
+            fontWeight: 600,
+            fontSize: 13,
+            cursor: saving ? "default" : "pointer",
+            opacity: saving ? 0.5 : 1,
+          }}>
+            {t.cancel}
+          </button>
+          <button onClick={() => onSave(type)} disabled={saving} style={{
+            padding: "10px 20px",
+            background: c.lime,
+            border: "none",
+            borderRadius: r.radiusSm,
+            color: c.ink,
+            fontFamily: font.space,
+            fontWeight: 700,
+            fontSize: 13,
+            cursor: saving ? "default" : "pointer",
+            opacity: saving ? 0.6 : 1,
+          }}>
+            {saving ? "…" : t.saveChanges}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function AgentDetailInner() {
   const { lang } = useApp();
   const t = fleetDetail[lang];
@@ -2173,7 +3679,11 @@ function AgentDetailInner() {
                   ? t.tabChat
                   : id === "performance"
                     ? t.tabPerformance
-                    : t.tabSettings;
+                    :             id === "usage"
+                      ? t.tabUsage
+                      : id === "settings"
+                        ? t.tabSettings
+                        : "";
           return (
             <button
               key={id}
@@ -2189,6 +3699,7 @@ function AgentDetailInner() {
                 fontWeight: 500,
                 cursor: "pointer",
                 whiteSpace: "nowrap",
+                borderRadius: r.radiusSm,
               }}
             >
               {label}
@@ -2201,6 +3712,7 @@ function AgentDetailInner() {
       {tab === "tasks" && <TasksTab cur={cur} />}
       {tab === "chat" && <ChatTab key={cur.id} cur={cur} />}
       {tab === "performance" && <PerformanceTab key={cur.id} cur={cur} onRefresh={load} />}
+      {tab === "usage" && <UsageTab key={cur.id} cur={cur} />}
       {tab === "settings" && <SettingsTab key={cur.id} cur={cur} onRefresh={load} />}
     </div>
   );

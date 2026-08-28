@@ -105,6 +105,7 @@ export async function POST(req: Request, { params }: Ctx) {
             conversationId: conv!.id,
             agentName: agent.name,
             body: parsed.data.body,
+            sessionKey: parsed.data.sessionKey,
             onDelta: (delta) => send({ type: "delta", delta }),
             onComplete: (replyMessage) =>
               send({ type: "done", conversationId: conv!.id, replyMessage: serializeMessage(replyMessage) }),
@@ -168,6 +169,7 @@ async function streamOpenclawReply(opts: {
   conversationId: string;
   agentName: string;
   body: string;
+  sessionKey?: string;
   onDelta: (delta: string) => void;
   onComplete: (replyMessage: Message) => void;
   onError: (message: string) => void;
@@ -175,7 +177,11 @@ async function streamOpenclawReply(opts: {
   try {
     const handle = await streamOpenclawChat(
       opts.externalId,
-      { agent: "main", message: opts.body },
+      {
+        agent: "main",
+        message: opts.body,
+        ...(opts.sessionKey ? { sessionKey: opts.sessionKey } : {}),
+      },
       {
         onEvent: (event) => {
           if (event.type === "response.output_text.delta" && event.delta) {

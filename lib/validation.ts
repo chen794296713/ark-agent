@@ -23,9 +23,20 @@ export const loginSchema = z.object({
   password: z.string().min(1).max(200),
 });
 
+export const changePasswordSchema = z
+  .object({
+    currentPassword: z.string().min(1).max(200),
+    newPassword: z.string().min(8, "Password must be at least 8 characters").max(200),
+  })
+  .refine(({ currentPassword, newPassword }) => currentPassword !== newPassword, {
+    message: "New password must be different from the current password",
+    path: ["newPassword"],
+  });
+
 export const createAgentSchema = z.object({
   name: z.string().min(1).max(80),
   roleId: z.string().min(1).max(40),
+  managerAgentId: z.number().int().positive().optional(),
   engine: z.enum(["openclaw", "hermes"]),
   planTier: z.enum(["associate", "professional", "director"]).default("associate"),
   instructions: z.string().max(8000).default(""),
@@ -92,6 +103,7 @@ export const lifecycleSchema = z.object({
 export const sendMessageSchema = z.object({
   body: z.string().min(1).max(4000),
   conversationId: z.string().uuid().optional(),
+  sessionKey: z.string().min(1).max(500).optional(),
 });
 
 export const improvementActionSchema = z.object({
@@ -102,6 +114,15 @@ export const connectChannelSchema = z.object({
   type: z.enum(CHANNEL_TYPES),
   config: z.record(z.string(), z.string()).default({}),
   label: z.string().max(80).optional(),
+});
+
+const CHANNEL_TYPE_ALL = ["feishu", "dingtalk", "wechat", "wecom", ...CHANNEL_TYPES] as const;
+
+export const upsertChannelSchema = z.object({
+  instanceUuid: z.string(),
+  channelType: z.enum(CHANNEL_TYPE_ALL),
+  enabled: z.boolean(),
+  config: z.record(z.string(), z.unknown()).default({}),
 });
 
 export const checkoutSchema = z.object({

@@ -8,21 +8,25 @@ import { ENGINE_LABEL, planLabel } from "@/lib/agent-display";
 import { Btn } from "@/components/ui";
 import { useApp } from "@/lib/store";
 import { hire } from "@/lib/i18n/hire";
+import { getTranslatedRole } from "@/lib/i18n/roles";
 
 const LIME = c.lime;
 const ACCENT = c.accent;
 const INKBG = c.panel; // #0E1116
 const BORD = c.border; // #232B38
+const CUSTOM_ROLE_ID = "custom";
+const ROLE_PAGE_SIZE = 10;
 
-/** Channel picker labels (incl. native script) mapped to API type strings. */
-const CHANNEL_OPTIONS: { label: string; type: string; on: boolean }[] = [
-  { label: "Telegram", type: "telegram", on: true },
-  { label: "WhatsApp", type: "whatsapp", on: true },
-  { label: "WeChat 微信", type: "wechat", on: false },
-  { label: "LINE", type: "line", on: false },
-  { label: "Slack", type: "slack", on: false },
-  { label: "Email", type: "email", on: false },
-];
+/** Channel picker labels mapped to API type strings. Labels are set dynamically from i18n. */
+const CHANNEL_TYPES = [
+  "telegram",
+  "whatsapp",
+  "wechat",
+  "line",
+  "slack",
+  "email",
+] as const;
+type ChannelType = (typeof CHANNEL_TYPES)[number];
 
 function HireInner() {
   const router = useRouter();
@@ -36,6 +40,9 @@ function HireInner() {
   const [roles, setRoles] = useState<RoleDTO[]>([]);
   const [rolesLoading, setRolesLoading] = useState(true);
   const [rolesError, setRolesError] = useState<string | null>(null);
+  const [roleSearch, setRoleSearch] = useState("");
+  const [rolePage, setRolePage] = useState(1);
+  const [customRoleName, setCustomRoleName] = useState("");
 
   const [hireStep, setHireStep] = useState(1);
   const [selRole, setSelRole] = useState<string>("");
@@ -46,8 +53,10 @@ function HireInner() {
   const [taskDraft, setTaskDraft] = useState("");
   const [tasks, setTasks] = useState<string[]>(() => [...t.tasksDefault]);
   const [engine, setEngine] = useState("auto");
-  const [channels, setChannels] = useState<Record<string, boolean>>(() =>
-    Object.fromEntries(CHANNEL_OPTIONS.map((o) => [o.type, o.on])),
+  const [channels, setChannels] = useState<Record<ChannelType, boolean>>(() =>
+    Object.fromEntries(
+      CHANNEL_TYPES.map((type) => [type, type === "telegram" || type === "whatsapp"]),
+    ) as Record<ChannelType, boolean>,
   );
   const [genBusyI, setGenBusyI] = useState(false);
   const [genBusyR, setGenBusyR] = useState(false);
@@ -72,11 +81,12 @@ function HireInner() {
       .then(({ roles: rs }) => {
         if (!alive) return;
         setRoles(rs);
+        setRolePage(1);
         // Honor a ?role= preselect when valid, else first role.
         setSelRole((cur) => {
           if (cur && rs.some((x) => x.id === cur)) return cur;
           if (preRole && rs.some((x) => x.id === preRole)) return preRole;
-          return rs[0]?.id ?? "";
+          return rs.find((x) => x.id !== CUSTOM_ROLE_ID)?.id ?? rs[0]?.id ?? "";
         });
       })
       .catch((err: unknown) => {
@@ -100,6 +110,54 @@ function HireInner() {
   const selRoleObj = useMemo(
     () => roles.find((x) => x.id === selRole) || roles[0],
     [roles, selRole],
+  );
+
+  const orderedRoles = useMemo(
+    () => [...roles].sort((a, b) => {
+      if (a.id === CUSTOM_ROLE_ID) return -1;
+      if (b.id === CUSTOM_ROLE_ID) return 1;
+      return 0;
+    }),
+    [roles],
+  );
+
+  const filteredRoles = useMemo(() => {
+    const query = roleSearch.trim().toLocaleLowerCase();
+    if (!query) return orderedRoles;
+    return orderedRoles.filter((role) =>
+      [
+        role.id === CUSTOM_ROLE_ID ? t.customRoleName : role.name,
+        role.id === CUSTOM_ROLE_ID ? t.customRoleBlurb : role.blurb,
+        role.categoryName,
+        role.uploadFilename,
+      ]
+        .filter(Boolean)
+        .some((value) => value!.toLocaleLowerCase().includes(query)),
+    );
+  }, [orderedRoles, roleSearch, t.customRoleBlurb, t.customRoleName]);
+
+  const totalRolePages = Math.max(1, Math.ceil(filteredRoles.length / ROLE_PAGE_SIZE));
+  const currentRolePage = Math.min(rolePage, totalRolePages);
+  const visibleRoles = filteredRoles.slice(
+    (currentRolePage - 1) * ROLE_PAGE_SIZE,
+    currentRolePage * ROLE_PAGE_SIZE,
+  );
+
+  const isCustomRole = selRole === CUSTOM_ROLE_ID;
+
+  // Translated role name and blurb for display
+  const selRoleDisplay = useMemo(
+    () => {
+      if (!selRoleObj) return null;
+      if (selRoleObj.id === CUSTOM_ROLE_ID) {
+        return {
+          name: customRoleName.trim() || t.customRoleName,
+          blurb: t.customRoleBlurb,
+        };
+      }
+      return getTranslatedRole(selRoleObj.id, selRoleObj.name, selRoleObj.blurb, lang);
+    },
+    [customRoleName, lang, selRoleObj, t.customRoleBlurb, t.customRoleName],
   );
 
   const genInstr = async () => {
@@ -147,11 +205,22 @@ function HireInner() {
   };
 
   // Selected channel TYPE strings (e.g. ["telegram","whatsapp"]).
-  const chanTypes = Object.keys(channels).filter((k) => channels[k]);
-  const chanLabels = chanTypes.map(
-    (t) => CHANNEL_OPTIONS.find((o) => o.type === t)?.label ?? t,
-  );
-  const revName = agentName.trim() || selRoleObj?.name || "Aria";
+  const chanTypes = CHANNEL_TYPES.filter((type) => channels[type]);
+
+  // Channel labels from i18n
+  const getChannelLabel = (type: ChannelType): string => {
+    switch (type) {
+      case "telegram": return t.channelTelegram;
+      case "whatsapp": return t.channelWhatsApp;
+      case "wechat": return t.channelWeChat;
+      case "line": return t.channelLINE;
+      case "slack": return t.channelSlack;
+      case "email": return t.channelEmail;
+    }
+  };
+
+  const chanLabels = chanTypes.map(getChannelLabel);
+  const revName = agentName.trim() || selRoleDisplay?.name || "Aria";
 
   // Engine actually used: explicit pick, or the role's default for auto-match.
   const resolvedEngine: "openclaw" | "hermes" =
@@ -168,7 +237,9 @@ function HireInner() {
 
   const launchDone = launchStep >= 4 && !!createdId;
 
-  const canNext = hireStep === 1 ? !!selRole : true;
+  const canNext = hireStep === 1
+    ? !!selRole && (!isCustomRole || !!customRoleName.trim())
+    : true;
   const nextStep = () => {
     if (!canNext) return;
     if (hireStep < 4) setHireStep(hireStep + 1);
@@ -209,6 +280,9 @@ function HireInner() {
       .createAgent({
         name: revName,
         roleId: selRoleObj.id,
+        ...(selRoleObj.managerAgentId !== undefined
+          ? { managerAgentId: selRoleObj.managerAgentId }
+          : {}),
         engine: resolvedEngine,
         planTier,
         instructions,
@@ -475,60 +549,202 @@ function HireInner() {
               )}
 
               {!rolesLoading && !rolesError && roles.length > 0 && (
-                <div
-                  style={{
-                    display: "grid",
-                    gridTemplateColumns: r.col2,
-                    gap: 12,
-                  }}
-                >
-                  {roles.map((role) => {
-                    const sel = selRole === role.id;
-                    return (
-                      <div
-                        key={role.id}
-                        onClick={() => setSelRole(role.id)}
-                        style={{
-                          border: "1px solid " + (sel ? ACCENT : BORD),
-                          background: sel ? c.limeWash : INKBG,
-                          padding: "18px 20px",
-                          cursor: "pointer",
-                          display: "flex",
-                          gap: 14,
-                          alignItems: "center",
-                        }}
-                      >
-                        <div
-                          style={{
-                            width: 34,
-                            height: 34,
-                            flexShrink: 0,
-                            background: role.hue,
-                            color: c.ink,
-                            display: "grid",
-                            placeItems: "center",
-                            fontFamily: font.space,
-                            fontWeight: 700,
-                          }}
-                        >
-                          {role.mono}
-                        </div>
-                        <div>
+                <>
+                  <input
+                    type="search"
+                    value={roleSearch}
+                    onChange={(e) => {
+                      setRoleSearch(e.target.value);
+                      setRolePage(1);
+                    }}
+                    placeholder={t.searchRolesPlaceholder}
+                    aria-label={t.searchRolesPlaceholder}
+                    style={{
+                      width: "100%",
+                      boxSizing: "border-box",
+                      marginBottom: 14,
+                      background: c.panel,
+                      border: `1px solid ${c.border}`,
+                      color: c.text,
+                      padding: "12px 14px",
+                      fontSize: 14.5,
+                      fontFamily: font.sans,
+                      outline: "none",
+                      borderRadius: r.radiusSm,
+                    }}
+                  />
+                  {filteredRoles.length === 0 ? (
+                    <div
+                      style={{
+                        border: `1px solid ${c.border}`,
+                        background: c.panel,
+                        padding: "18px 22px",
+                        fontSize: 14,
+                        color: c.muted,
+                      }}
+                    >
+                      {t.noRolesMatch}
+                    </div>
+                  ) : (
+                    <div
+                      style={{
+                        display: "grid",
+                        gridTemplateColumns: r.col2,
+                        gap: 12,
+                      }}
+                    >
+                      {visibleRoles.map((role) => {
+                        const sel = selRole === role.id;
+                        const translated = role.id === CUSTOM_ROLE_ID
+                          ? { name: t.customRoleName, blurb: t.customRoleBlurb }
+                          : getTranslatedRole(role.id, role.name, role.blurb, lang);
+                        return (
                           <div
+                            key={role.id}
+                            onClick={() => setSelRole(role.id)}
                             style={{
-                              fontFamily: font.space,
-                              fontWeight: 700,
-                              fontSize: 15.5,
+                              border: "1px solid " + (sel ? ACCENT : BORD),
+                              background: sel ? c.limeWash : INKBG,
+                              padding: "18px 20px",
+                              cursor: "pointer",
+                              display: "flex",
+                              gap: 14,
+                              alignItems: "center",
+                              minHeight: 112,
+                              boxSizing: "border-box",
+                              borderRadius: r.radiusMd,
                             }}
                           >
-                            {role.name}
+                            <div
+                              style={{
+                                width: 34,
+                                height: 34,
+                                flexShrink: 0,
+                                background: role.hue,
+                                color: c.ink,
+                                display: "grid",
+                                placeItems: "center",
+                                fontFamily: font.space,
+                                fontWeight: 700,
+                              }}
+                            >
+                              {role.mono}
+                            </div>
+                            <div style={{ minWidth: 0, flex: 1 }}>
+                              <div
+                                style={{
+                                  fontFamily: font.space,
+                                  fontWeight: 700,
+                                  fontSize: 15.5,
+                                  lineHeight: "20px",
+                                  display: "-webkit-box",
+                                  WebkitBoxOrient: "vertical",
+                                  WebkitLineClamp: 2,
+                                  overflow: "hidden",
+                                  overflowWrap: "anywhere",
+                                }}
+                              >
+                                {translated.name}
+                              </div>
+                              {role.id === CUSTOM_ROLE_ID && sel ? (
+                                <input
+                                  value={customRoleName}
+                                  onChange={(e) => setCustomRoleName(e.target.value)}
+                                  onClick={(e) => e.stopPropagation()}
+                                  placeholder={t.customRolePlaceholder}
+                                  aria-label={t.customRoleName}
+                                  autoFocus
+                                  style={{
+                                    width: "100%",
+                                    boxSizing: "border-box",
+                                    marginTop: 7,
+                                    background: c.panelDeep,
+                                    border: `1px solid ${customRoleName.trim() ? c.limeBorder : c.border}`,
+                                    color: c.text,
+                                    padding: "8px 10px",
+                                    fontSize: 13,
+                                    fontFamily: font.sans,
+                                    outline: "none",
+                                    borderRadius: r.radiusSm,
+                                  }}
+                                />
+                              ) : (
+                                <div
+                                  style={{
+                                    marginTop: 4,
+                                    fontSize: 12.5,
+                                    lineHeight: "18px",
+                                    color: c.muted,
+                                    display: "-webkit-box",
+                                    WebkitBoxOrient: "vertical",
+                                    WebkitLineClamp: 3,
+                                    overflow: "hidden",
+                                    overflowWrap: "anywhere",
+                                  }}
+                                >
+                                  {translated.blurb}
+                                </div>
+                              )}
+                            </div>
                           </div>
-                          <div style={{ fontSize: 12.5, color: c.muted }}>{role.blurb}</div>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                  {totalRolePages > 1 && (
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        gap: 12,
+                        marginTop: 16,
+                      }}
+                    >
+                      <Btn
+                        type="button"
+                        disabled={currentRolePage === 1}
+                        onClick={() => setRolePage(Math.max(1, currentRolePage - 1))}
+                        style={{
+                          border: `1px solid ${c.borderStrong}`,
+                          background: "transparent",
+                          color: currentRolePage === 1 ? c.faint : c.text2,
+                          padding: "8px 12px",
+                          fontFamily: font.sans,
+                          fontSize: 13,
+                          cursor: currentRolePage === 1 ? "default" : "pointer",
+                          opacity: currentRolePage === 1 ? 0.55 : 1,
+                          borderRadius: r.radiusSm,
+                        }}
+                        hoverStyle={{ color: c.accent, borderColor: c.limeBorder }}
+                      >
+                        ← {t.rolePrevious}
+                      </Btn>
+                      <span style={{ color: c.muted, fontSize: 12.5, fontFamily: font.mono }}>
+                        {t.rolePage(currentRolePage, totalRolePages)}
+                      </span>
+                      <Btn
+                        type="button"
+                        disabled={currentRolePage === totalRolePages}
+                        onClick={() => setRolePage(Math.min(totalRolePages, currentRolePage + 1))}
+                        style={{
+                          border: `1px solid ${c.borderStrong}`,
+                          background: "transparent",
+                          color: currentRolePage === totalRolePages ? c.faint : c.text2,
+                          padding: "8px 12px",
+                          fontFamily: font.sans,
+                          fontSize: 13,
+                          cursor: currentRolePage === totalRolePages ? "default" : "pointer",
+                          opacity: currentRolePage === totalRolePages ? 0.55 : 1,
+                          borderRadius: r.radiusSm,
+                        }}
+                        hoverStyle={{ color: c.accent, borderColor: c.limeBorder }}
+                      >
+                        {t.roleNext} →
+                      </Btn>
+                    </div>
+                  )}
+                </>
               )}
             </>
           )}
@@ -547,9 +763,41 @@ function HireInner() {
               >
                 {t.s2Title}
               </h2>
-              <p style={{ color: c.muted, margin: "0 0 32px" }}>
-                {t.s2Hiring(selRoleObj?.name ?? "—")}
+              <p style={{ color: c.muted, margin: "0 0 14px" }}>
+                {t.s2Hiring(selRoleDisplay?.name ?? "—")}
               </p>
+              {selRoleDisplay?.blurb && (
+                <div
+                  style={{
+                    borderLeft: `2px solid ${c.limeBorder}`,
+                    paddingLeft: 14,
+                    marginBottom: 32,
+                  }}
+                >
+                  <div
+                    style={{
+                      fontFamily: font.mono,
+                      fontSize: 10.5,
+                      letterSpacing: ".1em",
+                      color: c.accent,
+                      marginBottom: 5,
+                    }}
+                  >
+                    {/* {t.roleDescription} */}
+                  </div>
+                  <p
+                    style={{
+                      margin: 0,
+                      color: c.text2,
+                      fontSize: 14,
+                      lineHeight: 1.6,
+                      overflowWrap: "anywhere",
+                    }}
+                  >
+                    {selRoleDisplay.blurb}
+                  </p>
+                </div>
+              )}
               <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
                 <div>
                   <div
@@ -577,6 +825,7 @@ function HireInner() {
                       fontSize: 15,
                       fontFamily: font.sans,
                       outline: "none",
+                      borderRadius: r.radiusSm,
                     }}
                   />
                 </div>
@@ -631,6 +880,7 @@ function HireInner() {
                       fontFamily: font.sans,
                       outline: "none",
                       resize: "vertical",
+                      borderRadius: r.radiusSm,
                     }}
                   />
                 </div>
@@ -685,6 +935,7 @@ function HireInner() {
                       fontFamily: font.sans,
                       outline: "none",
                       resize: "vertical",
+                      borderRadius: r.radiusSm,
                     }}
                   />
                 </div>
@@ -718,6 +969,7 @@ function HireInner() {
                           border: `1px solid ${c.border}`,
                           background: c.panel,
                           padding: "10px 14px",
+                          borderRadius: r.radiusSm,
                         }}
                       >
                         <span
@@ -766,6 +1018,7 @@ function HireInner() {
                         fontSize: 14.5,
                         fontFamily: font.sans,
                         outline: "none",
+                        borderRadius: r.radiusSm,
                       }}
                     />
                     <button
@@ -778,6 +1031,7 @@ function HireInner() {
                         fontFamily: font.space,
                         fontSize: 14,
                         cursor: "pointer",
+                        borderRadius: r.radiusSm,
                       }}
                     >
                       {t.addTask}
@@ -808,6 +1062,7 @@ function HireInner() {
                       fontSize: 15,
                       fontFamily: font.sans,
                       outline: "none",
+                      borderRadius: r.radiusSm,
                     }}
                   />
                 </div>
@@ -847,6 +1102,7 @@ function HireInner() {
                     background: ec.auto.bg,
                     padding: "22px 20px",
                     cursor: "pointer",
+                    borderRadius: r.radiusMd,
                   }}
                 >
                   <div
@@ -898,6 +1154,7 @@ function HireInner() {
                     background: ec.open.bg,
                     padding: "22px 20px",
                     cursor: "pointer",
+                    borderRadius: r.radiusMd,
                   }}
                 >
                   <div
@@ -949,6 +1206,7 @@ function HireInner() {
                     background: ec.hermes.bg,
                     padding: "22px 20px",
                     cursor: "pointer",
+                    borderRadius: r.radiusMd,
                   }}
                 >
                   <div
@@ -1006,13 +1264,13 @@ function HireInner() {
                 {t.channelsLabel}
               </div>
               <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                {CHANNEL_OPTIONS.map((opt) => {
-                  const on = channels[opt.type];
+                {CHANNEL_TYPES.map((type) => {
+                  const on = channels[type];
                   return (
                     <button
-                      key={opt.type}
+                      key={type}
                       onClick={() =>
-                        setChannels((cs) => ({ ...cs, [opt.type]: !cs[opt.type] }))
+                        setChannels((cs) => ({ ...cs, [type]: !cs[type] }))
                       }
                       style={{
                         border: "1px solid " + (on ? ACCENT : BORD),
@@ -1022,9 +1280,10 @@ function HireInner() {
                         fontSize: 14,
                         fontFamily: font.sans,
                         cursor: "pointer",
+                        borderRadius: r.radiusSm,
                       }}
                     >
-                      {opt.label}
+                      {getChannelLabel(type)}
                     </button>
                   );
                 })}
@@ -1057,10 +1316,12 @@ function HireInner() {
                   border: `1px solid ${c.border}`,
                   background: c.panel,
                   marginBottom: 24,
+                  borderRadius: r.radiusMd,
+                  overflow: "hidden",
                 }}
               >
                 {[
-                  { k: t.rowRole, v: selRoleObj?.name ?? "—", last: false },
+                  { k: t.rowRole, v: selRoleDisplay?.name ?? "—", last: false },
                   { k: t.rowName, v: revName, last: false },
                   { k: t.rowEngine, v: engineName, last: false },
                   {
@@ -1132,6 +1393,7 @@ function HireInner() {
                     fontSize: 16,
                     cursor: "pointer",
                     width: "100%",
+                    borderRadius: r.radiusMd,
                   }}
                   hoverStyle={{ background: c.limeHover }}
                 >
@@ -1150,6 +1412,7 @@ function HireInner() {
                     display: "flex",
                     flexDirection: "column",
                     gap: 14,
+                    borderRadius: r.radiusMd,
                   }}
                 >
                   {launchRows.map((l, i) => (
@@ -1189,6 +1452,7 @@ function HireInner() {
                     alignItems: "center",
                     justifyContent: "space-between",
                     gap: 20,
+                    borderRadius: r.radiusMd,
                   }}
                 >
                   <div>
@@ -1218,6 +1482,7 @@ function HireInner() {
                       fontSize: 14,
                       cursor: "pointer",
                       whiteSpace: "nowrap",
+                      borderRadius: r.radiusSm,
                     }}
                   >
                     {t.openDashboard}
@@ -1266,6 +1531,7 @@ function HireInner() {
                   fontWeight: 700,
                   fontSize: 15,
                   cursor: canNext ? "pointer" : "not-allowed",
+                  borderRadius: r.radiusSm,
                 }}
               >
                 {hireStep === 3 ? t.reviewNext : t.continueNext}

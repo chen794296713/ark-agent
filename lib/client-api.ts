@@ -59,6 +59,8 @@ export const api = {
   me: () => req<{ user: SessionUser; workspace: WorkspaceDTO }>("GET", "/api/auth/me"),
   setPrefs: (body: { locale?: "en" | "zh" | "zht" | "ja"; name?: string }) =>
     req<{ user: SessionUser }>("PATCH", "/api/me/preferences", body),
+  changePassword: (body: { currentPassword: string; newPassword: string }) =>
+    req<{ ok: true }>("PATCH", "/api/me/password", body),
 
   // ---- reference ----
   roles: () => req<{ roles: RoleDTO[] }>("GET", "/api/roles"),
@@ -79,6 +81,7 @@ export const api = {
     req<{ agent: AgentDetailDTO }>("PATCH", `/api/agents/${id}`, body),
   lifecycle: (id: string, action: "pause" | "resume" | "terminate") =>
     req<{ agent: AgentDetailDTO }>("POST", `/api/agents/${id}/lifecycle`, { action }),
+  deleteAgent: (id: string) => req<{ ok: true }>("DELETE", `/api/agents/${id}`),
   resolveImprovement: (agentId: string, improvementId: string, action: "approve" | "dismiss") =>
     req<{ agent: AgentDetailDTO }>("POST", `/api/agents/${agentId}/improvements/${improvementId}`, { action }),
   runSelfReview: (agentId: string, body: { locale?: "en" | "zh" | "zht" | "ja"; count?: number } = {}) =>
@@ -99,8 +102,34 @@ export const api = {
     options: {
       onDelta: (delta: string) => void;
       signal?: AbortSignal;
+      sessionKey?: string;
     },
   ) => streamMessage(agentId, body, options),
+  sessions: (agentId: string) =>
+    req<{ sessions: SessionDTO[] }>("GET", `/api/agents/${agentId}/sessions`),
+  sessionHistory: (agentId: string, sessionId: string) =>
+    req<{ sessionId: string; sessionKey: string; status: string | null; messages: MessageDTO[] }>(
+      "GET",
+      `/api/agents/${agentId}/sessions/${encodeURIComponent(sessionId)}/history`,
+    ),
+
+  // ---- channel management (per-agent, instance-uuid scoped) ----
+  upsertChannel: (body: {
+    instanceUuid: string;
+    channelType: string;
+    enabled: boolean;
+    config: Record<string, unknown>;
+  }) => req<void>("POST", "/api/channels/upsert", body),
+  getChannels: (instanceUuid: string) =>
+    req<{ channels: AgentChannelDTO[] }>("GET", `/api/channels?instance_uuid=${instanceUuid}`),
+  getWechatLoginQrcode: (
+    instanceUuid: string,
+    options: { onEvent?: (e: WechatLoginEvent) => void; signal?: AbortSignal } = {}
+  ) =>
+    streamWechatLogin(
+      `/api/channels/wechat/login?instance_uuid=${encodeURIComponent(instanceUuid)}`,
+      options
+    ),
 
   // ---- dashboard / channels / billing ----
   dashboard: () => req<DashboardDTO>("GET", "/api/dashboard"),
@@ -114,10 +143,14 @@ export const api = {
 
   // ---- agent runtime / instance info ----
   getAgentInstanceInfo: (agentId: string) =>
-    req<{ providers: AgentManagerProviderInfo[] }>(
+    req<{ providers: AgentManagerProviderInfo[]; autoStopped: boolean }>(
       "GET",
       `/api/agents/${agentId}/instance-info`
     ),
+
+  // ---- agent usage / token report ----
+  getAgentTokenReport: (agentId: string, days: 1 | 3 | 7 | 30) =>
+    req<TokenReportDTO>("GET", `/api/agents/${agentId}/token-report?days=${days}`),
 };
 
 // ---- response shapes ----
@@ -125,6 +158,7 @@ export interface RoleDTO {
   id: string; name: string; blurb: string; longBlurb: string | null; hue: string; mono: string;
   defaultEngine: "openclaw" | "hermes"; defaultInstructions: string | null; defaultRules: string | null;
   minPlan: "associate" | "professional" | "director";
+  managerAgentId?: number; categoryId?: number; categoryName?: string; uploadFilename?: string;
 }
 export interface PlanDTO {
   id: "associate" | "professional" | "director"; name: string; monthlyPriceCents: number;
@@ -144,8 +178,42 @@ export interface AgentManagerProviderInfo {
   config: Record<string, unknown>;
   createdAt: string;
   updatedAt: string;
+  tasks?: InstanceTaskDTO[];
 }
-export interface TaskDTO { id: string; text: string; status: string; meta: string | null; sortOrder: number; }
+
+export interface InstanceTaskDTO {
+  id: number;
+  content: string;
+  sortOrder: number;
+  sessionKey: string | null;
+  result: string | null;
+  status: string;
+  createdAt: string | null;
+  updatedAt: string | null;
+}
+
+/** Token consumption report (per-day) for an agent's OpenClaw instance. */
+export interface TokenReportDTO {
+  instances: { id: number; name: string }[];
+  report: {
+    date: string;
+    instanceId: number;
+    instanceName: string;
+    inputTokens: number;
+    outputTokens: number;
+    cacheTokens: number;
+    totalTokens: number;
+    calls: number;
+  }[];
+  totals: {
+    inputTokens: number;
+    outputTokens: number;
+    cacheTokens: number;
+    totalTokens: number;
+    calls: number;
+  };
+}
+export interface TaskDTO { id: string; text: string; status: string; meta: string | null; sortOrder: number; result: string | null; }
 export interface ActivityDTO { id: string; text: string; tag: string; occurredAt: string; }
 export interface MetricDTO { id: string; label: string; value: string; delta: string | null; weight: number; }
 export interface ImprovementDTO { id: string; text: string; impact: string | null; status: string; createdAt: string; }
@@ -154,6 +222,7 @@ export interface AgentDetailDTO extends AgentDTO {
 }
 export interface CreateAgentBody {
   name: string; roleId: string; engine: "openclaw" | "hermes";
+  managerAgentId?: number;
   planTier: "associate" | "professional" | "director"; instructions: string; rules: string;
   channels: string[]; tasks: string[];
 }
@@ -164,6 +233,27 @@ export interface UpdateAgentBody {
 }
 export interface ChannelDTO {
   id: string; type: string; status: string; label: string | null; config: Record<string, string>;
+}
+
+/** OpenClaw channel status returned by /api/channels?instance_uuid= */
+export interface AgentChannelDTO {
+  type: string;
+  label: string;
+  enabled: boolean;
+  configured: boolean;
+  config: Record<string, unknown>;
+}
+export interface SessionDTO {
+  id: string;
+  key: string;
+  historyId: string;
+  label: string;
+  status: string | null;
+  createdAt: string | null;
+  updatedAt: number | null;
+  preview: string | null;
+  archived: boolean;
+  pinned: boolean;
 }
 export interface InvoiceDTO {
   id: string; number: string; amountCents: number; currency: string; status: string;
@@ -205,15 +295,102 @@ export interface StreamChunkError {
 }
 export type StreamChunk = StreamChunkUser | StreamChunkDelta | StreamChunkDone | StreamChunkError;
 
+// ---- WeChat login streaming ----
+export interface WechatLoginEvent {
+  event: string;
+  sessionId: string | null;
+  ts: number | null;
+  data: Record<string, unknown> | null;
+}
+export interface WechatLoginResponse {
+  status: "pending" | "connected" | "expired" | "error";
+  qrcodeUrl: string | null;
+  qrcodeImage: string | null;
+  expiresIn: number;
+  message: string;
+  rawOutput: string | null;
+  sessionId: string | null;
+  finalStdout: string | null;
+  connected: boolean;
+  exitCode: number | null;
+  events: WechatLoginEvent[];
+}
+
+async function streamWechatLogin(
+  path: string,
+  options: { onEvent?: (e: WechatLoginEvent) => void; signal?: AbortSignal }
+): Promise<WechatLoginResponse> {
+  const res = await fetch(path, {
+    method: "POST",
+    headers: { accept: "text/event-stream" },
+    credentials: "same-origin",
+    signal: options.signal,
+  });
+  if (!res.ok || !res.body) {
+    let payload: { error?: string } | null = null;
+    try { payload = (await res.json()) as { error?: string }; } catch {}
+    throw new ApiError(payload?.error || `Request failed (${res.status})`, res.status);
+  }
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+  let final: WechatLoginResponse | null = null;
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+    let idx;
+    while ((idx = buffer.indexOf("\n\n")) >= 0) {
+      const rawEvent = buffer.slice(0, idx);
+      buffer = buffer.slice(idx + 2);
+      const parsed = parseWechatSseEvent(rawEvent);
+      if (!parsed) continue;
+      if (parsed.event === "done") {
+        final = parsed.data as unknown as WechatLoginResponse;
+      } else if (parsed.event === "error") {
+        const msg = (parsed.data as { message?: string } | null)?.message || "WeChat login failed";
+        throw new ApiError(msg, 500);
+      } else {
+        options.onEvent?.(parsed);
+      }
+    }
+  }
+  if (!final) throw new ApiError("Stream ended without a final response", 500);
+  return final;
+}
+
+function parseWechatSseEvent(raw: string): WechatLoginEvent | null {
+  let eventName = "message";
+  let dataLines: string[] = [];
+  for (const line of raw.split("\n")) {
+    const trimmed = line.replace(/\r$/, "");
+    if (!trimmed || trimmed.startsWith(":")) continue;
+    if (trimmed.startsWith("event:")) eventName = trimmed.slice(6).trim() || "message";
+    else if (trimmed.startsWith("data:")) dataLines.push(trimmed.slice(5).trim());
+  }
+  if (dataLines.length === 0) return null;
+  let parsed: Record<string, unknown> | null = null;
+  try { parsed = JSON.parse(dataLines.join("\n")) as Record<string, unknown>; } catch { return null; }
+  return {
+    event: eventName,
+    sessionId: (parsed.session_id as string | undefined) ?? null,
+    ts: typeof parsed.ts === "number" ? parsed.ts : null,
+    data: parsed,
+  };
+}
+
 async function streamMessage(
   agentId: string,
   body: string,
-  options: { onDelta: (delta: string) => void; signal?: AbortSignal }
-): Promise<{ conversationId: string; replyMessage: MessageDTO }> {
+  options: { onDelta: (delta: string) => void; signal?: AbortSignal; sessionKey?: string }
+): Promise<{ conversationId: string; replyMessage: MessageDTO; userMessage?: MessageDTO }> {
   const res = await fetch(`/api/agents/${agentId}/messages`, {
     method: "POST",
     headers: { "content-type": "application/json", accept: "text/event-stream" },
-    body: JSON.stringify({ body }),
+    body: JSON.stringify({
+      body,
+      ...(options.sessionKey ? { sessionKey: options.sessionKey } : {}),
+    }),
     credentials: "same-origin",
     signal: options.signal,
   });
@@ -223,7 +400,7 @@ async function streamMessage(
 async function consumeSse(
   res: Response,
   onDelta: (delta: string) => void
-): Promise<{ conversationId: string; replyMessage: MessageDTO }> {
+): Promise<{ conversationId: string; replyMessage: MessageDTO; userMessage?: MessageDTO }> {
   if (!res.ok || !res.body) {
     let payload: { error?: string } | null = null;
     try { payload = (await res.json()) as { error?: string }; } catch {}
@@ -234,6 +411,7 @@ async function consumeSse(
   let buffer = "";
   let conversationId = "";
   let replyMessage: MessageDTO | null = null;
+  let userMessage: MessageDTO | undefined;
   while (true) {
     const { done, value } = await reader.read();
     if (done) break;
@@ -248,18 +426,20 @@ async function consumeSse(
         replyMessage = result.replyMessage;
       } else if (result.kind === "error") {
         throw new ApiError(result.message, 500);
+      } else if (result.kind === "user" && result.userMessage) {
+        userMessage = result.userMessage;
       }
     }
   }
   if (!replyMessage) throw new ApiError("Stream ended without a final reply", 500);
-  return { conversationId, replyMessage };
+  return { conversationId, replyMessage, userMessage };
 }
 
 function parseSseEvent(
   raw: string,
   onDelta: (delta: string) => void
 ):
-  | { kind: "user" }
+  | { kind: "user"; userMessage?: MessageDTO }
   | { kind: "delta" }
   | { kind: "done"; conversationId: string; replyMessage: MessageDTO }
   | { kind: "error"; message: string }
@@ -275,7 +455,7 @@ function parseSseEvent(
   } catch {
     return { kind: "ignore" };
   }
-  if (parsed.type === "user_message") return { kind: "user" };
+  if (parsed.type === "user_message") return { kind: "user", userMessage: parsed.message };
   if (parsed.type === "delta") {
     onDelta(parsed.delta);
     return { kind: "delta" };

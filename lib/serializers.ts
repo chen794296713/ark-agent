@@ -36,7 +36,7 @@ export function publicWorkspace(w: Workspace) {
 
 export function serializeAgent(
   a: Agent,
-  opts: { roleName?: string; channels?: string[]; line?: string | null } = {},
+  opts: { roleName?: string; channels?: string[]; line?: string | null; instanceUuid?: string } = {},
 ) {
   return {
     id: a.id,
@@ -60,12 +60,13 @@ export function serializeAgent(
     uptimeStartedAt: a.uptimeStartedAt,
     lastHeartbeatAt: a.lastHeartbeatAt,
     createdAt: a.createdAt,
+    instanceUuid: opts.instanceUuid ?? null,
   };
 }
 export type AgentDTO = ReturnType<typeof serializeAgent>;
 
 export function serializeTask(t: AgentTask) {
-  return { id: t.id, text: t.text, status: t.status, meta: t.meta, sortOrder: t.sortOrder };
+  return { id: t.id, text: t.text, status: t.status, meta: t.meta, sortOrder: t.sortOrder, result: null };
 }
 
 export function serializeActivity(a: AgentActivity) {

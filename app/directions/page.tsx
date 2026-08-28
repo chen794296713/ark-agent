@@ -17,7 +17,7 @@ export default function DirectionsPage() {
         minHeight: "100vh",
         background: c.dirBg,
         color: c.dirInk,
-        padding: `${r.pagePxWide} ${r.pagePxWide} 140px`,
+        padding: `${r.pagePxWide} ${r.pagePxWide}`,
       }}
     >
       <div style={{ maxWidth: 1280, margin: "0 auto" }}>
