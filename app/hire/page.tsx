@@ -5,15 +5,19 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { c, font, r } from "@/lib/theme";
 import { api, ApiError, type RoleDTO } from "@/lib/client-api";
 import { ENGINE_LABEL, planLabel } from "@/lib/agent-display";
+import { isHarness, type Harness } from "@/lib/harness";
 import { Btn } from "@/components/ui";
 import { useApp } from "@/lib/store";
 import { hire } from "@/lib/i18n/hire";
+import { create } from "@/lib/i18n/create";
 import { getTranslatedRole } from "@/lib/i18n/roles";
 
 const LIME = c.lime;
 const ACCENT = c.accent;
-const INKBG = c.panel; // #0E1116
-const BORD = c.border; // #232B38
+// Both are theme tokens; the trailing hex comments they used to carry named
+// only the dark values and went stale the moment a second palette existed.
+const INKBG = c.panel;
+const BORD = c.border;
 const CUSTOM_ROLE_ID = "custom";
 const ROLE_PAGE_SIZE = 10;
 
@@ -223,8 +227,8 @@ function HireInner() {
   const revName = agentName.trim() || selRoleDisplay?.name || "Aria";
 
   // Engine actually used: explicit pick, or the role's default for auto-match.
-  const resolvedEngine: "openclaw" | "hermes" =
-    engine === "openclaw" || engine === "hermes"
+  const resolvedEngine: Harness =
+    isHarness(engine)
       ? engine
       : selRoleObj?.defaultEngine ?? "openclaw";
   const engineName =
@@ -495,9 +499,48 @@ function HireInner() {
               >
                 {t.s1Title}
               </h2>
-              <p style={{ color: c.muted, margin: "0 0 32px" }}>
+              <p style={{ color: c.muted, margin: "0 0 20px" }}>
                 {t.s1Sub}
               </p>
+
+              {/* The AI-guided alternative (docs/UI_DESIGN_V2.md §C). This
+                  wizard is NOT replaced — a user who already knows which role
+                  they want still picks a tile below. Copy lives in
+                  lib/i18n/create.ts because it belongs to that flow. */}
+              <div
+                style={{
+                  border: `1px solid ${c.limeBorder}`,
+                  background: c.limeWash,
+                  borderRadius: r.radiusMd,
+                  padding: "14px 16px",
+                  margin: "0 0 32px",
+                  display: "flex",
+                  gap: 14,
+                  alignItems: "center",
+                  flexWrap: "wrap",
+                }}
+              >
+                <span style={{ flex: "1 1 260px", fontSize: 13.5, color: c.text2, lineHeight: 1.6 }}>
+                  {create[lang].entry.hint}
+                </span>
+                <Btn
+                  onClick={() => router.push("/hire/create")}
+                  style={{
+                    border: `1px solid ${c.borderStrong}`,
+                    background: "none",
+                    borderRadius: r.radiusSm,
+                    color: c.text,
+                    fontFamily: font.sans,
+                    fontSize: 13.5,
+                    padding: "9px 14px",
+                    cursor: "pointer",
+                    whiteSpace: "nowrap",
+                  }}
+                  hoverStyle={{ borderColor: c.accent, color: c.text }}
+                >
+                  {create[lang].entry.cta}
+                </Btn>
+              </div>
 
               {rolesLoading && (
                 <div
@@ -1170,7 +1213,7 @@ function HireInner() {
                         fontFamily: font.mono,
                         fontSize: 10.5,
                         letterSpacing: ".1em",
-                        color: "#E8804F",
+                        color: c.orange,
                       }}
                     >
                       {t.community}
@@ -1474,7 +1517,7 @@ function HireInner() {
                     onClick={enterDash}
                     style={{
                       background: c.green,
-                      color: c.ink,
+                      color: c.greenInk,
                       border: "none",
                       padding: "12px 22px",
                       fontFamily: font.space,

@@ -8,7 +8,33 @@ const BASE_URL = (
 ).replace(/\/+$/, "");
 const API_KEY = process.env.OPENCLAW_MANAGER_API_KEY || "";
 
+/**
+ * Both values fall back to a literal, which is convenient locally and dangerous
+ * in production: an unset key means every call goes out to a specific named
+ * host carrying `Bearer ` and comes back 401, so provisioning fails in a way
+ * that reads as an upstream outage rather than a missing variable. Fail on the
+ * configuration instead, and say which variable is missing.
+ *
+ * Checked per call rather than at module load: throwing at import time takes
+ * down every route that transitively imports this file, including ones that
+ * never talk to the Manager.
+ */
+function assertConfigured(): void {
+  if (process.env.NODE_ENV !== "production") return;
+  if (!API_KEY) {
+    throw new Error(
+      "OPENCLAW_MANAGER_API_KEY is not set. The OpenClaw Manager cannot be reached in production without it.",
+    );
+  }
+  if (!process.env.OPENCLAW_MANAGER_API_URL) {
+    throw new Error(
+      "OPENCLAW_MANAGER_API_URL is not set. Refusing to fall back to the built-in default host in production.",
+    );
+  }
+}
+
 function getHeaders(): HeadersInit {
+  assertConfigured();
   return {
     Authorization: `Bearer ${API_KEY}`,
     "Content-Type": "application/json",
@@ -1000,7 +1026,7 @@ export async function wechatLogin(
   let status: WechatLoginResponse["status"] = "pending";
   let qrcodeUrl: string | null = null;
   let qrcodeImage: string | null = null;
-  let expiresIn = 120;
+  const expiresIn = 120;
   let message = "";
   let rawOutput: string | null = null;
   let sessionId: string | null = null;
@@ -1094,7 +1120,7 @@ function parseSseEventBlock(
 ) {
   if (!block.trim()) return;
   let eventName = "message";
-  let dataLines: string[] = [];
+  const dataLines: string[] = [];
   for (const rawLine of block.split("\n")) {
     const line = rawLine.replace(/\r$/, "");
     if (!line || line.startsWith(":")) continue;

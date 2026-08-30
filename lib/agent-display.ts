@@ -3,6 +3,7 @@
  * colors. No server imports, safe to use in client components.
  */
 import { c } from "@/lib/theme";
+import { HARNESSES, HARNESS_IDS, harnessLabel } from "@/lib/harness";
 
 export const STATUS_DISPLAY: Record<string, { label: string; color: string }> = {
   draft: { label: "DRAFT", color: c.faint },
@@ -20,7 +21,17 @@ export function statusDisplay(status: string): { label: string; color: string } 
   return STATUS_DISPLAY[status] ?? { label: status.replace(/_/g, " ").toUpperCase(), color: c.muted };
 }
 
-export const ENGINE_LABEL: Record<string, string> = { openclaw: "OpenClaw", hermes: "Hermes" };
+/**
+ * Kept as a lookup object because ~10 call sites index it directly. It is now
+ * derived from the harness catalog, so a new harness cannot render as
+ * `undefined` in a fleet card the way it would have with a two-key literal.
+ * Prefer `harnessLabel()` for new code — it also handles an unknown id.
+ */
+export const ENGINE_LABEL: Record<string, string> = Object.fromEntries(
+  HARNESS_IDS.map((id) => [id, HARNESSES[id].label]),
+);
+
+export { harnessLabel };
 
 export const CHANNEL_LABEL: Record<string, string> = {
   telegram: "Telegram",

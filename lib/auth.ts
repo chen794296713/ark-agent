@@ -28,12 +28,44 @@ export function hashPassword(password: string): string {
   return `${salt}:${hash}`;
 }
 
-export function verifyPassword(password: string, stored: string): boolean {
+export function verifyPassword(password: string, stored: string | null): boolean {
+  // An SSO-only account has no hash. Still burn a scrypt to keep the failure
+  // indistinguishable in time from a wrong password.
+  if (!stored) {
+    scryptSync(password, "absent", 64);
+    return false;
+  }
   const [salt, hash] = stored.split(":");
   if (!salt || !hash) return false;
   const expected = Buffer.from(hash, "hex");
   const actual = scryptSync(password, salt, 64);
   return expected.length === actual.length && timingSafeEqual(expected, actual);
+}
+
+/**
+ * The one place that decides whether a user may hold a session, called by every
+ * path that mints one (password login and both OAuth callbacks). Suspension
+ * enforced in only some of those paths is suspension that an attacker routes
+ * around by picking the other door.
+ */
+export function loginBlockedReason(user: Pick<User, "status">): string | null {
+  return user.status === "suspended" ? "This account has been suspended" : null;
+}
+
+/** Domain used for the synthetic addresses of providers that return no email. */
+export const PLACEHOLDER_EMAIL_DOMAIN = "wechat.invalid";
+
+/**
+ * Addresses the public signup form must refuse.
+ *
+ * Without this, anyone can register ADMIN_EMAIL before the seed first runs, or
+ * register into the synthetic namespace the WeChat flow allocates from — both
+ * of which turn a later automated write into an account handover.
+ */
+export function isReservedEmail(email: string): boolean {
+  const e = email.toLowerCase().trim();
+  const adminEmail = (process.env.ADMIN_EMAIL || "admin@iagent.cc").toLowerCase().trim();
+  return e === adminEmail || e.endsWith(`@${PLACEHOLDER_EMAIL_DOMAIN}`);
 }
 
 function sha256(token: string): string {
@@ -62,6 +94,14 @@ export async function createSession(userId: string): Promise<void> {
   });
 }
 
+/** Drop every session a user holds — used on password change and by an admin. */
+export async function revokeAllSessions(userId: string): Promise<number> {
+  const gone = await db.delete(sessions).where(eq(sessions.userId, userId)).returning({
+    id: sessions.id,
+  });
+  return gone.length;
+}
+
 export async function destroySession(): Promise<void> {
   const jar = await cookies();
   const token = jar.get(COOKIE)?.value;
@@ -81,7 +121,13 @@ export async function getCurrentUser(): Promise<User | null> {
     .from(sessions)
     .innerJoin(users, eq(users.id, sessions.userId))
     .where(
-      and(eq(sessions.tokenHash, sha256(token)), gt(sessions.expiresAt, new Date())),
+      and(
+        eq(sessions.tokenHash, sha256(token)),
+        gt(sessions.expiresAt, new Date()),
+        // A suspension has to take hold on the next request, otherwise a live
+        // 30-day cookie outlives the decision to revoke access.
+        eq(users.status, "active"),
+      ),
     )
     .limit(1);
   return rows[0]?.user ?? null;

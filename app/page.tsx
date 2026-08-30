@@ -7,17 +7,32 @@ import { common } from "@/lib/i18n/common";
 import { landing } from "@/lib/i18n/landing";
 import { useApp } from "@/lib/store";
 import { landingRoles, heroFeed } from "@/lib/data";
+import { SHOW_DIRECTIONS } from "@/lib/feature-flags";
+import {
+  formatFromPrice,
+  formatMoney,
+  formatPriceTag,
+  overagePer1k,
+  planPrice,
+} from "@/lib/pricing";
 import { Btn, HoverDiv } from "@/components/ui";
 import { MobileNav } from "@/components/MobileNav";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { DirectionSwitcher } from "@/components/DirectionSwitcher";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
+import { CurrencySwitcher } from "@/components/CurrencySwitcher";
 
 export default function LandingPage() {
   const router = useRouter();
-  const { lang, user } = useApp();
+  const { lang, user, currency } = useApp();
   const t = landing[lang];
   const nav = common[lang];
   const footCopyrightParts = t.footCopyright.split(" | ");
+
+  // The metered rate is flat across tiers, so any tier reads the same number.
+  const overageTag = formatMoney(overagePer1k("associate", currency), currency, {
+    compact: true,
+  });
 
   const [tick, setTick] = useState(0);
   const [approved, setApproved] = useState(false);
@@ -114,6 +129,7 @@ export default function LandingPage() {
             }}
           >
             <LanguageSwitcher />
+            <DirectionSwitcher />
             <ThemeToggle />
             <button
               onClick={() => router.push(user ? "/dashboard/account" : "/auth")}
@@ -282,7 +298,7 @@ export default function LandingPage() {
             style={{
               border: `1px solid ${c.border}`,
               background: c.panel,
-              boxShadow: "0 24px 60px rgba(0,0,0,.5)",
+              boxShadow: `0 24px 60px ${c.shadow}`,
               borderRadius: r.radiusMd,
             }}
           >
@@ -514,7 +530,9 @@ export default function LandingPage() {
                   width: 34,
                   height: 34,
                   background: r.hue,
-                  color: c.ink,
+                  // Fixed role hue, so a fixed ink: c.ink inverts to near-white
+                  // in warm and would paint 1.13:1 on the lime monogram.
+                  color: c.onBrand,
                   display: "grid",
                   placeItems: "center",
                   fontFamily: font.space,
@@ -544,7 +562,7 @@ export default function LandingPage() {
                   color: c.faint,
                 }}
               >
-                <span>{r.price}</span>
+                <span>{t.rosterFrom(formatFromPrice(r.minPlan, currency))}</span>
                 <span style={{ color: c.accent }}>{t.rosterHire}</span>
               </div>
             </HoverDiv>
@@ -719,7 +737,7 @@ export default function LandingPage() {
                 fontFamily: font.mono,
                 fontSize: 11,
                 letterSpacing: ".12em",
-                color: "#E8804F",
+                color: c.orange,
                 marginBottom: 18,
               }}
             >
@@ -1020,9 +1038,22 @@ export default function LandingPage() {
             <br />
             {t.pricingTitleL2}
           </h2>
-          <p style={{ color: c.muted, maxWidth: 380, margin: 0, fontSize: 15 }}>
-            {t.pricingSub}
-          </p>
+          {/* Currency first, then the sub-line — which quotes the overage rate
+              in whichever currency the switcher is on. */}
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "flex-start",
+              gap: 14,
+              maxWidth: 380,
+            }}
+          >
+            <CurrencySwitcher />
+            <p style={{ color: c.muted, margin: 0, fontSize: 15 }}>
+              {t.pricingSub(overageTag)}
+            </p>
+          </div>
         </div>
         <div
           style={{
@@ -1062,7 +1093,7 @@ export default function LandingPage() {
                 letterSpacing: "-.02em",
               }}
             >
-              $49
+              {formatPriceTag(planPrice("associate", currency), currency)}
               <span style={{ fontSize: 15, color: c.faint, fontWeight: 400 }}>{t.perMonth}</span>
             </div>
             <div
@@ -1154,7 +1185,7 @@ export default function LandingPage() {
                 letterSpacing: "-.02em",
               }}
             >
-              $149
+              {formatPriceTag(planPrice("professional", currency), currency)}
               <span style={{ fontSize: 15, color: c.faint, fontWeight: 400 }}>{t.perMonth}</span>
             </div>
             <div
@@ -1233,7 +1264,7 @@ export default function LandingPage() {
                 letterSpacing: "-.02em",
               }}
             >
-              $399
+              {formatPriceTag(planPrice("director", currency), currency)}
               <span style={{ fontSize: 15, color: c.faint, fontWeight: 400 }}>{t.perMonth}</span>
             </div>
             <div
@@ -1291,8 +1322,21 @@ export default function LandingPage() {
             textAlign: "center",
           }}
         >
-          {t.pricingFoot}
+          {t.pricingFoot(currency)}
         </div>
+        {/* Who bills a CN buyer, and in what — only worth saying on the ¥ ladder. */}
+        {currency === "cny" && (
+          <div
+            style={{
+              marginTop: 10,
+              fontSize: 13,
+              color: c.muted,
+              textAlign: "center",
+            }}
+          >
+            {t.cnyBilledNote}
+          </div>
+        )}
       </div>
 
       {/* Footer */}
@@ -1436,6 +1480,7 @@ export default function LandingPage() {
             <span style={{ fontFamily: font.mono, fontSize: 13 }}>
               iagent.cc <span style={{ color: c.faint }}>{t.footRegionChina}</span>
             </span>
+            {SHOW_DIRECTIONS && (
             <Btn
               onClick={() => router.push("/directions")}
               style={{
@@ -1454,6 +1499,7 @@ export default function LandingPage() {
             >
               {t.footDirections}
             </Btn>
+            )}
           </div>
         </div>
       </div>

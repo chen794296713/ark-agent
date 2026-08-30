@@ -175,11 +175,11 @@ Where no external agent runtime is attached, ArkAgent talks to a language model 
 | Env | Meaning |
 | --- | --- |
 | `OPENROUTER_API_KEY` | Required to make any call. Absent ⇒ `isLLMConfigured()` is false and callers fall back. |
-| `LLM_MODEL` | Model id, always `vendor/model` (e.g. `openai/gpt-5.6-luna`). |
+| `LLM_MODEL` | Model id, `vendor/model` (e.g. `openai/gpt-5.6-luna`). An `openrouter/` prefix is accepted and stripped. |
 | `OPENROUTER_APP_TITLE` | Reported to OpenRouter as `X-Title` (defaults to `ArkAgent`). |
 | `OPENROUTER_BASE_URL` | Optional endpoint override (defaults to the public API). |
 
-**Model-id normalization.** Directories and aggregators list OpenRouter models with an extra `openrouter/` prefix (`openrouter/openai/gpt-5.6-luna`), which the API rejects with a 400. `normalizeModelId()` strips that prefix when the id has three or more segments — unambiguously the aggregator form — while leaving genuine two-segment ids such as `openrouter/auto` untouched, and warns once so the misconfiguration gets fixed rather than hidden.
+**Model-id normalization.** Directories, aggregators and multi-gateway configs list OpenRouter models with an extra `openrouter/` routing prefix (`openrouter/openai/gpt-5.6-luna`), which the API itself rejects with a 400. Both spellings are accepted: `normalizeModelId()` (`lib/llm/model-id.ts`) peels the prefix — repeatedly, and case-insensitively — for as long as two or more segments remain, so `openrouter/auto` and `openrouter/horizon-beta`, where `openrouter` is the *vendor*, pass through intact, as does a bare `gpt-4o-mini` aimed at an `OPENROUTER_BASE_URL` override. Whitespace and stray slashes are cleaned up, and an id that normalizes to nothing falls back to the default model. This is a supported alias, not a misconfiguration, so it is silent at runtime; `npm run llm:check` reports the rewrite where it is actionable. The module carries no `server-only` import, so the check script shares it instead of mirroring the logic.
 
 **Where the model is used.**
 
@@ -261,7 +261,7 @@ ArkAgent ships in four languages: **English (`en`)**, **Simplified Chinese (`zh`
 | `SESSION_TTL_DAYS` | Session lifetime in days (default `30`) |
 | `AGENT_MANAGER_MODE` | `mock` (in-process simulator, default) or `live` (call the real service) |
 | `OPENROUTER_API_KEY` | Enables real LLM replies, brief generation and self-review; absent ⇒ mock/default fallbacks (§6b) |
-| `LLM_MODEL` | OpenRouter model id, `vendor/model` (e.g. `openai/gpt-5.6-luna`) |
+| `LLM_MODEL` | OpenRouter model id, `vendor/model` (e.g. `openai/gpt-5.6-luna`); an `openrouter/` prefix is accepted |
 | `OPENROUTER_APP_TITLE` | App name sent to OpenRouter as `X-Title` (default `ArkAgent`) |
 | `AGENT_MANAGER_BASE_URL` | Base URL of the Agent Manager service (live mode) |
 | `AGENT_MANAGER_API_KEY` | Bearer token for outbound Agent Manager calls |

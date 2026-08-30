@@ -7,6 +7,8 @@ import { useParams, useRouter, useSearchParams } from "next/navigation";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { c, font, r } from "@/lib/theme";
+import { isHarness, type Harness } from "@/lib/harness";
+import { selectableHarnesses, useHarnessOptions } from "@/lib/harness/client";
 import { Btn } from "@/components/ui";
 import { api, ApiError } from "@/lib/client-api";
 import type {
@@ -38,6 +40,7 @@ import {
   TIMEZONES,
   WEEKDAYS,
   type AgentSettings,
+  APPROVAL_CURRENCY,
 } from "@/lib/agent-settings";
 import { useApp } from "@/lib/store";
 import { fleetDetail, type FleetDetailDict } from "@/lib/i18n/fleet-detail";
@@ -1469,7 +1472,7 @@ function SettingCard({
             <span
               style={{
                 fontFamily: font.mono,
-                fontSize: 9.5,
+                fontSize: 10.5,
                 letterSpacing: ".08em",
                 color: badgeColor ?? c.faint,
                 border: `1px solid ${badgeColor ?? c.border}`,
@@ -1642,9 +1645,10 @@ function SettingsTab({ cur, onRefresh }: { cur: AgentDetailDTO; onRefresh: () =>
   const t = fleetDetail[lang];
   const router = useRouter();
   const [name, setName] = useState(cur.name);
-  const [engine, setEngine] = useState<"openclaw" | "hermes">(
-    cur.engine === "hermes" ? "hermes" : "openclaw",
+  const [engine, setEngine] = useState<Harness>(
+    isHarness(cur.engine) ? cur.engine : "openclaw",
   );
+  const { options: harnessOptions } = useHarnessOptions();
   const [planTier, setPlanTier] = useState<"associate" | "professional" | "director">(
     cur.planTier as "associate" | "professional" | "director",
   );
@@ -1973,11 +1977,12 @@ function SettingsTab({ cur, onRefresh }: { cur: AgentDetailDTO; onRefresh: () =>
             <Field label={t.fieldEngine} hint={t.fieldEngineHint}>
               <SelectField
                 value={engine}
-                onChange={(v) => setEngine(v as "openclaw" | "hermes")}
-                options={[
-                  { id: "openclaw", label: t.engineOpenclaw },
-                  { id: "hermes", label: t.engineHermes },
-                ]}
+                onChange={(v) => setEngine(v as Harness)}
+                // Narrowed to what this deployment can actually provision, and
+                // always including the agent's CURRENT harness even if that has
+                // since been disabled — otherwise the select renders blank and
+                // the next save silently moves the agent.
+                options={selectableHarnesses(harnessOptions, cur.engine as Harness)}
               />
             </Field>
             <Field label={t.fieldPlan}>
@@ -2028,7 +2033,7 @@ function SettingsTab({ cur, onRefresh }: { cur: AgentDetailDTO; onRefresh: () =>
             <Seg value={s.autonomy} onChange={(v) => set("autonomy", v)} options={AUTONOMY_LEVELS} />
           </Field>
           <div style={{ display: "grid", gridTemplateColumns: r.split, gap: 14 }}>
-            <Field label={t.fieldApprovalOver} hint={t.fieldApprovalOverHint}>
+            <Field label={t.fieldApprovalOver(APPROVAL_CURRENCY)} hint={t.fieldApprovalOverHint}>
               <input
                 type="number"
                 min={0}
@@ -2139,7 +2144,7 @@ function SettingsTab({ cur, onRefresh }: { cur: AgentDetailDTO; onRefresh: () =>
         <SettingCard
           title={t.skillsTitle}
           badge="OPENCLAW"
-          badgeColor="#E8804F"
+          badgeColor={c.orange}
           desc={t.skillsDesc}
         >
           <Field label={t.fieldSkills}>
@@ -2659,7 +2664,9 @@ function InstanceInfoDrawer({ agentId, onClose, onAfterSync }: { agentId: string
         style={{
           position: "fixed",
           inset: 0,
-          background: "rgba(8, 10, 14, 0.55)",
+          // Tokenized: a literal near-black scrim reads as a bruise over the
+          // warm and light palettes. --c-scrim is tinted per theme.
+          background: c.scrim,
           zIndex: 50,
         }}
       />
@@ -3178,10 +3185,21 @@ interface ChannelModalProps {
 }
 
 function ChannelModal({ type, channel, onChange, onSave, onCancel, saving, t, qrcode, qrcodeLoading, onFetchQrcode }: ChannelModalProps) {
+  /**
+   * The draft follows the prop when it changes underneath us — a save that
+   * refetches, or the modal reopening on a different channel.
+   *
+   * Adjusted during render rather than in an effect: the effect version ran a
+   * whole extra render with the stale draft still on screen every time the
+   * parent's channel object changed, which for this component is on every
+   * keystroke (each `set()` round-trips through `onChange`).
+   */
   const [draft, setDraft] = useState(channel);
-
-  // Sync draft when channel changes externally
-  useEffect(() => { setDraft(channel); }, [channel]);
+  const [syncedFrom, setSyncedFrom] = useState(channel);
+  if (channel !== syncedFrom) {
+    setSyncedFrom(channel);
+    setDraft(channel);
+  }
 
   const set = (patch: Partial<ChannelState[typeof type]>) => {
     setDraft(prev => ({ ...prev, ...patch }));
@@ -3605,8 +3623,8 @@ function AgentDetailInner() {
           style={{
             width: 56,
             height: 56,
-            background: cur.hue ?? c.accent,
-            color: c.ink,
+            background: cur.hue ?? c.lime,
+            color: cur.hue ? c.onBrand : c.ink,
             display: "grid",
             placeItems: "center",
             fontFamily: font.space,

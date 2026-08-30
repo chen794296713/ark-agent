@@ -101,7 +101,13 @@ export interface FleetDetailDict {
   autonomyTitle: string;
   autonomyDesc: string;
   fieldAutonomy: string;
-  fieldApprovalOver: string;
+  /**
+   * Approval threshold label. Takes the ISO code rather than a symbol: the
+   * stored value is a fixed USD-denominated policy threshold, so painting it
+   * with whatever currency the visitor is browsing in would silently change
+   * what the agent escalates. See AgentSettings.approvalAmount.
+   */
+  fieldApprovalOver: (iso: string) => string;
   fieldApprovalOverHint: string;
   fieldDailyActionLimit: string;
   fieldDailyActionLimitHint: string;
@@ -376,7 +382,7 @@ const en: FleetDetailDict = {
   autonomyTitle: "AUTONOMY & APPROVALS",
   autonomyDesc: "How much the agent can do on its own.",
   fieldAutonomy: "AUTONOMY",
-  fieldApprovalOver: "APPROVAL OVER ($)",
+  fieldApprovalOver: (iso) => `APPROVAL OVER (${iso})`,
   fieldApprovalOverHint: "Require sign-off for money/commitments at or above this.",
   fieldDailyActionLimit: "DAILY ACTION LIMIT",
   fieldDailyActionLimitHint: "0 = unlimited.",
@@ -641,7 +647,7 @@ const zh: FleetDetailDict = {
   autonomyTitle: "自主权与审批",
   autonomyDesc: "智能体能自行决定多少事情。",
   fieldAutonomy: "自主程度",
-  fieldApprovalOver: "审批阈值（$）",
+  fieldApprovalOver: (iso) => `审批阈值（${iso}）`,
   fieldApprovalOverHint: "达到或超过此金额的资金/承诺需经你确认。",
   fieldDailyActionLimit: "每日操作上限",
   fieldDailyActionLimitHint: "0 = 不限。",
@@ -906,7 +912,7 @@ const zht: FleetDetailDict = {
   autonomyTitle: "自主權與審批",
   autonomyDesc: "智能體能自行決定多少事情。",
   fieldAutonomy: "自主程度",
-  fieldApprovalOver: "審批門檻（$）",
+  fieldApprovalOver: (iso) => `審批門檻（${iso}）`,
   fieldApprovalOverHint: "達到或超過此金額的資金/承諾需經你確認。",
   fieldDailyActionLimit: "每日操作上限",
   fieldDailyActionLimitHint: "0 = 不限。",
@@ -1171,7 +1177,7 @@ const ja: FleetDetailDict = {
   autonomyTitle: "自律性と承認",
   autonomyDesc: "エージェントが自分で行える範囲。",
   fieldAutonomy: "自律性",
-  fieldApprovalOver: "承認しきい値（$）",
+  fieldApprovalOver: (iso) => `承認しきい値（${iso}）`,
   fieldApprovalOverHint: "この金額以上の支出・コミットには承認を必須にします。",
   fieldDailyActionLimit: "1日のアクション上限",
   fieldDailyActionLimitHint: "0 = 無制限。",

@@ -10,12 +10,21 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
+    "typecheck": "tsc --noEmit",
+    "test": "NODE_OPTIONS=--conditions=react-server tsx --test \"tests/**/*.test.ts\"",
+    "test:watch": "NODE_OPTIONS=--conditions=react-server tsx --test --watch \"tests/**/*.test.ts\"",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
+    "db:check": "tsx --env-file=.env scripts/check-migrations.ts",
     "db:push": "drizzle-kit push",
     "db:studio": "drizzle-kit studio",
-    "db:seed": "tsx --env-file=.env lib/db/seed.ts",
-    "llm:check": "tsx --env-file=.env scripts/check-llm.ts"
+    "db:seed": "NODE_OPTIONS=--conditions=react-server tsx --env-file=.env lib/db/seed.ts",
+    "db:seed:demo": "SEED_DEMO=1 NODE_OPTIONS=--conditions=react-server tsx --env-file=.env lib/db/seed.ts",
+    "skills:seed": "NODE_OPTIONS=--conditions=react-server tsx --env-file=.env scripts/seed-skills.ts",
+    "skills:sync": "NODE_OPTIONS=--conditions=react-server tsx --env-file=.env scripts/sync-skills.ts",
+    "llm:check": "tsx --env-file=.env scripts/check-llm.ts",
+    "pricing:check": "tsx scripts/check-pricing.ts",
+    "payments:check": "NODE_OPTIONS=--conditions=react-server tsx scripts/check-payments.ts"
   },
   "dependencies": {
     "drizzle-orm": "^0.45.2",
@@ -25,6 +34,7 @@
     "react-dom": "19.2.8",
     "react-markdown": "^10.1.0",
     "remark-gfm": "^4.0.1",
+    "stripe": "^22.6.0",
     "zod": "^4.4.3"
   },
   "devDependencies": {
@@ -35,6 +45,7 @@
     "drizzle-kit": "^0.31.10",
     "eslint": "^9",
     "eslint-config-next": "16.3.0",
+    "server-only": "^0.0.1",
     "tsx": "^4.22.4",
     "typescript": "^5"
   }

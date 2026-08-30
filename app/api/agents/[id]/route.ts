@@ -1,8 +1,10 @@
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { agents, agentChannels, channels } from "@/lib/db/schema";
 import { getAgentManager } from "@/lib/agent-manager";
-import { requireAuth, parseBody, json, notFound } from "@/lib/api";
+import { requireAuth, parseBody, json, notFound, apiError } from "@/lib/api";
+import { harnessLabel } from "@/lib/harness";
+import { enabledHarnesses, isHarnessEnabled } from "@/lib/harness/provisioning";
 import { updateAgentSchema } from "@/lib/validation";
 import { mergeSettings } from "@/lib/agent-settings";
 import { deleteAgent, getAgentDetail, getAgentRow } from "@/lib/services/agents";
@@ -35,6 +37,18 @@ export async function PATCH(req: Request, { params }: Ctx) {
   const parsed = await parseBody(req, updateAgentSchema);
   if (parsed.res) return parsed.res;
   const { name, instructions, rules, planTier, engine, channels: chanTypes, settings } = parsed.data;
+
+  // POST /api/agents gates the harness; this route did not, so an agent could be
+  // MOVED onto an unprovisionable runtime from the Settings tab — the same
+  // failure the create gate exists to prevent, one screen over. A harness change
+  // is also a re-provision, so refusing here is the only place it is cheap.
+  if (engine !== undefined && engine !== row.engine && !isHarnessEnabled(engine)) {
+    return apiError(
+      `The ${harnessLabel(engine)} runtime is not available on this deployment.`,
+      422,
+      { availableHarnesses: enabledHarnesses() },
+    );
+  }
   const nextSettings =
     settings !== undefined ? mergeSettings({ ...(row.settings ?? {}), ...settings }) : undefined;
 
@@ -47,6 +61,14 @@ export async function PATCH(req: Request, { params }: Ctx) {
       ...(planTier !== undefined ? { planTier } : {}),
       ...(engine !== undefined ? { engine } : {}),
       ...(nextSettings !== undefined ? { settings: nextSettings } : {}),
+      // The revision the runtime polls against, and the ETag it compares. Every
+      // write that changes what the agent should DO has to bump it, or the VM
+      // keeps running the previous brief and nothing anywhere says so. Bumped
+      // unconditionally here: this route only runs when something changed, and
+      // an over-count costs one no-op resync while an under-count costs a stale
+      // agent. `sql` increments in place so two concurrent PATCHes cannot read
+      // the same value and write the same successor.
+      configRevision: sql`${agents.configRevision} + 1`,
       updatedAt: new Date(),
     })
     .where(eq(agents.id, id));

@@ -30,6 +30,12 @@ export interface AuthDict {
   ssoGoogle: string;
   ssoWeChat: string;
   orDivider: string;
+  /** Plain provider names for prose — the button labels above are decorated. */
+  ssoNameGoogle: string;
+  ssoNameWeChat: string;
+  /** Joins the two names when neither provider has credentials. */
+  ssoJoin: string;
+  ssoNotConfigured: (providers: string) => string;
 
   // Field labels
   labelName: string;
@@ -55,11 +61,25 @@ export interface AuthDict {
   haveAccount: string;
   backToSignIn: string;
 
+  // Password field toggle (aria-labels for <PasswordField>)
+  showPassword: string;
+  hidePassword: string;
+
   // Client-side validation / errors
   errEmailPassword: string;
   errName: string;
   errGeneric: string;
-  errSsoSoon: string;
+
+  /** One per `?sso_error=` code the OAuth callback can redirect back with. */
+  ssoErrUnconfigured: string;
+  ssoErrDenied: string;
+  ssoErrState: string;
+  ssoErrExpired: string;
+  ssoErrEmailTaken: string;
+  ssoErrAlreadyLinked: string;
+  ssoErrSuspended: string;
+  ssoErrProvider: string;
+  ssoErrFailed: string;
 }
 
 const en: AuthDict = {
@@ -88,6 +108,11 @@ const en: AuthDict = {
   ssoGoogle: "G · Google",
   ssoWeChat: "微信 WeChat",
   orDivider: "OR",
+  ssoNameGoogle: "Google",
+  ssoNameWeChat: "WeChat",
+  ssoJoin: " and ",
+  ssoNotConfigured: (providers) =>
+    `${providers} sign-in isn’t set up on this deployment yet — use your email and password below.`,
 
   labelName: "FULL NAME",
   labelEmail: "WORK EMAIL",
@@ -109,10 +134,24 @@ const en: AuthDict = {
   haveAccount: "Have an account? Sign in",
   backToSignIn: "← Back to sign in",
 
+  showPassword: "Show password",
+  hidePassword: "Hide password",
+
   errEmailPassword: "Please enter your email and password.",
   errName: "Please enter your name.",
   errGeneric: "Something went wrong. Please try again.",
-  errSsoSoon: "Social sign-in is coming soon — please use email.",
+
+  ssoErrUnconfigured:
+    "That provider isn’t configured on this deployment yet — sign in with your email and password.",
+  ssoErrDenied: "Sign-in was cancelled at the provider. Nothing has changed.",
+  ssoErrState: "That sign-in link didn’t match this browser. Please start again.",
+  ssoErrExpired: "That sign-in attempt took too long and expired. Please try again.",
+  ssoErrEmailTaken:
+    "An account already uses that email address. Sign in with your password, then link the provider from account settings.",
+  ssoErrAlreadyLinked: "That provider account is already linked to a different ArkAgent user.",
+  ssoErrSuspended: "This account is suspended. Contact support to restore access.",
+  ssoErrProvider: "The provider couldn’t complete the sign-in. Please try again in a moment.",
+  ssoErrFailed: "Sign-in failed. Please try again, or use your email and password.",
 };
 
 const zh: AuthDict = {
@@ -141,6 +180,11 @@ const zh: AuthDict = {
   ssoGoogle: "G · Google",
   ssoWeChat: "微信登录",
   orDivider: "或",
+  ssoNameGoogle: "Google",
+  ssoNameWeChat: "微信",
+  ssoJoin: "、",
+  ssoNotConfigured: (providers) =>
+    `${providers}登录尚未在此环境中配置，请使用下方的邮箱和密码。`,
 
   labelName: "姓名",
   labelEmail: "工作邮箱",
@@ -162,10 +206,23 @@ const zh: AuthDict = {
   haveAccount: "已有账户？立即登录",
   backToSignIn: "← 返回登录",
 
+  showPassword: "显示密码",
+  hidePassword: "隐藏密码",
+
   errEmailPassword: "请输入邮箱和密码。",
   errName: "请输入你的姓名。",
   errGeneric: "出了点问题，请重试。",
-  errSsoSoon: "第三方登录即将上线，请先使用邮箱登录。",
+
+  ssoErrUnconfigured: "该登录方式尚未在此环境中配置，请使用邮箱和密码登录。",
+  ssoErrDenied: "你在授权页面取消了登录，账户没有任何变更。",
+  ssoErrState: "这个登录链接与当前浏览器不匹配，请重新发起登录。",
+  ssoErrExpired: "本次登录等待过久已失效，请重新登录。",
+  ssoErrEmailTaken:
+    "该邮箱已注册。请先用密码登录，再到账户设置中绑定这个登录方式。",
+  ssoErrAlreadyLinked: "该第三方账号已绑定到另一个 ArkAgent 账户。",
+  ssoErrSuspended: "此账户已被停用，请联系客服恢复访问。",
+  ssoErrProvider: "第三方服务未能完成登录，请稍后再试。",
+  ssoErrFailed: "登录失败，请重试，或改用邮箱和密码登录。",
 };
 
 const zht: AuthDict = {
@@ -194,6 +251,11 @@ const zht: AuthDict = {
   ssoGoogle: "G · Google",
   ssoWeChat: "微信登入",
   orDivider: "或",
+  ssoNameGoogle: "Google",
+  ssoNameWeChat: "微信",
+  ssoJoin: "、",
+  ssoNotConfigured: (providers) =>
+    `${providers}登入尚未在此環境中設定，請改用下方的電子郵件和密碼。`,
 
   labelName: "姓名",
   labelEmail: "工作電子郵件",
@@ -215,10 +277,23 @@ const zht: AuthDict = {
   haveAccount: "已有帳戶？立即登入",
   backToSignIn: "← 返回登入",
 
+  showPassword: "顯示密碼",
+  hidePassword: "隱藏密碼",
+
   errEmailPassword: "請輸入電子郵件和密碼。",
   errName: "請輸入你的姓名。",
   errGeneric: "發生了一些問題，請重試。",
-  errSsoSoon: "第三方登入即將推出，請先使用電子郵件登入。",
+
+  ssoErrUnconfigured: "此登入方式尚未在此環境中設定，請改用電子郵件和密碼登入。",
+  ssoErrDenied: "你在授權頁面取消了登入，帳戶沒有任何變更。",
+  ssoErrState: "這個登入連結與目前的瀏覽器不符，請重新發起登入。",
+  ssoErrExpired: "本次登入等待過久已失效，請重新登入。",
+  ssoErrEmailTaken:
+    "這個電子郵件已註冊。請先以密碼登入，再到帳戶設定中綁定這個登入方式。",
+  ssoErrAlreadyLinked: "這個第三方帳號已綁定到另一個 ArkAgent 帳戶。",
+  ssoErrSuspended: "此帳戶已停用，請聯絡客服恢復存取權限。",
+  ssoErrProvider: "第三方服務未能完成登入，請稍後再試。",
+  ssoErrFailed: "登入失敗，請重試，或改用電子郵件和密碼登入。",
 };
 
 const ja: AuthDict = {
@@ -247,6 +322,11 @@ const ja: AuthDict = {
   ssoGoogle: "G · Google",
   ssoWeChat: "微信 WeChat",
   orDivider: "または",
+  ssoNameGoogle: "Google",
+  ssoNameWeChat: "WeChat",
+  ssoJoin: " と ",
+  ssoNotConfigured: (providers) =>
+    `${providers} でのログインはこの環境ではまだ設定されていません。下のメールアドレスとパスワードをご利用ください。`,
 
   labelName: "氏名",
   labelEmail: "仕事用メールアドレス",
@@ -268,10 +348,25 @@ const ja: AuthDict = {
   haveAccount: "アカウントをお持ちですか？ログイン",
   backToSignIn: "← ログインに戻る",
 
+  showPassword: "パスワードを表示",
+  hidePassword: "パスワードを非表示",
+
   errEmailPassword: "メールアドレスとパスワードを入力してください。",
   errName: "氏名を入力してください。",
   errGeneric: "問題が発生しました。もう一度お試しください。",
-  errSsoSoon: "ソーシャルログインは近日公開予定です。メールをご利用ください。",
+
+  ssoErrUnconfigured:
+    "このログイン方法はこの環境ではまだ設定されていません。メールアドレスとパスワードでログインしてください。",
+  ssoErrDenied: "認可画面でログインがキャンセルされました。アカウントに変更はありません。",
+  ssoErrState: "このログインリンクは現在のブラウザーと一致しません。最初からやり直してください。",
+  ssoErrExpired: "ログインの手続きに時間がかかり、有効期限が切れました。もう一度お試しください。",
+  ssoErrEmailTaken:
+    "このメールアドレスは既に登録されています。パスワードでログインしてから、アカウント設定で連携してください。",
+  ssoErrAlreadyLinked: "この連携アカウントは既に別の ArkAgent ユーザーに紐づいています。",
+  ssoErrSuspended: "このアカウントは停止されています。復旧についてはサポートにお問い合わせください。",
+  ssoErrProvider: "プロバイダー側でログインを完了できませんでした。しばらくしてからお試しください。",
+  ssoErrFailed:
+    "ログインに失敗しました。もう一度お試しいただくか、メールアドレスとパスワードをご利用ください。",
 };
 
 export const auth: Record<Lang, AuthDict> = { en, zh, zht, ja };

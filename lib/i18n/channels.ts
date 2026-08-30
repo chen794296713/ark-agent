@@ -15,6 +15,8 @@ export interface ChannelsDict {
   connect: string;
   disconnect: string;
   footnote: string;
+  /** Which agents use a channel, e.g. "USED BY NOVA · ATLAS". */
+  usedBy: (agents: string) => string;
   /** channelStatusDisplay labels, keyed by connection state. */
   statusConnected: string;
   statusPending: string;
@@ -36,6 +38,7 @@ const en: ChannelsDict = {
   connect: "Connect",
   disconnect: "Disconnect",
   footnote: "Credentials are encrypted and scoped to this workspace. Agents request channel access per role — you approve once.",
+  usedBy: (agents) => `USED BY ${agents.toUpperCase()}`,
   statusConnected: "CONNECTED",
   statusPending: "PENDING",
   statusError: "ERROR",
@@ -56,6 +59,7 @@ const zh: ChannelsDict = {
   connect: "连接",
   disconnect: "断开连接",
   footnote: "凭据已加密，且仅限本工作区使用。智能体按角色申请渠道权限，由你一次授权。",
+  usedBy: (agents) => `使用中：${agents}`,
   statusConnected: "已连接",
   statusPending: "处理中",
   statusError: "错误",
@@ -76,6 +80,7 @@ const zht: ChannelsDict = {
   connect: "連接",
   disconnect: "中斷連線",
   footnote: "憑證已加密，且僅限本工作區使用。智能體會依角色申請渠道權限，由你一次授權。",
+  usedBy: (agents) => `使用中：${agents}`,
   statusConnected: "已連接",
   statusPending: "處理中",
   statusError: "錯誤",
@@ -96,6 +101,7 @@ const ja: ChannelsDict = {
   connect: "接続",
   disconnect: "切断",
   footnote: "認証情報は暗号化され、このワークスペース内に限定されます。エージェントは役割ごとにチャネルへのアクセスを申請し、承認は一度だけで済みます。",
+  usedBy: (agents) => `利用中：${agents}`,
   statusConnected: "接続済み",
   statusPending: "保留中",
   statusError: "エラー",

@@ -2,8 +2,13 @@
  * Browser-side API client. Thin typed wrappers over the /api/** route handlers.
  * Every call sends the session cookie (same-origin) and throws ApiError on 4xx/5xx.
  */
-import type { AgentDTO } from "@/lib/serializers";
+import type { AgentDTO, PublicUser } from "@/lib/serializers";
+import type { Harness } from "@/lib/harness";
 import type { AgentSettings } from "@/lib/agent-settings";
+import type { Currency } from "@/lib/pricing";
+// Type-only, so the schema module (and Drizzle with it) never reaches the
+// browser bundle — but the admin enums stay pinned to the database definition.
+import type { PlatformRole, UserStatus } from "@/lib/db/schema";
 
 export class ApiError extends Error {
   status: number;
@@ -35,12 +40,13 @@ async function req<T>(method: string, path: string, body?: unknown): Promise<T> 
   return data as T;
 }
 
-export interface SessionUser {
-  id: string;
-  email: string;
-  name: string;
-  locale: "en" | "zh" | "zht" | "ja";
-}
+/**
+ * Aliased to the server serializer rather than hand-mirrored: a hand-written
+ * twin lets a new field on publicUser() compile clean while being silently
+ * invisible to the client, which is exactly how `platformRole` would have been
+ * lost here.
+ */
+export type SessionUser = PublicUser;
 export interface WorkspaceDTO {
   id: string;
   name: string;
@@ -59,7 +65,7 @@ export const api = {
   me: () => req<{ user: SessionUser; workspace: WorkspaceDTO }>("GET", "/api/auth/me"),
   setPrefs: (body: { locale?: "en" | "zh" | "zht" | "ja"; name?: string }) =>
     req<{ user: SessionUser }>("PATCH", "/api/me/preferences", body),
-  changePassword: (body: { currentPassword: string; newPassword: string }) =>
+  changePassword: (body: { currentPassword?: string; newPassword: string }) =>
     req<{ ok: true }>("PATCH", "/api/me/password", body),
 
   // ---- reference ----
@@ -138,8 +144,31 @@ export const api = {
     req<{ channel: ChannelDTO }>("POST", "/api/channels", body),
   disconnectChannel: (id: string) => req<{ channel: ChannelDTO }>("DELETE", `/api/channels/${id}`),
   billing: () => req<BillingDTO>("GET", "/api/billing"),
-  checkout: (body: { planId: string; cycle: "monthly" | "annual"; provider: "stripe" | "alipay"; agentId?: string }) =>
-    req<{ subscriptionId: string; invoice: InvoiceDTO }>("POST", "/api/billing/checkout", body),
+  billingUsage: (range: BillingUsageDTO["range"], from?: string, to?: string) => {
+    const q = new URLSearchParams({ range });
+    if (from) q.set("from", from);
+    if (to) q.set("to", to);
+    return req<BillingUsageDTO>("GET", `/api/billing/usage?${q}`);
+  },
+  /**
+   * Start a checkout. In `live` mode the response carries a provider-hosted
+   * `redirectUrl` to send the browser to — the seat is granted later, by the
+   * Stripe webhook or the Alipay notify. In `mock` mode (no provider keys
+   * configured) the order is fulfilled inline and `invoice` comes back at once.
+   */
+  checkout: (body: {
+    planId: string;
+    cycle: "monthly" | "annual";
+    provider: "stripe" | "alipay";
+    agentId?: string;
+    locale?: "en" | "zh" | "zht" | "ja";
+  }) => req<CheckoutResponse>("POST", "/api/billing/checkout", body),
+  /** Poll one order after returning from the provider. */
+  paymentOrder: (outTradeNo: string) =>
+    req<{ order: PaymentOrderDTO; invoice: InvoiceDTO | null }>(
+      "GET",
+      `/api/payments/orders/${encodeURIComponent(outTradeNo)}`,
+    ),
 
   // ---- agent runtime / instance info ----
   getAgentInstanceInfo: (agentId: string) =>
@@ -151,18 +180,252 @@ export const api = {
   // ---- agent usage / token report ----
   getAgentTokenReport: (agentId: string, days: 1 | 3 | 7 | 30) =>
     req<TokenReportDTO>("GET", `/api/agents/${agentId}/token-report?days=${days}`),
+
+  // ---- platform admin ----
+  // Every one of these 403s for a non-staff caller; the console renders that as
+  // a "not authorized" panel rather than an error toast.
+  adminOverview: () => req<AdminOverviewDTO>("GET", "/api/admin/overview"),
+  adminUsers: (query: AdminUserQuery = {}) =>
+    req<AdminUsersDTO>("GET", `/api/admin/users${adminUserQueryString(query)}`),
+  adminUser: (id: string) =>
+    req<AdminUserDetailDTO>("GET", `/api/admin/users/${encodeURIComponent(id)}`),
+  adminSetUserRole: (id: string, platformRole: PlatformRole) =>
+    req<AdminMutationResult>("PATCH", `/api/admin/users/${encodeURIComponent(id)}/role`, {
+      platformRole,
+    }),
+  adminSetUserStatus: (id: string, status: UserStatus) =>
+    req<AdminMutationResult>("PATCH", `/api/admin/users/${encodeURIComponent(id)}/status`, {
+      status,
+    }),
+  adminDeleteUser: (id: string) =>
+    req<AdminMutationResult>("DELETE", `/api/admin/users/${encodeURIComponent(id)}`),
+  adminRevokeSessions: (id: string) =>
+    req<AdminMutationResult>("POST", `/api/admin/users/${encodeURIComponent(id)}/sessions`, {
+      action: "revoke",
+    }),
+  adminLlmUsage: (days = 30) => req<AdminLlmUsageDTO>("GET", `/api/admin/llm-usage?days=${days}`),
 };
+
+// ---- admin console shapes ----
+// The console renders a live database, so a field the route stops sending must
+// blank one cell rather than white-screen the page: everything below the
+// envelope itself is optional and every read site falls back.
+
+export interface AdminUserQuery {
+  q?: string;
+  role?: PlatformRole;
+  status?: UserStatus;
+  page?: number;
+  perPage?: number;
+}
+
+function adminUserQueryString(query: AdminUserQuery): string {
+  const params = new URLSearchParams();
+  // Empty strings would narrow the search to nothing rather than widen it, so
+  // only truthy filters are sent.
+  if (query.q) params.set("q", query.q);
+  if (query.role) params.set("role", query.role);
+  if (query.status) params.set("status", query.status);
+  if (query.page) params.set("page", String(query.page));
+  if (query.perPage) params.set("perPage", String(query.perPage));
+  const qs = params.toString();
+  return qs ? `?${qs}` : "";
+}
+
+/** Rollup of one slice of llm_usage — a user, a model, a day, a workspace. */
+export interface AdminUsageTotals {
+  calls?: number;
+  promptTokens?: number;
+  completionTokens?: number;
+  totalTokens?: number;
+  costMicroUsd?: number;
+  errors?: number;
+  /** Fraction (0–1) or percent; the console normalizes whichever arrives. */
+  errorRate?: number;
+}
+export interface AdminUsageByModel extends AdminUsageTotals {
+  model?: string;
+  provider?: string;
+}
+export interface AdminUsageByDay extends AdminUsageTotals {
+  day?: string;
+  date?: string;
+}
+export interface AdminUsageByWorkspace extends AdminUsageTotals {
+  workspaceId?: string;
+  name?: string;
+}
+export interface AdminUsageDTO {
+  days?: number;
+  totals?: AdminUsageTotals;
+  byModel?: AdminUsageByModel[];
+  byDay?: AdminUsageByDay[];
+}
+
+/** Null once the referenced account is deleted — the FK is ON DELETE SET NULL. */
+export interface AdminUserRefDTO {
+  id: string;
+  email: string;
+  name: string;
+}
+
+export interface AdminAuditEntryDTO {
+  /** `admin_audit_log.id` is a bigint read in number mode. */
+  id: number;
+  action?: string;
+  summary?: string;
+  actor?: AdminUserRefDTO | null;
+  target?: AdminUserRefDTO | null;
+  ip?: string | null;
+  createdAt?: string;
+}
+
+export interface AdminOverviewDTO {
+  users?: {
+    total?: number;
+    byStatus?: Partial<Record<UserStatus, number>>;
+    byRole?: Partial<Record<PlatformRole, number>>;
+  };
+  agents?: {
+    total?: number;
+    byStatus?: Record<string, number | undefined>;
+  };
+  /** A bare count or a `{ total }` envelope — both spellings are tolerated. */
+  workspaces?: number | { total?: number };
+  llm?: AdminUsageTotals & { days?: number };
+  audit?: AdminAuditEntryDTO[];
+}
+
+export interface AdminUserRowDTO {
+  id: string;
+  email?: string;
+  name?: string;
+  platformRole?: PlatformRole;
+  status?: UserStatus;
+  locale?: string;
+  hasPassword?: boolean;
+  createdAt?: string;
+  agentCount?: number;
+  identityCount?: number;
+  counts?: { agents?: number; identities?: number };
+  usage?: AdminUsageTotals;
+}
+
+export interface AdminUsersDTO {
+  users?: AdminUserRowDTO[];
+  page?: number;
+  perPage?: number;
+  total?: number;
+}
+
+export interface AdminWorkspaceRefDTO {
+  id: string;
+  name?: string;
+  /** The user's role in this workspace, as returned by the detail route. */
+  memberRole?: string;
+  creditsUsed?: number;
+  creditsIncluded?: number;
+  createdAt?: string;
+}
+
+export interface AdminAgentRefDTO {
+  id: string;
+  name?: string;
+  role?: string;
+  roleId?: string;
+  status?: string;
+  engine?: string;
+  creditsUsed?: number;
+  workspaceId?: string;
+  workspaceName?: string;
+  createdAt?: string;
+}
+
+export interface AdminIdentityDTO {
+  id: string;
+  provider?: string;
+  email?: string | null;
+  emailVerified?: boolean;
+  displayName?: string | null;
+  lastLoginAt?: string | null;
+  createdAt?: string;
+}
+
+export interface AdminSessionDTO {
+  id: string;
+  ip?: string | null;
+  userAgent?: string | null;
+  createdAt?: string;
+  expiresAt?: string | null;
+  lastSeenAt?: string | null;
+  current?: boolean;
+}
+
+export interface AdminUserDetailDTO {
+  user?: AdminUserRowDTO;
+  workspaces?: AdminWorkspaceRefDTO[];
+  agents?: AdminAgentRefDTO[];
+  identities?: AdminIdentityDTO[];
+  sessions?: AdminSessionDTO[];
+  usage?: AdminUsageDTO;
+}
+
+export interface AdminLlmUsageDTO extends AdminUsageDTO {
+  byWorkspace?: AdminUsageByWorkspace[];
+}
+
+/**
+ * Admin mutations answer with either the fresh row or a bare ack depending on
+ * the verb; the console re-reads the user afterwards instead of trusting either.
+ */
+export interface AdminMutationResult {
+  ok?: true;
+  user?: AdminUserRowDTO;
+  revoked?: number;
+}
 
 // ---- response shapes ----
 export interface RoleDTO {
   id: string; name: string; blurb: string; longBlurb: string | null; hue: string; mono: string;
-  defaultEngine: "openclaw" | "hermes"; defaultInstructions: string | null; defaultRules: string | null;
+  defaultEngine: Harness; defaultInstructions: string | null; defaultRules: string | null;
   minPlan: "associate" | "professional" | "director";
   managerAgentId?: number; categoryId?: number; categoryName?: string; uploadFilename?: string;
 }
 export interface PlanDTO {
-  id: "associate" | "professional" | "director"; name: string; monthlyPriceCents: number;
-  includedCredits: number; overageCentsPer1k: number; features: string[];
+  id: "associate" | "professional" | "director";
+  name: string;
+  /** USD list price in cents (international market). */
+  monthlyPriceCents: number;
+  /** CNY list price in 分 (China market) — a local ladder, not an FX conversion. */
+  monthlyPriceFen: number;
+  includedCredits: number;
+  overageCentsPer1k: number;
+  overageFenPer1k: number;
+  features: string[];
+}
+
+export interface PaymentOrderDTO {
+  outTradeNo: string;
+  provider: "stripe" | "alipay";
+  status: "pending" | "paid" | "failed" | "closed" | "refunded";
+  planId: "associate" | "professional" | "director";
+  cycle: "monthly" | "annual";
+  amountMinor: number;
+  currency: Currency;
+  payUrl: string | null;
+  returnUrl: string | null;
+  failureReason: string | null;
+  completedAt: string | null;
+  createdAt: string;
+}
+
+export interface CheckoutResponse {
+  /** `live` = redirect to `redirectUrl`; `mock` = already fulfilled. */
+  mode: "live" | "mock";
+  order: PaymentOrderDTO;
+  redirectUrl: string | null;
+  subscriptionId: string | null;
+  invoice: InvoiceDTO | null;
 }
 export interface MessageDTO {
   id: string; sender: "user" | "agent" | "system"; body: string; channelType: string;
@@ -221,18 +484,20 @@ export interface AgentDetailDTO extends AgentDTO {
   tasks: TaskDTO[]; activities: ActivityDTO[]; metrics: MetricDTO[]; improvements: ImprovementDTO[];
 }
 export interface CreateAgentBody {
-  name: string; roleId: string; engine: "openclaw" | "hermes";
+  name: string; roleId: string; engine: Harness;
   managerAgentId?: number;
   planTier: "associate" | "professional" | "director"; instructions: string; rules: string;
   channels: string[]; tasks: string[];
 }
 export interface UpdateAgentBody {
   name?: string; instructions?: string; rules?: string;
-  planTier?: "associate" | "professional" | "director"; engine?: "openclaw" | "hermes";
+  planTier?: "associate" | "professional" | "director"; engine?: Harness;
   channels?: string[]; settings?: Partial<AgentSettings>;
 }
 export interface ChannelDTO {
   id: string; type: string; status: string; label: string | null; config: Record<string, string>;
+  /** Names of THIS workspace's live agents attached to the channel. */
+  usedBy?: string[];
 }
 
 /** OpenClaw channel status returned by /api/channels?instance_uuid= */
@@ -256,8 +521,18 @@ export interface SessionDTO {
   pinned: boolean;
 }
 export interface InvoiceDTO {
-  id: string; number: string; amountCents: number; currency: string; status: string;
-  issuedAt: string; paidAt: string | null; pdfUrl: string | null;
+  id: string;
+  number: string;
+  /** Amount in the invoice currency's MINOR units (US cents / 人民币分). */
+  amountCents: number;
+  currency: string;
+  status: string;
+  /** Which provider settled it — drives the badge on the billing table. */
+  provider: "stripe" | "alipay" | null;
+  issuedAt: string;
+  paidAt: string | null;
+  pdfUrl: string | null;
+  hostedUrl: string | null;
 }
 export interface DashboardDTO {
   workspace: WorkspaceDTO;
@@ -272,6 +547,23 @@ export interface BillingDTO {
   invoices: InvoiceDTO[];
   subscriptions: number;
   plans: PlanDTO[];
+}
+
+/**
+ * Real credit usage for the billing chart, from `usage_records`. Replaces the
+ * invented `BillDataset` that lib/data.ts used to hand every workspace.
+ */
+export interface BillingUsageDTO {
+  range: "cycle" | "last" | "d90" | "custom";
+  from: string;
+  to: string;
+  credits: number;
+  included: number;
+  buckets: { date: string; credits: number }[];
+  perAgent: { id: string; name: string; hue: string | null; credits: number }[];
+  cycles: number;
+  annualSeats: number;
+  monthlySeats: number;
 }
 
 // ---- SSE streaming ----
@@ -361,7 +653,7 @@ async function streamWechatLogin(
 
 function parseWechatSseEvent(raw: string): WechatLoginEvent | null {
   let eventName = "message";
-  let dataLines: string[] = [];
+  const dataLines: string[] = [];
   for (const line of raw.split("\n")) {
     const trimmed = line.replace(/\r$/, "");
     if (!trimmed || trimmed.startsWith(":")) continue;

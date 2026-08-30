@@ -7,11 +7,14 @@ import { c, font, r } from "@/lib/theme";
 import { api, ApiError } from "@/lib/client-api";
 import type { AgentDTO } from "@/lib/serializers";
 import { statusDisplay, ENGINE_LABEL, channelsText } from "@/lib/agent-display";
+import type { Harness } from "@/lib/harness";
 import { Btn, HoverDiv } from "@/components/ui";
 import { useApp } from "@/lib/store";
 import { fleet } from "@/lib/i18n/fleet";
 
-type EngineFilter = "all" | "openclaw" | "hermes";
+// Derived, so a new harness appears in the filter instead of silently
+// hiding every agent that runs on it.
+type EngineFilter = "all" | Harness;
 type StatusFilter = "all" | "working" | "error" | "terminated";
 
 function FleetCard({
@@ -47,7 +50,9 @@ function FleetCard({
             width: 42,
             height: 42,
             background: a.hue ?? c.lime,
-            color: c.ink,
+            // c.onBrand is fixed dark — right on a fixed role hue, wrong on the
+            // themed lime fallback, which pairs with c.ink.
+            color: a.hue ? c.onBrand : c.ink,
             display: "grid",
             placeItems: "center",
             fontFamily: font.space,

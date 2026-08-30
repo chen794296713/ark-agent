@@ -2,9 +2,21 @@
 
 /**
  * PAYMENT — checkout screen.
- * Ported pixel-true from ArkAgent.dc.html (markup 962-1109, logic 1870-1971).
- * Region defaults from language (zh/zht -> cn), overridable via region tabs.
- * Global -> Stripe card form; CN -> Alipay QR (deterministic 25x25).
+ *
+ * This screen never sees card data. Both markets end in a redirect to a
+ * provider-hosted page — Stripe Checkout for USD, the Alipay gateway for CNY —
+ * so all we render is the order, the market switch and the handoff button.
+ * Collecting a PAN here would drag the app into PCI scope for no benefit.
+ *
+ * Fulfilment is asynchronous: the seat is granted by the Stripe webhook or the
+ * Alipay notify, not by the browser coming back. /payment/return polls for the
+ * outcome. The one exception is `mode: "mock"` — no provider credentials are
+ * configured, the server fulfils inline, and we say so rather than implying
+ * money moved.
+ *
+ * Region and currency are the same choice: `currency` from the app store is the
+ * source of truth and the region tabs write to it, so the landing page and the
+ * checkout can never disagree about the price.
  */
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -12,86 +24,89 @@ import { c, font, r } from "@/lib/theme";
 import { useApp } from "@/lib/store";
 import { api, ApiError } from "@/lib/client-api";
 import { Btn } from "@/components/ui";
+import {
+  annualListTotal,
+  annualSavings,
+  currencyMeta,
+  cycleTotal,
+  formatMoney,
+  planPrice,
+  providerForCurrency,
+  type BillingCycle,
+  type Currency,
+  type PlanTier,
+} from "@/lib/pricing";
 import { payment } from "@/lib/i18n/payment";
 
 type Region = "global" | "cn";
-type Cycle = "mo" | "yr";
-type PayState = "idle" | "processing" | "done";
-type AliState = "idle" | "confirm" | "done";
 
-const LIME = c.lime;
-const ACCENT = c.accent;
+/** The tier this screen sells — the plan card copy is written for it. */
+const TIER: PlanTier = "professional";
+
+/**
+ * Ink on a provider's brand fill. Stripe indigo and Alipay blue are fixed in all
+ * three themes, so their label cannot follow the palette the way `c.ink` does.
+ */
+const BRAND_INK = "#fff";
 
 export default function PaymentPage() {
   const router = useRouter();
-  const { lang } = useApp();
+  const { lang, user, currency, setCurrency, currencyPinned } = useApp();
   const t = payment[lang];
 
-  const defaultRegion: Region = lang === "zh" || lang === "zht" ? "cn" : "global";
-  const [payRegion, setPayRegion] = useState<Region | null>(null);
-  const region: Region = payRegion ?? defaultRegion;
+  const region: Region = currencyMeta[currency].market;
   const isCN = region === "cn";
+  const provider = providerForCurrency(currency);
 
-  const [payCycle, setPayCycle] = useState<Cycle>("mo");
-  const yrPay = payCycle === "yr";
+  const [yearly, setYearly] = useState(false);
+  const cycle: BillingCycle = yearly ? "annual" : "monthly";
 
-  const [payState, setPayState] = useState<PayState>("idle");
-  const [aliState, setAliState] = useState<AliState>("idle");
-  const [payError, setPayError] = useState<string | null>(null);
-  const [invoiceNo, setInvoiceNo] = useState<string | null>(null);
+  // "redirecting" is terminal on the live path — the tab is on its way to the
+  // provider, so the button deliberately never falls back to idle.
+  const [status, setStatus] = useState<"idle" | "redirecting" | "paid">("idle");
+  const [error, setError] = useState<string | null>(null);
+  /**
+   * Mock-mode receipt, frozen at the moment the server settled the order. It
+   * carries its own amount rather than reading `dueTotal`, because the billing
+   * cycle tabs stay live in the summary column — flipping to ANNUAL after paying
+   * would otherwise rewrite the receipt to an amount nobody was charged.
+   */
+  const [paidRef, setPaidRef] = useState<{
+    invoice: boolean;
+    no: string;
+    amountMinor: number;
+    currency: Currency;
+    annual: boolean;
+  } | null>(null);
 
-  // stripe card fields
-  const [cardEmail, setCardEmail] = useState("");
-  const [cardNum, setCardNum] = useState("");
-  const [cardExp, setCardExp] = useState("");
-  const [cardCvc, setCardCvc] = useState("");
-  const [cardName, setCardName] = useState("");
-  const [cardCountry, setCardCountry] = useState(t.countryDefault);
+  const backToBilling = () => router.push("/dashboard/billing");
 
-  const payBackBilling = () => router.push("/dashboard/billing");
-
-  const setRegion = (r: Region) => {
-    setPayRegion(r);
-    setPayState("idle");
-    setAliState("idle");
-    setPayError(null);
-    setInvoiceNo(null);
+  const selectRegion = (next: Region) => {
+    setCurrency(next === "cn" ? "cny" : "usd");
+    setStatus("idle");
+    setError(null);
+    setPaidRef(null);
   };
 
-  const amt = isCN
-    ? yrPay
-      ? "¥10,253.00"
-      : "¥1,068.00"
-    : yrPay
-    ? "$1,430.40"
-    : "$149.00";
+  // Every figure below comes from the ladder in lib/pricing.ts, in minor units.
+  const monthly = planPrice(TIER, currency);
+  const amt = formatMoney(cycleTotal(TIER, currency, cycle), currency);
+  const dueTotal = amt + t.perCycle(yearly);
 
-  const sumRowsRaw: { l: string; v: string; c?: string }[] = isCN
-    ? yrPay
-      ? [
-          { l: t.seatAnnual, v: "¥12,816.00" },
-          { l: t.annualDiscount, v: "−¥2,563.20", c: c.green },
-          { l: t.creditsPerMonth, v: t.included },
-          { l: t.taxLabel, v: t.taxIncluded },
-        ]
-      : [
-          { l: t.seatMonthly, v: "¥1,068.00" },
-          { l: t.creditsPerMonth, v: t.included },
-          { l: t.taxLabel, v: t.taxIncluded },
-        ]
-    : yrPay
+  // CNY is a tax-inclusive local price; USD carries no tax at these amounts.
+  const taxValue = isCN ? t.taxIncluded : formatMoney(0, currency);
+  const sumRows: { l: string; v: string; c: string }[] = yearly
     ? [
-        { l: t.seatAnnual, v: "$1,788.00" },
-        { l: t.annualDiscount, v: "−$357.60", c: c.green },
-        { l: t.creditsPerMonth, v: t.included },
-        { l: t.taxLabel, v: "$0.00" },
+        { l: t.seatAnnual, v: formatMoney(annualListTotal(monthly), currency), c: c.text2 },
+        { l: t.annualDiscount, v: formatMoney(-annualSavings(monthly), currency), c: c.green },
+        { l: t.creditsPerMonth, v: t.included, c: c.text2 },
+        { l: t.taxLabel, v: taxValue, c: c.text2 },
       ]
     : [
-        { l: t.seatMonthly, v: "$149.00" },
-        { l: t.creditsPerMonth, v: t.included },
-        { l: t.taxLabel, v: "$0.00" },
+        { l: t.seatMonthly, v: formatMoney(monthly, currency), c: c.text2 },
+        { l: t.creditsPerMonth, v: t.included, c: c.text2 },
+        { l: t.taxLabel, v: taxValue, c: c.text2 },
       ];
-  const sumRows = sumRowsRaw.map((r) => ({ l: r.l, v: r.v, c: r.c || c.text2 }));
 
   const regionTabs = (
     [
@@ -100,143 +115,88 @@ export default function PaymentPage() {
     ] as { id: Region; label: string }[]
   ).map((rt) => ({
     label: rt.label,
-    bg: region === rt.id ? LIME : "transparent",
+    bg: region === rt.id ? c.lime : "transparent",
     c: region === rt.id ? c.ink : c.muted,
-    fn: () => setRegion(rt.id),
+    fn: () => selectRegion(rt.id),
   }));
 
   const cycleTabs = (
     [
-      { id: "mo", label: t.cycleMonthly },
-      { id: "yr", label: t.cycleAnnual },
-    ] as { id: Cycle; label: string }[]
+      { id: false, label: t.cycleMonthly },
+      { id: true, label: t.cycleAnnual },
+    ] as { id: boolean; label: string }[]
   ).map((cy) => ({
     label: cy.label,
-    bg: payCycle === cy.id ? LIME : "transparent",
-    c: payCycle === cy.id ? c.ink : c.muted,
-    fn: () => setPayCycle(cy.id),
+    bg: yearly === cy.id ? c.lime : "transparent",
+    c: yearly === cy.id ? c.ink : c.muted,
+    fn: () => setYearly(cy.id),
   }));
 
-  // fake but deterministic QR (25x25 with finder patterns)
-  const QN = 25;
-  const qrCells: React.ReactNode[] = [];
-  const inFinder = (r: number, col: number) =>
-    (r < 7 && col < 7) || (r < 7 && col >= QN - 7) || (r >= QN - 7 && col < 7);
-  for (let r = 0; r < QN; r++) {
-    for (let col = 0; col < QN; col++) {
-      let black: boolean;
-      if (inFinder(r, col)) {
-        const rr = r < 7 ? r : r - (QN - 7);
-        const cc = col < 7 ? col : col - (QN - 7);
-        black =
-          rr === 0 ||
-          rr === 6 ||
-          cc === 0 ||
-          cc === 6 ||
-          (rr >= 2 && rr <= 4 && cc >= 2 && cc <= 4);
-      } else {
-        black = (r * 13 + col * 31 + r * col * 7) % 9 < 4;
-      }
-      qrCells.push(
-        <div key={r + "-" + col} style={{ background: black ? "#111417" : "#fff" }} />,
-      );
-    }
-  }
-  const qrEl = (
-    <div
-      style={{
-        display: "grid",
-        gridTemplateColumns: "repeat(25, 1fr)",
-        width: "176px",
-        height: "176px",
-        maxWidth: "100%",
-        background: "#fff",
-        padding: "10px",
-      }}
-    >
-      {qrCells}
-    </div>
-  );
+  const busy = status === "redirecting";
 
-  const cardDigits = cardNum.replace(/\s/g, "");
-  const cardBrand = cardDigits.startsWith("4")
-    ? "VISA"
-    : cardDigits.startsWith("5")
-    ? "MASTERCARD"
-    : cardDigits.startsWith("3")
-    ? "AMEX"
-    : "CARD";
-
-  const payEyebrow = t.eyebrow;
-  const payTitle = t.title;
-  const paySub = t.sub;
-  const planName = t.planName;
-  const planFor = t.planFor;
-  const payRegionNote = t.regionNote;
-  const sumTotalLabel = t.dueToday;
-  const sumTotal = amt + t.perCycle(yrPay);
-  const payNote = t.footnote;
-
-  const payBtnLabel = payState === "processing" ? t.processing : t.payAmount(amt);
-
-  // Shared checkout call. On 401 -> /auth. On other ApiError -> surface message.
-  const runCheckout = async (provider: "stripe" | "alipay"): Promise<boolean> => {
-    setPayError(null);
+  /**
+   * Open a checkout. The amount is never sent — the server prices the order from
+   * the same ladder — so the only thing the client chooses is tier, cycle and
+   * which provider (and therefore which currency) settles it.
+   */
+  const startCheckout = async () => {
+    if (status !== "idle") return;
+    setStatus("redirecting");
+    setError(null);
     try {
-      const { invoice } = await api.checkout({
-        planId: "professional",
-        cycle: yrPay ? "annual" : "monthly",
-        provider,
+      const res = await api.checkout({ planId: TIER, cycle, provider, locale: lang });
+      if (res.mode === "live") {
+        if (!res.redirectUrl) {
+          setError(t.paymentFailed);
+          setStatus("idle");
+          return;
+        }
+        // Full navigation, not router.push — the destination is another origin.
+        window.location.assign(res.redirectUrl);
+        return;
+      }
+      setPaidRef({
+        invoice: !!res.invoice,
+        no: res.invoice ? res.invoice.number : res.order.outTradeNo,
+        // From the ORDER, not from local state: this is what was settled.
+        amountMinor: res.order.amountMinor,
+        currency: res.order.currency,
+        annual: res.order.cycle === "annual",
       });
-      setInvoiceNo(invoice.number);
-      return true;
+      setStatus("paid");
     } catch (err) {
       if (err instanceof ApiError && err.status === 401) {
         router.push("/auth");
-        return false;
+        return;
       }
-      setPayError(
-        err instanceof ApiError ? err.message : t.paymentFailed,
+      // Server messages are English-only, so the 5xx cases a real buyer can hit
+      // (provider unreachable → 502) get localized copy; a 4xx carries a
+      // specific, actionable message worth surfacing verbatim.
+      setError(
+        err instanceof ApiError
+          ? err.status >= 500
+            ? t.checkoutUnavailable
+            : err.message
+          : t.paymentFailed,
       );
-      return false;
+      setStatus("idle");
     }
   };
 
-  const payNow = () => {
-    if (payState !== "idle") return;
-    setPayState("processing");
-    void runCheckout(region === "cn" ? "alipay" : "stripe").then((ok) => {
-      setPayState(ok ? "done" : "idle");
-    });
-  };
-  const payReceiptEmail = cardEmail.trim() || "wei@company.com";
-
-  const simAli = () => {
-    if (aliState !== "idle") return;
-    setAliState("confirm");
-    void runCheckout("alipay").then((ok) => {
-      setAliState(ok ? "done" : "idle");
-    });
-  };
-
-  const inputStyle = (mono: boolean): React.CSSProperties => ({
-    width: "100%",
-    background: c.bg,
-    border: `1px solid ${c.border}`,
-    color: c.text,
-    padding: "12px 14px",
-    fontSize: "14.5px",
-    fontFamily: mono ? font.mono : font.sans,
-    outline: "none",
-    borderRadius: r.radiusSm,
-  });
-  const labelStyle: React.CSSProperties = {
-    fontFamily: font.mono,
-    fontSize: "10.5px",
-    letterSpacing: ".12em",
-    color: c.muted,
-    marginBottom: "7px",
-  };
+  const errorNote = error && (
+    <div
+      style={{
+        marginTop: "14px",
+        fontFamily: font.mono,
+        fontSize: "12px",
+        color: c.red,
+        letterSpacing: ".02em",
+        lineHeight: 1.5,
+      }}
+    >
+      {error}
+    </div>
+  );
 
   return (
     <div data-screen-label="Payment" style={{ minHeight: "100vh" }}>
@@ -252,7 +212,7 @@ export default function PaymentPage() {
         }}
       >
         <Btn
-          onClick={payBackBilling}
+          onClick={backToBilling}
           hoverStyle={{ color: c.text }}
           style={{
             background: "none",
@@ -311,7 +271,7 @@ export default function PaymentPage() {
               marginBottom: "14px",
             }}
           >
-            {payEyebrow}
+            {t.eyebrow}
           </div>
           <h2
             style={{
@@ -322,9 +282,11 @@ export default function PaymentPage() {
               margin: "0 0 10px",
             }}
           >
-            {payTitle}
+            {t.title}
           </h2>
-          <p style={{ color: c.muted, margin: "0 0 24px", fontSize: "14.5px" }}>{paySub}</p>
+          <p style={{ color: c.muted, margin: "0 0 24px", fontSize: "14.5px" }}>
+            {isCN ? t.subAlipay : t.subStripe}
+          </p>
           <div
             style={{
               display: "flex",
@@ -335,7 +297,6 @@ export default function PaymentPage() {
               maxWidth: "100%",
               flexWrap: "wrap",
               marginBottom: "20px",
-              borderRadius: r.radiusSm,
             }}
           >
             {cycleTabs.map((cy, i) => (
@@ -351,14 +312,13 @@ export default function PaymentPage() {
                   fontSize: "11px",
                   letterSpacing: ".04em",
                   cursor: "pointer",
-                  borderRadius: r.radiusSm,
                 }}
               >
                 {cy.label}
               </button>
             ))}
           </div>
-          <div style={{ border: `1px solid ${c.border}`, background: c.panel, borderRadius: r.radiusMd, overflow: "hidden" }}>
+          <div style={{ border: `1px solid ${c.border}`, background: c.panel }}>
             <div
               style={{
                 display: "flex",
@@ -385,9 +345,9 @@ export default function PaymentPage() {
               </div>
               <div>
                 <div style={{ fontFamily: font.space, fontWeight: 700, fontSize: "15.5px" }}>
-                  {planName}
+                  {t.planName}
                 </div>
-                <div style={{ fontSize: "12.5px", color: c.muted }}>{planFor}</div>
+                <div style={{ fontSize: "12.5px", color: c.muted }}>{t.planFor}</div>
               </div>
             </div>
             <div style={{ padding: "6px 0" }}>
@@ -418,10 +378,10 @@ export default function PaymentPage() {
               }}
             >
               <span style={{ fontFamily: font.space, fontWeight: 700, fontSize: "15px" }}>
-                {sumTotalLabel}
+                {t.dueToday}
               </span>
               <span style={{ fontFamily: font.space, fontWeight: 700, fontSize: "24px" }}>
-                {sumTotal}
+                {dueTotal}
               </span>
             </div>
           </div>
@@ -434,7 +394,7 @@ export default function PaymentPage() {
               letterSpacing: ".04em",
             }}
           >
-            {payNote}
+            {t.footnote}
           </div>
         </div>
 
@@ -449,8 +409,9 @@ export default function PaymentPage() {
               width: "fit-content",
               maxWidth: "100%",
               flexWrap: "wrap",
-              marginBottom: "8px",
-              borderRadius: r.radiusSm,
+              // The note below only renders until the visitor pins a currency,
+              // so the tab strip carries the spacing once it is gone.
+              marginBottom: currencyPinned ? "18px" : "8px",
             }}
           >
             {regionTabs.map((rt, i) => (
@@ -466,282 +427,116 @@ export default function PaymentPage() {
                   fontSize: "11.5px",
                   letterSpacing: ".04em",
                   cursor: "pointer",
-                  borderRadius: r.radiusSm,
                 }}
               >
                 {rt.label}
               </button>
             ))}
           </div>
-          <div style={{ fontSize: "12px", color: c.faint, marginBottom: "18px" }}>
-            {payRegionNote}
-          </div>
+          {!currencyPinned && (
+            <div style={{ fontSize: "12px", color: c.faint, marginBottom: "18px" }}>
+              {t.regionNote}
+            </div>
+          )}
 
-          {/* Stripe (global) */}
-          {!isCN &&
-            (payState !== "done" ? (
-              <div style={{ border: `1px solid ${c.border}`, background: c.panel, padding: "26px", borderRadius: r.radiusMd }}>
-                <div
-                  style={{
-                    display: "grid",
-                    gridTemplateColumns: r.split,
-                    gap: "10px",
-                    marginBottom: "16px",
-                  }}
-                >
-                  <Btn
-                    hoverStyle={{ borderColor: c.borderMute }}
-                    style={{
-                      background: "#000",
-                      border: `1px solid ${c.borderStrong}`,
-                      color: "#fff",
-                      padding: "12px",
-                      fontFamily: font.sans,
-                      fontWeight: 600,
-                      fontSize: "14px",
-                      cursor: "pointer",
-                      borderRadius: r.radiusSm,
-                    }}
-                  >
-                    {t.applePay}
-                  </Btn>
-                  <Btn
-                    hoverStyle={{ borderColor: c.borderMute }}
-                    style={{
-                      background: "#000",
-                      border: `1px solid ${c.borderStrong}`,
-                      color: "#fff",
-                      padding: "12px",
-                      fontFamily: font.sans,
-                      fontWeight: 600,
-                      fontSize: "14px",
-                      cursor: "pointer",
-                      borderRadius: r.radiusSm,
-                    }}
-                  >
-                    {t.googlePay}
-                  </Btn>
-                </div>
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "14px",
-                    color: c.faint,
-                    fontFamily: font.mono,
-                    fontSize: "10.5px",
-                    marginBottom: "18px",
-                  }}
-                >
-                  <span style={{ flex: 1, height: "1px", background: c.line }} />
-                  {t.orPayWithCard}
-                  <span style={{ flex: 1, height: "1px", background: c.line }} />
-                </div>
-                <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
-                  <div>
-                    <div style={labelStyle}>{t.email}</div>
-                    <input
-                      value={cardEmail}
-                      onChange={(e) => setCardEmail(e.target.value)}
-                      placeholder="wei@company.com"
-                      style={inputStyle(false)}
-                    />
-                  </div>
-                  <div>
-                    <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "7px" }}>
-                      <span
-                        style={{
-                          fontFamily: font.mono,
-                          fontSize: "10.5px",
-                          letterSpacing: ".12em",
-                          color: c.muted,
-                        }}
-                      >
-                        {t.cardNumber}
-                      </span>
-                      <span style={{ fontFamily: font.mono, fontSize: "10.5px", color: c.faint }}>
-                        {cardBrand}
-                      </span>
-                    </div>
-                    <input
-                      value={cardNum}
-                      onChange={(e) => {
-                        let v = e.target.value.replace(/\D/g, "").slice(0, 16);
-                        v = v.replace(/(.{4})/g, "$1 ").trim();
-                        setCardNum(v);
-                      }}
-                      placeholder="4242 4242 4242 4242"
-                      style={inputStyle(true)}
-                    />
-                  </div>
-                  <div style={{ display: "grid", gridTemplateColumns: r.split, gap: "14px" }}>
-                    <div>
-                      <div style={labelStyle}>{t.expiry}</div>
-                      <input
-                        value={cardExp}
-                        onChange={(e) => {
-                          let v = e.target.value.replace(/\D/g, "").slice(0, 4);
-                          if (v.length > 2) v = v.slice(0, 2) + " / " + v.slice(2);
-                          setCardExp(v);
-                        }}
-                        placeholder="MM / YY"
-                        style={inputStyle(true)}
-                      />
-                    </div>
-                    <div>
-                      <div style={labelStyle}>{t.cvc}</div>
-                      <input
-                        value={cardCvc}
-                        onChange={(e) => setCardCvc(e.target.value.replace(/\D/g, "").slice(0, 4))}
-                        placeholder="123"
-                        style={inputStyle(true)}
-                      />
-                    </div>
-                  </div>
-                  <div style={{ display: "grid", gridTemplateColumns: r.split, gap: "14px" }}>
-                    <div>
-                      <div style={labelStyle}>{t.nameOnCard}</div>
-                      <input
-                        value={cardName}
-                        onChange={(e) => setCardName(e.target.value)}
-                        placeholder="WEI ZHANG"
-                        style={inputStyle(false)}
-                      />
-                    </div>
-                    <div>
-                      <div style={labelStyle}>{t.country}</div>
-                      <input
-                        value={cardCountry}
-                        onChange={(e) => setCardCountry(e.target.value)}
-                        style={inputStyle(false)}
-                      />
-                    </div>
-                  </div>
-                  <Btn
-                    onClick={payNow}
-                    hoverStyle={{ background: c.stripeHover }}
-                    style={{
-                      background: c.stripe,
-                      color: "#fff",
-                      border: "none",
-                      padding: "15px",
-                      fontFamily: font.space,
-                      fontWeight: 700,
-                      fontSize: "15.5px",
-                      cursor: "pointer",
-                      marginTop: "4px",
-                      borderRadius: r.radiusSm,
-                    }}
-                  >
-                    {payBtnLabel}
-                  </Btn>
-                  {payError && (
-                    <div
-                      style={{
-                        fontFamily: font.mono,
-                        fontSize: "12px",
-                        color: c.red,
-                        letterSpacing: ".02em",
-                        lineHeight: 1.5,
-                      }}
-                    >
-                      {payError}
-                    </div>
-                  )}
-                </div>
-                <div
-                  style={{
-                    marginTop: "16px",
-                    textAlign: "center",
-                    fontFamily: font.mono,
-                    fontSize: "10.5px",
-                    color: c.faint,
-                    letterSpacing: ".06em",
-                  }}
-                >
-                  {t.stripeFootnote}
-                </div>
-              </div>
-            ) : (
+          {status === "paid" ? (
+            /* Mock mode only: the server fulfilled inline because no provider is
+               configured. Live payments confirm on /payment/return instead. */
+            <div
+              style={{
+                border: `1px solid ${c.greenBorder}`,
+                background: c.greenWash,
+                padding: "32px",
+                textAlign: "center",
+              }}
+            >
               <div
                 style={{
-                  border: `1px solid ${c.greenBorder}`,
-                  background: c.greenWash,
-                  padding: "32px",
-                  textAlign: "center",
-                  borderRadius: r.radiusMd,
+                  width: "52px",
+                  height: "52px",
+                  borderRadius: "50%",
+                  background: c.green,
+                  color: c.greenInk,
+                  display: "grid",
+                  placeItems: "center",
+                  fontSize: "26px",
+                  fontWeight: 700,
+                  margin: "0 auto 18px",
                 }}
               >
-                <div
-                  style={{
-                    width: "52px",
-                    height: "52px",
-                    borderRadius: "50%",
-                    background: c.green,
-                    color: c.ink,
-                    display: "grid",
-                    placeItems: "center",
-                    fontSize: "26px",
-                    fontWeight: 700,
-                    margin: "0 auto 18px",
-                  }}
-                >
-                  ✓
-                </div>
-                <div
-                  style={{
-                    fontFamily: font.space,
-                    fontWeight: 700,
-                    fontSize: "21px",
-                    color: c.green,
-                    marginBottom: "6px",
-                  }}
-                >
-                  {t.paymentSuccessful}
-                </div>
+                ✓
+              </div>
+              <div
+                style={{
+                  fontFamily: font.space,
+                  fontWeight: 700,
+                  fontSize: "21px",
+                  color: c.green,
+                  marginBottom: "6px",
+                }}
+              >
+                {t.paymentSuccessful}
+              </div>
+              {user && paidRef && (
                 <div style={{ fontSize: "14px", color: c.muted }}>
-                  {t.chargedReceipt(sumTotal, payReceiptEmail)}
+                  {t.chargedReceipt(
+                    formatMoney(paidRef.amountMinor, paidRef.currency) +
+                      t.perCycle(paidRef.annual),
+                    user.email,
+                  )}
                 </div>
+              )}
+              {paidRef && (
                 <div
                   style={{
                     fontFamily: font.mono,
                     fontSize: "11.5px",
                     color: c.faint,
-                    margin: "14px 0 22px",
+                    margin: "14px 0 0",
                   }}
                 >
-                  {t.invoiceRef(invoiceNo)} · VISA ••4242
+                  {paidRef.invoice ? t.invoiceRef(paidRef.no) : t.orderRef(paidRef.no)}
                 </div>
-                <button
-                  onClick={payBackBilling}
-                  style={{
-                    background: c.green,
-                    color: c.ink,
-                    border: "none",
-                    padding: "12px 26px",
-                    fontFamily: font.space,
-                    fontWeight: 700,
-                    fontSize: "14px",
-                    cursor: "pointer",
-                  }}
-                >
-                  {t.backToBilling}
-                </button>
+              )}
+              <div
+                style={{
+                  margin: "14px auto 22px",
+                  maxWidth: "36ch",
+                  fontSize: "12.5px",
+                  color: c.amber,
+                  lineHeight: 1.55,
+                }}
+              >
+                {t.mockNotice}
               </div>
-            ))}
-
-          {/* Alipay (China) */}
-          {isCN && (
-            <div style={{ border: `1px solid ${c.border}`, background: c.panel, borderRadius: r.radiusMd }}>
+              <Btn
+                onClick={backToBilling}
+                hoverStyle={{ opacity: 0.88 }}
+                style={{
+                  background: c.green,
+                  color: c.greenInk,
+                  border: "none",
+                  padding: "12px 26px",
+                  fontFamily: font.space,
+                  fontWeight: 700,
+                  fontSize: "14px",
+                  cursor: "pointer",
+                }}
+              >
+                {t.backToBilling}
+              </Btn>
+            </div>
+          ) : isCN ? (
+            /* Alipay — hand off to the gateway's own hosted page. */
+            <div style={{ border: `1px solid ${c.border}`, background: c.panel }}>
               <div
                 style={{
                   background: c.alipay,
-                  color: "#fff",
+                  color: BRAND_INK,
                   padding: "14px 20px",
                   display: "flex",
                   justifyContent: "space-between",
                   alignItems: "center",
-                  borderRadius: `${r.radiusMd} ${r.radiusMd} 0 0`,
                 }}
               >
                 <span style={{ fontFamily: font.space, fontWeight: 700, fontSize: "16px" }}>
@@ -752,133 +547,37 @@ export default function PaymentPage() {
                 </span>
               </div>
               <div style={{ padding: "30px 26px", textAlign: "center" }}>
-                {aliState === "idle" && (
-                  <>
-                    <div style={{ display: "flex", justifyContent: "center", marginBottom: "18px" }}>
-                      {qrEl}
-                    </div>
-                    <div style={{ fontSize: "15px", color: c.text, marginBottom: "6px" }}>
-                      {t.scanToPay}
-                    </div>
-                    <div
-                      style={{
-                        fontFamily: font.mono,
-                        fontSize: "11px",
-                        color: c.faint,
-                        marginBottom: "22px",
-                      }}
-                    >
-                      {t.qrExpires}
-                    </div>
-                    <Btn
-                      onClick={simAli}
-                      hoverStyle={{ background: "#0D1524" }}
-                      style={{
-                        background: "none",
-                        border: "1px solid #1d4f9e",
-                        color: c.blue,
-                        padding: "10px 20px",
-                        fontFamily: font.sans,
-                        fontSize: "13.5px",
-                        cursor: "pointer",
-                      }}
-                    >
-                      {t.simulatePay}
-                    </Btn>
-                    {payError && (
-                      <div
-                        style={{
-                          marginTop: "16px",
-                          fontFamily: font.mono,
-                          fontSize: "12px",
-                          color: c.red,
-                          letterSpacing: ".02em",
-                          lineHeight: 1.5,
-                        }}
-                      >
-                        {payError}
-                      </div>
-                    )}
-                  </>
-                )}
-                {aliState === "confirm" && (
-                  <div style={{ padding: "40px 0" }}>
-                    <div
-                      style={{
-                        width: "36px",
-                        height: "36px",
-                        border: `3px solid ${c.line}`,
-                        borderTopColor: c.alipay,
-                        borderRadius: "50%",
-                        margin: "0 auto 20px",
-                        animation: "spin 1s linear infinite",
-                      }}
-                    />
-                    <div style={{ fontSize: "15px", color: c.text, marginBottom: "6px" }}>
-                      {t.confirmingPay}
-                    </div>
-                    <div style={{ fontSize: "13px", color: c.muted }}>{t.completeOnPhone}</div>
-                  </div>
-                )}
-                {aliState === "done" && (
-                  <div style={{ padding: "16px 0" }}>
-                    <div
-                      style={{
-                        width: "52px",
-                        height: "52px",
-                        borderRadius: "50%",
-                        background: c.green,
-                        color: c.ink,
-                        display: "grid",
-                        placeItems: "center",
-                        fontSize: "26px",
-                        fontWeight: 700,
-                        margin: "0 auto 18px",
-                      }}
-                    >
-                      ✓
-                    </div>
-                    <div
-                      style={{
-                        fontFamily: font.space,
-                        fontWeight: 700,
-                        fontSize: "21px",
-                        color: c.green,
-                        marginBottom: "6px",
-                      }}
-                    >
-                      {t.alipaySuccess}
-                    </div>
-                    <div style={{ fontSize: "14px", color: c.muted }}>
-                      {t.alipayActivated(amt)}
-                    </div>
-                    <div
-                      style={{
-                        fontFamily: font.mono,
-                        fontSize: "11.5px",
-                        color: c.faint,
-                        margin: "14px 0 22px",
-                      }}
-                    >
-                      {t.alipayInvoiceRef(invoiceNo)}
-                    </div>
-                    <button
-                      onClick={payBackBilling}
-                      style={{
-                        background: c.green,
-                        color: c.ink,
-                        border: "none",
-                        padding: "12px 26px",
-                        fontFamily: font.space,
-                        fontWeight: 700,
-                        fontSize: "14px",
-                        cursor: "pointer",
-                      }}
-                    >
-                      {t.backToBilling}
-                    </button>
-                  </div>
-                )}
+                <div
+                  style={{
+                    fontSize: "14px",
+                    color: c.muted,
+                    lineHeight: 1.6,
+                    maxWidth: "38ch",
+                    margin: "0 auto 22px",
+                  }}
+                >
+                  {t.completeOnPhone}
+                </div>
+                <Btn
+                  onClick={() => void startCheckout()}
+                  disabled={busy}
+                  hoverStyle={{ opacity: 0.88 }}
+                  style={{
+                    width: "100%",
+                    background: c.alipay,
+                    color: BRAND_INK,
+                    border: "none",
+                    padding: "15px",
+                    fontFamily: font.space,
+                    fontWeight: 700,
+                    fontSize: "15.5px",
+                    cursor: busy ? "default" : "pointer",
+                    opacity: busy ? 0.75 : 1,
+                  }}
+                >
+                  {busy ? t.redirectingAlipay : t.openAlipayApp}
+                </Btn>
+                {errorNote}
               </div>
               <div
                 style={{
@@ -892,6 +591,80 @@ export default function PaymentPage() {
                 }}
               >
                 {t.alipaySecured}
+              </div>
+            </div>
+          ) : (
+            /* Stripe — hand off to Checkout. No card fields live in this app. */
+            <div style={{ border: `1px solid ${c.border}`, background: c.panel, padding: "26px" }}>
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "baseline",
+                  gap: "14px",
+                  paddingBottom: "16px",
+                  marginBottom: "20px",
+                  borderBottom: `1px solid ${c.line}`,
+                }}
+              >
+                <div>
+                  <div style={{ fontFamily: font.space, fontWeight: 700, fontSize: "15px" }}>
+                    {t.planName}
+                  </div>
+                  <div style={{ fontSize: "12.5px", color: c.muted }}>{t.dueToday}</div>
+                </div>
+                <span
+                  style={{
+                    fontFamily: font.mono,
+                    fontSize: "16px",
+                    color: c.text,
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  {dueTotal}
+                </span>
+              </div>
+              <Btn
+                onClick={() => void startCheckout()}
+                disabled={busy}
+                hoverStyle={{ background: c.stripeHover }}
+                style={{
+                  width: "100%",
+                  background: c.stripe,
+                  color: BRAND_INK,
+                  border: "none",
+                  padding: "15px",
+                  fontFamily: font.space,
+                  fontWeight: 700,
+                  fontSize: "15.5px",
+                  cursor: busy ? "default" : "pointer",
+                  opacity: busy ? 0.75 : 1,
+                }}
+              >
+                {busy ? t.redirectingStripe : t.continueToStripe}
+              </Btn>
+              {errorNote}
+              <div
+                style={{
+                  marginTop: "16px",
+                  fontSize: "12.5px",
+                  color: c.muted,
+                  lineHeight: 1.6,
+                }}
+              >
+                {t.stripeWallets}
+              </div>
+              <div
+                style={{
+                  marginTop: "18px",
+                  textAlign: "center",
+                  fontFamily: font.mono,
+                  fontSize: "10.5px",
+                  color: c.muted,
+                  letterSpacing: ".06em",
+                }}
+              >
+                {t.stripeFootnote}
               </div>
             </div>
           )}

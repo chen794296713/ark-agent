@@ -34,122 +34,487 @@ summary {
 
 /* =====================================================================
    COLOR TOKEN LAYER  (typed as `c` in lib/theme.ts)
-   `:root` / [data-theme="dark"] = dark theme (default); [data-theme="light"]
-   overrides for light mode. Inline styles read these via var(--c-*), so
-   toggling the data-theme attribute on <html> re-themes the whole app with
-   no hydration cost. Dark values are tuned for stronger contrast and clearer
-   hierarchy than the original (brighter mid-tone text, more visible borders);
-   light values target WCAG-AA text on white.
+
+   TWO AXES, straight from the Claude Design source (ArkAgent.dc.html):
+     data-direction : terminal | ivory | midnight   (brand look)
+     data-theme     : dark | light                  (mode)
+   Six palettes. Inline styles read these via var(--c-*), so flipping the two
+   attributes on <html> re-skins the whole app with no hydration cost.
+
+   TWO RULES THIS LAYER DEPENDS ON — both easy to break silently:
+
+   1. `:root` carries terminal-dark, so it is also the universal fallback.
+      Any --c-* a later block forgets resolves to a TERMINAL DARK value: you
+      get near-white text on cream and it half-works. Every block below
+      declares the SAME 40 token names — a generator emits them together.
+   2. All six pairs have equal specificity (0,2,0) and are mutually exclusive,
+      so none can shadow another. `:root` sits below them at (0,1,0). Never
+      "clarify" a selector as html[data-direction=…] (0,2,1), which would
+      outrank its five siblings and pin the app to one look.
+
+   Because the pair must both be present for a block to match, the server
+   renders BOTH attributes (see app/layout.tsx) and the pre-paint boot script
+   rewrites both together.
+
+   THE RAMP'S CONTRACT. Each tier has a floor it must clear against ALL FOUR
+   surfaces it can be painted on (--c-bg, --c-panel, --c-panel-deep, --c-hover),
+   not just the easiest one:
+
+     --c-text    >= 13:1   primary — headings, values, active nav
+     --c-text2   >= 9.5:1  DEFAULT BODY COPY
+     --c-muted   >= 7:1    secondary copy and every mono field label
+     --c-faint   >= 4.5:1  TERTIARY ONLY — timestamps, placeholders, disabled.
+                           Never a sentence the user must read to operate the
+                           product. If it is prose, it is --c-muted.
+     status/accent >= 4.5:1  they render at 11px, so no large-text allowance
+     --c-border-field >= 3:1 non-text (WCAG 1.4.11)
+
+   This comment used to assert AAA and was WRONG in five of the six palettes —
+   ivory-light's --c-muted measured 4.13:1 on the page background. A comment
+   cannot enforce anything, so the contract is now a test: tests/contrast.test.ts
+   parses THIS FILE, recomputes every ratio, and fails the build on a regression.
+   Edit a palette and run `npm test`.
    ===================================================================== */
-:root,
-[data-theme="dark"] {
+:root {
   color-scheme: dark;
 
   /* surfaces */
-  --c-bg: #0b0d10;
-  --c-panel: #14181f;
-  --c-panel-deep: #0b0d10;
-  --c-hover: #181d25;
-  --c-glass: rgba(11, 13, 16, 0.82);
+  --c-bg: #0A0D12;
+  --c-panel: #161C26;
+  --c-panel-deep: #1c2531;
+  --c-hover: #1d2632;
+  --c-glass: rgba(10,13,18,.86);
 
-  /* hairlines / borders — strengthened so structure is legible */
-  --c-line: #2a323f;
-  --c-line-soft: #20262f;
-  --c-border: #323b49;
-  --c-border-strong: #3f4a59;
-  --c-border-mute: #4c576a;
+  /* hairlines / borders */
+  --c-line: #283140;
+  --c-line-soft: #222a37;
+  --c-border: #384355;
+  --c-border-strong: #48556a;
+  --c-border-mute: #768293;
+  --c-border-field: #647084; /* 3:1 non-text (WCAG 1.4.11) */
 
-  /* lime accent */
-  --c-lime: #d8ff3e;
-  --c-lime-hover: #e9ff7a;
-  --c-accent: #d8ff3e; /* lime used as TEXT / icon / thin line */
-  --c-lime-wash: #11150c;
-  --c-lime-wash2: #161b0f;
-  --c-lime-border: #46531f;
+  /* accent — the direction's signal colour */
+  --c-lime: #D8FF3E;
+  --c-lime-hover: #E9FF7A;
+  --c-accent: #D8FF3E;
+  --c-lime-wash: #1a210d;
+  --c-lime-wash2: #293311;
+  --c-lime-border: #48571f;
 
-  /* text ramp — brighter mids so secondary copy is readable */
-  --c-ink: #0b0d10; /* text/icon on a lime fill */
-  --c-text: #f2f5f8;
-  --c-text2: #d3dbe6;
-  --c-muted: #aeb7c5;
-  --c-faint: #7c8696;
+  /* text ramp */
+  --c-ink: #0A0D12;
+  --c-on-brand: #0b0d10;
+  --c-green-ink: #0A0D12;
+  --c-text: #F5F8FC;
+  --c-text2: #D7DEE9;
+  --c-muted: #AEB8C6;
+  --c-faint: #848E9C;
 
   /* status */
-  --c-green: #4ade80;
-  --c-green-wash: #0f1a14;
-  --c-green-border: #1e3a2a;
-  --c-amber: #fbbf24;
-  --c-red: #f87171;
+  --c-green: #4ADE80;
+  --c-green-wash: #0f1f16;
+  --c-green-border: #27462f;
+  --c-amber: #FBBF24;
+  --c-orange: #e8804f;
+  --c-red: #fb8b8b;
   --c-red-wash: #1a0f11;
   --c-red-border: #3a2328;
   --c-blue: #6aa6ff;
 
-  /* brand / third-party */
+  /* payment brands — fixed marks, never themed */
   --c-stripe: #635bff;
   --c-stripe-hover: #7a73ff;
   --c-alipay: #1677ff;
-  --c-nav-selected: #1e2530;
 
-  /* effects */
-  --c-grid: rgba(255, 255, 255, 0.04);
+  /* chrome */
+  --c-nav-selected: #232d3d;
+  --c-grid: rgba(255,255,255,.03);
   --c-scrim: rgba(0, 0, 0, 0.6);
-  --c-scrollbar: #3f4a59;
+  --c-scrollbar: #48556a;
+  --c-shadow: rgba(0, 0, 0, 0.55);
+
+  /* display face — Ivory speaks in a serif, the other two in Space Grotesk */
+  --f-display: var(--font-space), 'Space Grotesk', sans-serif;
 }
 
-[data-theme="light"] {
+/* TERMINAL LIME — dark */
+[data-direction="terminal"][data-theme="dark"] {
+  color-scheme: dark;
+
+  /* surfaces */
+  --c-bg: #0A0D12;
+  --c-panel: #161C26;
+  --c-panel-deep: #1c2531;
+  --c-hover: #1d2632;
+  --c-glass: rgba(10,13,18,.86);
+
+  /* hairlines / borders */
+  --c-line: #283140;
+  --c-line-soft: #222a37;
+  --c-border: #384355;
+  --c-border-strong: #48556a;
+  --c-border-mute: #768293;
+  --c-border-field: #647084; /* 3:1 non-text (WCAG 1.4.11) */
+
+  /* accent — the direction's signal colour */
+  --c-lime: #D8FF3E;
+  --c-lime-hover: #E9FF7A;
+  --c-accent: #D8FF3E;
+  --c-lime-wash: #1a210d;
+  --c-lime-wash2: #293311;
+  --c-lime-border: #48571f;
+
+  /* text ramp */
+  --c-ink: #0A0D12;
+  --c-on-brand: #0b0d10;
+  --c-green-ink: #0A0D12;
+  --c-text: #F5F8FC;
+  --c-text2: #D7DEE9;
+  --c-muted: #AEB8C6;
+  --c-faint: #848E9C;
+
+  /* status */
+  --c-green: #4ADE80;
+  --c-green-wash: #0f1f16;
+  --c-green-border: #27462f;
+  --c-amber: #FBBF24;
+  --c-orange: #e8804f;
+  --c-red: #fb8b8b;
+  --c-red-wash: #1a0f11;
+  --c-red-border: #3a2328;
+  --c-blue: #6aa6ff;
+
+  /* payment brands — fixed marks, never themed */
+  --c-stripe: #635bff;
+  --c-stripe-hover: #7a73ff;
+  --c-alipay: #1677ff;
+
+  /* chrome */
+  --c-nav-selected: #232d3d;
+  --c-grid: rgba(255,255,255,.03);
+  --c-scrim: rgba(0, 0, 0, 0.6);
+  --c-scrollbar: #48556a;
+  --c-shadow: rgba(0, 0, 0, 0.55);
+
+  /* display face — Ivory speaks in a serif, the other two in Space Grotesk */
+  --f-display: var(--font-space), 'Space Grotesk', sans-serif;
+}
+
+/* TERMINAL LIME — light */
+[data-direction="terminal"][data-theme="light"] {
   color-scheme: light;
 
   /* surfaces */
-  --c-bg: #ffffff;
-  --c-panel: #f5f6f8;
-  --c-panel-deep: #eceef2;
-  --c-hover: #eef0f3;
-  --c-glass: rgba(255, 255, 255, 0.85);
+  --c-bg: #F3F5F8;
+  --c-panel: #FFFFFF;
+  --c-panel-deep: #EEF2F7;
+  --c-hover: #F1F4F8;
+  --c-glass: rgba(243,245,248,.86);
 
-  /* hairlines / borders — clearly visible grey on white */
-  --c-line: #e4e7ec;
-  --c-line-soft: #edeff2;
-  --c-border: #cdd3dc;
-  --c-border-strong: #b4bdc9;
-  --c-border-mute: #98a2b2;
+  /* hairlines / borders */
+  --c-line: #E4E8EF;
+  --c-line-soft: #EDF0F5;
+  --c-border: #CED6E1;
+  --c-border-strong: #B7C1D0;
+  --c-border-mute: #8c96a6;
+  --c-border-field: #858C97; /* 3:1 non-text (WCAG 1.4.11) */
 
-  /* lime accent — the bright lime stays a FILL (dark ink reads on it);
-     --c-accent darkens to a deep olive-lime for use as text on white. */
-  --c-lime: #d8ff3e;
-  --c-lime-hover: #e9ff7a;
-  --c-accent: #5b7a04;
-  --c-lime-wash: #f3fad3;
-  --c-lime-wash2: #eaf5c2;
-  --c-lime-border: #c2d877;
+  /* accent — the direction's signal colour */
+  --c-lime: #487304;
+  --c-lime-hover: #3B6003;
+  --c-accent: #487304;
+  --c-lime-wash: #EFF6DF;
+  --c-lime-wash2: #e2eccd;
+  --c-lime-border: #CFE0A6;
 
-  /* text ramp — AA contrast on white */
-  --c-ink: #0b0d10;
-  --c-text: #0e1116;
-  --c-text2: #2d343e;
-  --c-muted: #525a67;
-  --c-faint: #6c7480;
+  /* text ramp */
+  --c-ink: #FFFFFF;
+  --c-on-brand: #0b0d10;
+  --c-green-ink: #ffffff;
+  --c-text: #0F141C;
+  --c-text2: #363E4B;
+  --c-muted: #485263;
+  --c-faint: #646D7C;
 
-  /* status — readable on light */
-  --c-green: #15a04a;
-  --c-green-wash: #e8f6ec;
-  --c-green-border: #bfe3cb;
-  --c-amber: #b45309;
-  --c-red: #d63a3a;
+  /* status */
+  --c-green: #007E41;
+  --c-green-wash: #E9F6EF;
+  --c-green-border: #BFE3CE;
+  --c-amber: #986100;
+  --c-orange: #98461c;
+  --c-red: #b52424;
   --c-red-wash: #fbeaea;
   --c-red-border: #f0c4c4;
-  --c-blue: #2563eb;
+  --c-blue: #1d4ed8;
 
-  /* brand / third-party */
+  /* payment brands — fixed marks, never themed */
   --c-stripe: #635bff;
-  --c-stripe-hover: #574fee;
+  --c-stripe-hover: #7a73ff;
   --c-alipay: #1677ff;
-  --c-nav-selected: #edeff3;
 
-  /* effects */
-  --c-grid: rgba(11, 13, 16, 0.05);
+  /* chrome */
+  --c-nav-selected: #EBEFF5;
+  --c-grid: rgba(15,20,28,.05);
   --c-scrim: rgba(15, 20, 30, 0.35);
-  --c-scrollbar: #c5ccd6;
+  --c-scrollbar: #B7C1D0;
+  --c-shadow: rgba(15, 23, 38, 0.16);
+
+  /* display face — Ivory speaks in a serif, the other two in Space Grotesk */
+  --f-display: var(--font-space), 'Space Grotesk', sans-serif;
 }
+
+/* IVORY STUDIO — dark */
+[data-direction="ivory"][data-theme="dark"] {
+  color-scheme: dark;
+
+  /* surfaces */
+  --c-bg: #1A1714;
+  --c-panel: #221E1A;
+  --c-panel-deep: #272019;
+  --c-hover: #241E18;
+  --c-glass: rgba(26,23,20,.86);
+
+  /* hairlines / borders */
+  --c-line: #332C26;
+  --c-line-soft: #2A241F;
+  --c-border: #41382F;
+  --c-border-strong: #544A3F;
+  --c-border-mute: #7b6f61;
+  --c-border-field: #746960; /* 3:1 non-text (WCAG 1.4.11) */
+
+  /* accent — the direction's signal colour */
+  --c-lime: #D8814F;
+  --c-lime-hover: #E89A6A;
+  --c-accent: #D8814F;
+  --c-lime-wash: #2A1D14;
+  --c-lime-wash2: #382519;
+  --c-lime-border: #5A3E2A;
+
+  /* text ramp */
+  --c-ink: #1A1714;
+  --c-on-brand: #0b0d10;
+  --c-green-ink: #1A1714;
+  --c-text: #F4ECE0;
+  --c-text2: #D8CBBA;
+  --c-muted: #B8A997;
+  --c-faint: #968777;
+
+  /* status */
+  --c-green: #5FBE82;
+  --c-green-wash: #16241B;
+  --c-green-border: #2E4636;
+  --c-amber: #E0A94C;
+  --c-orange: #e8804f;
+  --c-red: #fb8b8b;
+  --c-red-wash: #1a0f11;
+  --c-red-border: #3a2328;
+  --c-blue: #6aa6ff;
+
+  /* payment brands — fixed marks, never themed */
+  --c-stripe: #635bff;
+  --c-stripe-hover: #7a73ff;
+  --c-alipay: #1677ff;
+
+  /* chrome */
+  --c-nav-selected: #2C251E;
+  --c-grid: rgba(255,240,220,.035);
+  --c-scrim: rgba(0, 0, 0, 0.6);
+  --c-scrollbar: #544A3F;
+  --c-shadow: rgba(0, 0, 0, 0.55);
+
+  /* display face — Ivory speaks in a serif, the other two in Space Grotesk */
+  --f-display: var(--font-serif), Georgia, serif;
+}
+
+/* IVORY STUDIO — light */
+[data-direction="ivory"][data-theme="light"] {
+  color-scheme: light;
+
+  /* surfaces */
+  --c-bg: #F4EFE6;
+  --c-panel: #FFFFFF;
+  --c-panel-deep: #F3EEE4;
+  --c-hover: #F3EEE4;
+  --c-glass: rgba(244,239,230,.86);
+
+  /* hairlines / borders */
+  --c-line: #EBE3D5;
+  --c-line-soft: #F1EADD;
+  --c-border: #E0D7C7;
+  --c-border-strong: #D2C7B4;
+  --c-border-mute: #aba190;
+  --c-border-field: #91887A; /* 3:1 non-text (WCAG 1.4.11) */
+
+  /* accent — the direction's signal colour */
+  --c-lime: #A34A24;
+  --c-lime-hover: #8E3C1B;
+  --c-accent: #A34A24;
+  --c-lime-wash: #F7EAE2;
+  --c-lime-wash2: #f2dfd4;
+  --c-lime-border: #E6D2C5;
+
+  /* text ramp */
+  --c-ink: #FFFFFF;
+  --c-on-brand: #0b0d10;
+  --c-green-ink: #ffffff;
+  --c-text: #241F18;
+  --c-text2: #443B2E;
+  --c-muted: #584E40;
+  --c-faint: #746959;
+
+  /* status */
+  --c-green: #277947;
+  --c-green-wash: #E9F3EC;
+  --c-green-border: #C5E0CE;
+  --c-amber: #926103;
+  --c-orange: #98461c;
+  --c-red: #b52424;
+  --c-red-wash: #fbeaea;
+  --c-red-border: #f0c4c4;
+  --c-blue: #1d4ed8;
+
+  /* payment brands — fixed marks, never themed */
+  --c-stripe: #635bff;
+  --c-stripe-hover: #7a73ff;
+  --c-alipay: #1677ff;
+
+  /* chrome */
+  --c-nav-selected: #EFE8DC;
+  --c-grid: rgba(36,31,24,.05);
+  --c-scrim: rgba(15, 20, 30, 0.35);
+  --c-scrollbar: #D2C7B4;
+  --c-shadow: rgba(15, 23, 38, 0.16);
+
+  /* display face — Ivory speaks in a serif, the other two in Space Grotesk */
+  --f-display: var(--font-serif), Georgia, serif;
+}
+
+/* MIDNIGHT CONSOLE — dark */
+[data-direction="midnight"][data-theme="dark"] {
+  color-scheme: dark;
+
+  /* surfaces */
+  --c-bg: #0A0F1E;
+  --c-panel: #111A30;
+  --c-panel-deep: #16213C;
+  --c-hover: #16213C;
+  --c-glass: rgba(10,15,30,.86);
+
+  /* hairlines / borders */
+  --c-line: #1E2A48;
+  --c-line-soft: #18223C;
+  --c-border: #28365C;
+  --c-border-strong: #36476F;
+  --c-border-mute: #5d6c91;
+  --c-border-field: #5A6B95; /* 3:1 non-text (WCAG 1.4.11) */
+
+  /* accent — the direction's signal colour */
+  --c-lime: #5B8CFF;
+  --c-lime-hover: #79A2FF;
+  --c-accent: #5B8CFF;
+  --c-lime-wash: #0F1E3C;
+  --c-lime-wash2: #15274c;
+  --c-lime-border: #27406E;
+
+  /* text ramp */
+  --c-ink: #0A0F1E;
+  --c-on-brand: #0b0d10;
+  --c-green-ink: #0A0F1E;
+  --c-text: #EAF1FF;
+  --c-text2: #BFCCE6;
+  --c-muted: #9EACCC;
+  --c-faint: #798AAF;
+
+  /* status */
+  --c-green: #46D08A;
+  --c-green-wash: #0E2018;
+  --c-green-border: #244A36;
+  --c-amber: #F0B84C;
+  --c-orange: #e8804f;
+  --c-red: #fb8b8b;
+  --c-red-wash: #1a0f11;
+  --c-red-border: #3a2328;
+  --c-blue: #6aa6ff;
+
+  /* payment brands — fixed marks, never themed */
+  --c-stripe: #635bff;
+  --c-stripe-hover: #7a73ff;
+  --c-alipay: #1677ff;
+
+  /* chrome */
+  --c-nav-selected: #1B284A;
+  --c-grid: rgba(120,150,255,.05);
+  --c-scrim: rgba(0, 0, 0, 0.6);
+  --c-scrollbar: #36476F;
+  --c-shadow: rgba(0, 0, 0, 0.55);
+
+  /* display face — Ivory speaks in a serif, the other two in Space Grotesk */
+  --f-display: var(--font-space), 'Space Grotesk', sans-serif;
+}
+
+/* MIDNIGHT CONSOLE — light */
+[data-direction="midnight"][data-theme="light"] {
+  color-scheme: light;
+
+  /* surfaces */
+  --c-bg: #EEF2FA;
+  --c-panel: #FFFFFF;
+  --c-panel-deep: #E9EFF9;
+  --c-hover: #EDF2FA;
+  --c-glass: rgba(238,242,250,.86);
+
+  /* hairlines / borders */
+  --c-line: #DCE4F0;
+  --c-line-soft: #E8EDF6;
+  --c-border: #C6D2E6;
+  --c-border-strong: #AEBDD8;
+  --c-border-mute: #8798b4;
+  --c-border-field: #7F8A9D; /* 3:1 non-text (WCAG 1.4.11) */
+
+  /* accent — the direction's signal colour */
+  --c-lime: #2758DC;
+  --c-lime-hover: #1E48B4;
+  --c-accent: #2758DC;
+  --c-lime-wash: #E6EDFB;
+  --c-lime-wash2: #d7e2f9;
+  --c-lime-border: #C2D2F5;
+
+  /* text ramp */
+  --c-ink: #FFFFFF;
+  --c-on-brand: #0b0d10;
+  --c-green-ink: #ffffff;
+  --c-text: #0C1424;
+  --c-text2: #2F3C57;
+  --c-muted: #3F506C;
+  --c-faint: #5F6B83;
+
+  /* status */
+  --c-green: #047B40;
+  --c-green-wash: #E9F6EF;
+  --c-green-border: #BFE3CE;
+  --c-amber: #965F03;
+  --c-orange: #98461c;
+  --c-red: #b52424;
+  --c-red-wash: #fbeaea;
+  --c-red-border: #f0c4c4;
+  --c-blue: #1d4ed8;
+
+  /* payment brands — fixed marks, never themed */
+  --c-stripe: #635bff;
+  --c-stripe-hover: #7a73ff;
+  --c-alipay: #1677ff;
+
+  /* chrome */
+  --c-nav-selected: #E4EBF6;
+  --c-grid: rgba(20,40,90,.05);
+  --c-scrim: rgba(15, 20, 30, 0.35);
+  --c-scrollbar: #AEBDD8;
+  --c-shadow: rgba(15, 23, 38, 0.16);
+
+  /* display face — Ivory speaks in a serif, the other two in Space Grotesk */
+  --f-display: var(--font-space), 'Space Grotesk', sans-serif;
+}
+
 
 /* =====================================================================
    RESPONSIVE TOKEN LAYER
@@ -306,7 +671,7 @@ summary {
   }
   .r-dash-sidebar.open {
     transform: none;
-    box-shadow: 0 24px 64px rgba(0, 0, 0, 0.6);
+    box-shadow: 0 24px 64px var(--c-shadow);
   }
 }
 
@@ -349,8 +714,17 @@ button {
   font-family: inherit;
 }
 
-/* Native controls (date pickers, etc.) follow the active theme via the
-   color-scheme set on :root / [data-theme] above — no override needed. */
+/* Native controls (date pickers, <select> popups, autofill) follow the active
+   theme via `color-scheme` — but only because each of the three blocks above
+   (:root/dark, light, warm) declares it. A block that omits it inherits dark. */
+
+/* The app draws its own hover/press feedback but leaves focus to the UA, which
+   is inconsistent across browsers and can vanish on a tinted surface. One
+   accent ring, keyboard-only, legible on all three palettes. */
+:where(a, button, [role="menuitem"], [role="menuitemradio"], [role="radio"], input, select, textarea):focus-visible {
+  outline: 2px solid var(--c-accent);
+  outline-offset: 2px;
+}
 
 /* Thin scrollbars inside scrolling panels (chat, etc.) */
 .ark-scroll {

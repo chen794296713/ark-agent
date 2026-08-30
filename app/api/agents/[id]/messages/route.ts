@@ -1,18 +1,24 @@
 import { asc, desc, eq } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { agentRoles, conversations, messages, usageRecords } from "@/lib/db/schema";
-import { requireAuth, parseBody, json, notFound } from "@/lib/api";
+import { requireAuth, parseBody, json, notFound, apiError } from "@/lib/api";
 import { sendMessageSchema } from "@/lib/validation";
 import { getAgentRow } from "@/lib/services/agents";
 import { serializeMessage } from "@/lib/serializers";
-import { mockReply } from "@/lib/agent-manager";
+import { agentManagerMode, mockReply } from "@/lib/agent-manager";
 import {
   getOpenclawConfigByAgentId,
   streamOpenclawChat,
 } from "@/lib/services/openclaw_instances";
 import { mergeSettings } from "@/lib/agent-settings";
-import { isLLMConfigured, streamChatCompletion, type ChatMessage } from "@/lib/llm/openrouter";
+import {
+  isLLMConfigured,
+  streamChatCompletion,
+  type ChatMessage,
+  type LlmUsageSample,
+} from "@/lib/llm/openrouter";
 import { buildAgentSystemPrompt } from "@/lib/llm/agent-prompt";
+import { recordLlmUsage, classifyLlmError, type LlmErrorCode } from "@/lib/llm/usage";
 import type { Agent, Message } from "@/lib/db/schema";
 
 export const runtime = "nodejs";
@@ -82,11 +88,20 @@ export async function POST(req: Request, { params }: Ctx) {
     .where(eq(conversations.id, conv.id));
 
   const openclawConfig = await getOpenclawConfigByAgentId(id);
-  const useStream =
-    process.env.AGENT_MANAGER_MODE === "live" && !!openclawConfig?.externalId;
+  const useStream = agentManagerMode() === "live" && !!openclawConfig?.externalId;
   // When no live OpenClaw runtime is attached, prefer a real LLM (OpenRouter)
-  // over the canned mock reply — as long as an API key is configured.
+  // over the canned reply — as long as an API key is configured.
   const useLLM = !useStream && isLLMConfigured();
+
+  // Neither a runtime nor a model: the only thing left is the canned reply, and
+  // pantomiming a model to a paying customer is worse than saying nothing. Fail
+  // the way self-review already does rather than streaming fiction.
+  if (!useStream && !useLLM && process.env.NODE_ENV === "production") {
+    return apiError(
+      "No agent runtime or language model is configured for this deployment.",
+      503,
+    );
+  }
 
   const encoder = new TextEncoder();
   const stream = new ReadableStream<Uint8Array>({
@@ -114,6 +129,8 @@ export async function POST(req: Request, { params }: Ctx) {
         } else if (useLLM) {
           await streamLLMReply({
             agent,
+            userId: auth.ctx.user.id,
+            workspaceId: auth.ctx.workspace.id,
             conversationId: conv!.id,
             onDelta: (delta) => send({ type: "delta", delta }),
             onComplete: (replyMessage) =>
@@ -239,11 +256,16 @@ async function streamOpenclawReply(opts: {
 
 async function streamLLMReply(opts: {
   agent: Agent;
+  userId: string;
+  workspaceId: string;
   conversationId: string;
   onDelta: (delta: string) => void;
   onComplete: (replyMessage: Message) => void;
   onError: (message: string) => void;
 }) {
+  const startedAt = Date.now();
+  let sample: LlmUsageSample | undefined;
+  let errorCode: LlmErrorCode | undefined;
   try {
     const [role] = await db
       .select({ name: agentRoles.name, blurb: agentRoles.blurb })
@@ -283,6 +305,9 @@ async function streamLLMReply(opts: {
       temperature: settings.temperature,
       maxTokens: settings.maxTokens,
       onDelta: opts.onDelta,
+      onUsage: (u) => {
+        sample = u;
+      },
     });
 
     const reply = await persistAgentReply({
@@ -293,8 +318,22 @@ async function streamLLMReply(opts: {
     });
     opts.onComplete(reply);
   } catch (e) {
+    errorCode = classifyLlmError(e);
     opts.onError(e instanceof Error ? e.message : "LLM reply failed");
   }
+  // Accounting runs only after the terminal SSE frame is already enqueued, and
+  // recordLlmUsage swallows its own failures — so a slow or broken analytics
+  // write can neither delay what the user sees nor abort the stream. Failures
+  // are recorded too, or the admin console would show spend without error rate.
+  await recordLlmUsage({
+    sample,
+    kind: "chat",
+    userId: opts.userId,
+    workspaceId: opts.workspaceId,
+    agentId: opts.agent.id,
+    latencyMs: Date.now() - startedAt,
+    errorCode,
+  });
 }
 
 async function persistAgentReply(opts: {

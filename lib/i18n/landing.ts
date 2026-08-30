@@ -1,4 +1,5 @@
 /** Copy for the marketing landing page (app/page.tsx). */
+import type { Currency } from "@/lib/pricing";
 import type { Lang } from "@/lib/types";
 
 export interface LandingDict {
@@ -21,6 +22,8 @@ export interface LandingDict {
   rosterTitle: string;
   rosterSub: string;
   rosterHire: string;
+  /** Roster card price line. `price` is the pre-formatted cheapest-tier amount. */
+  rosterFrom: (price: string) => string;
 
   // How it works
   howEyebrow: string;
@@ -70,7 +73,17 @@ export interface LandingDict {
   pricingEyebrow: string;
   pricingTitleL1: string;
   pricingTitleL2: string;
-  pricingSub: string;
+  /**
+   * Pricing sub-headline. `overage` is the per-1,000-credit rate already
+   * formatted for the active currency — the symbol never lives in the copy.
+   */
+  pricingSub: (overage: string) => string;
+  /** Accessible name of the USD/CNY switcher. */
+  currencyLabel: string;
+  currencyUSD: string;
+  currencyCNY: string;
+  /** Shown under the grid when CNY is active: who bills you, and how. */
+  cnyBilledNote: string;
   perMonth: string;
   startHiring: string;
   planAssociate: string;
@@ -94,7 +107,20 @@ export interface LandingDict {
   directorF3: string;
   directorF4: string;
   directorF5: string;
-  pricingFoot: string;
+  /**
+   * Footnote under the grid. Branches on currency rather than interpolating,
+   * because a 中国大陆 buyer needs the billing/settlement fact in that slot.
+   *
+   * Every clause here must be traceable to code. Two were not, and were cut:
+   *  - "14-DAY TRIAL ON EVERY SEAT" — `stripeTrialDays()` (lib/payments/config.ts)
+   *    returns 0 unless STRIPE_TRIAL_DAYS is set, and no deployment sets it.
+   *  - "UNUSED CREDITS ROLL OVER ONE CYCLE" — there is no rollover code anywhere
+   *    in the repository; `workspaces.credits_used` is reset, not carried.
+   * Restore either one only together with the implementation, in all four
+   * languages, and make the trial line read the configured number rather than
+   * hardcoding 14.
+   */
+  pricingFoot: (currency: Currency) => string;
 
   // Footer
   footTagline: string;
@@ -125,7 +151,7 @@ export const landing: Record<Lang, LandingDict> = {
       "ArkAgent gives you autonomous teammates that work around the clock — briefed in plain language, deployed in minutes, improving every week.",
     cta1: "Hire your first agent",
     cta2: "See the console",
-    heroFoot: "NO CREDIT CARD · 14-DAY TRIAL · LIVE IN MINUTES",
+    heroFoot: "NO CREDIT CARD TO EXPLORE · LIVE IN MINUTES",
 
     cardRole: "Sales Prospector",
     cardStatus: "WORKING",
@@ -136,6 +162,7 @@ export const landing: Record<Lang, LandingDict> = {
     rosterSub:
       "Eight ready-made roles — or describe your own. Each agent ships with a job-specific skill set and learns your business from day one.",
     rosterHire: "HIRE →",
+    rosterFrom: (price) => `from ${price}/mo`,
 
     howEyebrow: "HOW IT WORKS",
     howTitleL1: "Brief it like a person.",
@@ -189,8 +216,12 @@ export const landing: Record<Lang, LandingDict> = {
     pricingEyebrow: "PRICING",
     pricingTitleL1: "Pay like payroll.",
     pricingTitleL2: "Scale like software.",
-    pricingSub:
-      "Per-agent monthly plans with included credits. Usage beyond the allowance is metered at $2 per 1,000 credits.",
+    pricingSub: (overage) =>
+      `Per-agent monthly plans with included credits. Usage beyond the allowance is metered at ${overage} per 1,000 credits.`,
+    currencyLabel: "Currency",
+    currencyUSD: "USD $",
+    currencyCNY: "CNY ¥",
+    cnyBilledNote: "China pricing is billed in RMB and settled through Alipay.",
     perMonth: " /agent/mo",
     startHiring: "Start hiring",
     planAssociate: "Associate",
@@ -214,7 +245,10 @@ export const landing: Record<Lang, LandingDict> = {
     directorF3: "OPC mode — one agent, many hats",
     directorF4: "Audit log & approval workflows",
     directorF5: "White-glove onboarding",
-    pricingFoot: "ANNUAL −20% · 14-DAY TRIAL ON EVERY SEAT · UNUSED CREDITS ROLL OVER ONE CYCLE",
+    pricingFoot: (currency) =>
+      currency === "cny"
+        ? "ANNUAL −20% · CANCEL ANY TIME · BILLED IN RMB VIA ALIPAY"
+        : "ANNUAL −20% · CANCEL ANY TIME · NO SETUP FEE",
 
     footTagline: "Autonomous employees for everyone.",
     footCopyright:
@@ -243,7 +277,7 @@ export const landing: Record<Lang, LandingDict> = {
       "ArkAgent 给你一支全天候待命的自主团队——用大白话交代任务，几分钟就能上岗，每周都在变得更强。",
     cta1: "雇佣你的第一名员工",
     cta2: "看看控制台",
-    heroFoot: "无需信用卡 · 14 天试用 · 几分钟上线",
+    heroFoot: "无需信用卡即可体验 · 几分钟上线",
 
     cardRole: "销售开发员",
     cardStatus: "工作中",
@@ -254,6 +288,7 @@ export const landing: Record<Lang, LandingDict> = {
     rosterSub:
       "八个开箱即用的岗位——或者自己描述一个。每名员工都自带岗位专属技能，从第一天起就开始读懂你的生意。",
     rosterHire: "雇佣 →",
+    rosterFrom: (price) => `${price}/月起`,
 
     howEyebrow: "工作原理",
     howTitleL1: "像交代同事一样布置工作。",
@@ -307,8 +342,12 @@ export const landing: Record<Lang, LandingDict> = {
     pricingEyebrow: "价格",
     pricingTitleL1: "像发工资一样付费。",
     pricingTitleL2: "像软件一样扩张。",
-    pricingSub:
-      "按员工计费的月度套餐，含基础积分。超出额度部分按每 1,000 积分 2 美元计费。",
+    pricingSub: (overage) =>
+      `按员工计费的月度套餐，含基础积分。超出额度部分按每 1,000 积分 ${overage} 计费。`,
+    currencyLabel: "货币",
+    currencyUSD: "美元 $",
+    currencyCNY: "人民币 ¥",
+    cnyBilledNote: "中国大陆价格以人民币计价，通过支付宝结算。",
     perMonth: " /员工/月",
     startHiring: "开始招聘",
     planAssociate: "助理级",
@@ -332,7 +371,10 @@ export const landing: Record<Lang, LandingDict> = {
     directorF3: "OPC 模式——一人身兼多职",
     directorF4: "审计日志与审批流程",
     directorF5: "专属贴身上手服务",
-    pricingFoot: "年付立减 20% · 每个席位 14 天试用 · 未用积分顺延一个周期",
+    pricingFoot: (currency) =>
+      currency === "cny"
+        ? "年付立减 20% · 随时可取消 · 人民币计价，支付宝结算"
+        : "年付立减 20% · 随时可取消 · 无开通费",
 
     footTagline: "让每个人都用得起的自主员工。",
     footCopyright:
@@ -361,7 +403,7 @@ export const landing: Record<Lang, LandingDict> = {
       "ArkAgent 給你一支全天候待命的自主團隊——用大白話交代任務，幾分鐘就能上工，每週都在變得更強。",
     cta1: "雇用你的第一名員工",
     cta2: "看看控制台",
-    heroFoot: "免信用卡 · 14 天試用 · 幾分鐘上線",
+    heroFoot: "免信用卡即可體驗 · 幾分鐘上線",
 
     cardRole: "業務開發員",
     cardStatus: "工作中",
@@ -372,6 +414,7 @@ export const landing: Record<Lang, LandingDict> = {
     rosterSub:
       "八個開箱即用的職位——或者自己描述一個。每名員工都自帶職位專屬技能，從第一天起就開始讀懂你的生意。",
     rosterHire: "雇用 →",
+    rosterFrom: (price) => `${price}/月起`,
 
     howEyebrow: "運作方式",
     howTitleL1: "像交代同事一樣安排工作。",
@@ -425,8 +468,12 @@ export const landing: Record<Lang, LandingDict> = {
     pricingEyebrow: "價格",
     pricingTitleL1: "像發薪水一樣付費。",
     pricingTitleL2: "像軟體一樣擴張。",
-    pricingSub:
-      "按員工計費的月方案，含基礎點數。超出額度的部分按每 1,000 點數 2 美元計費。",
+    pricingSub: (overage) =>
+      `按員工計費的月方案，含基礎點數。超出額度的部分按每 1,000 點數 ${overage} 計費。`,
+    currencyLabel: "貨幣",
+    currencyUSD: "美元 $",
+    currencyCNY: "人民幣 ¥",
+    cnyBilledNote: "中國大陸價格以人民幣計價，透過支付寶結算。",
     perMonth: " /員工/月",
     startHiring: "開始招募",
     planAssociate: "助理級",
@@ -450,7 +497,10 @@ export const landing: Record<Lang, LandingDict> = {
     directorF3: "OPC 模式——一人身兼多職",
     directorF4: "稽核日誌與審批流程",
     directorF5: "專人貼身上手服務",
-    pricingFoot: "年付折 20% · 每個席位 14 天試用 · 未用點數順延一個週期",
+    pricingFoot: (currency) =>
+      currency === "cny"
+        ? "年付折 20% · 隨時可取消 · 人民幣計價，支付寶結算"
+        : "年付折 20% · 隨時可取消 · 無開通費",
 
     footTagline: "讓每個人都用得起的自主員工。",
     footCopyright:
@@ -479,7 +529,7 @@ export const landing: Record<Lang, LandingDict> = {
       "ArkAgentは24時間働く自律型の仲間を提供します。普通の言葉で指示するだけ、数分で稼働、毎週賢くなっていきます。",
     cta1: "最初の社員を雇う",
     cta2: "コンソールを見る",
-    heroFoot: "クレジットカード不要 · 14日間無料 · 数分で稼働",
+    heroFoot: "クレジットカード不要で試せる · 数分で稼働",
 
     cardRole: "セールス開拓担当",
     cardStatus: "稼働中",
@@ -490,6 +540,7 @@ export const landing: Record<Lang, LandingDict> = {
     rosterSub:
       "すぐ使える8つの職種——もちろん自分で定義してもOK。どの社員も職種専用のスキルを備え、初日からあなたのビジネスを学んでいきます。",
     rosterHire: "雇う →",
+    rosterFrom: (price) => `${price}/月〜`,
 
     howEyebrow: "仕組み",
     howTitleL1: "人に頼むように指示する。",
@@ -543,8 +594,12 @@ export const landing: Record<Lang, LandingDict> = {
     pricingEyebrow: "料金",
     pricingTitleL1: "給与のように払う。",
     pricingTitleL2: "ソフトのように広げる。",
-    pricingSub:
-      "クレジット込みの社員ごとの月額プラン。上限を超えた利用は1,000クレジットあたり2ドルで従量課金されます。",
+    pricingSub: (overage) =>
+      `クレジット込みの社員ごとの月額プラン。上限を超えた利用は1,000クレジットあたり${overage}で従量課金されます。`,
+    currencyLabel: "通貨",
+    currencyUSD: "米ドル $",
+    currencyCNY: "人民元 ¥",
+    cnyBilledNote: "中国本土の料金は人民元建てで、Alipay 決済となります。",
     perMonth: " /社員/月",
     startHiring: "雇用を始める",
     planAssociate: "アソシエイト",
@@ -568,7 +623,10 @@ export const landing: Record<Lang, LandingDict> = {
     directorF3: "OPCモード——一人で何役も",
     directorF4: "監査ログと承認ワークフロー",
     directorF5: "手厚い導入サポート",
-    pricingFoot: "年払いで−20% · 全席14日間無料 · 未使用クレジットは1サイクル繰り越し",
+    pricingFoot: (currency) =>
+      currency === "cny"
+        ? "年払いで−20% · いつでも解約可能 · 人民元建て・Alipay 決済"
+        : "年払いで−20% · いつでも解約可能 · 初期費用なし",
 
     footTagline: "すべての人に、自律型の社員を。",
     footCopyright:

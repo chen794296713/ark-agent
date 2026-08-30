@@ -11,18 +11,16 @@
  *   3. a real streaming chat completion returns tokens
  * Exits non-zero on the first hard failure so it can be used in CI.
  */
+import { normalizeModelId } from "@/lib/llm/model-id";
 
 const BASE = (process.env.OPENROUTER_BASE_URL || "https://openrouter.ai/api/v1").replace(/\/$/, "");
 const KEY = process.env.OPENROUTER_API_KEY;
-const RAW_MODEL = process.env.LLM_MODEL || "openai/gpt-4o-mini";
+const DEFAULT_MODEL = "openai/gpt-4o-mini";
+const RAW_MODEL = process.env.LLM_MODEL || DEFAULT_MODEL;
 const TITLE = process.env.OPENROUTER_APP_TITLE || "ArkAgent";
 
-/** Mirrors normalizeModelId() in lib/llm/openrouter.ts. */
-function normalizeModelId(id: string): string {
-  const parts = id.split("/");
-  return parts.length >= 3 && parts[0] === "openrouter" ? parts.slice(1).join("/") : id;
-}
-const MODEL = normalizeModelId(RAW_MODEL);
+// Exactly what the app sends: an "openrouter/" routing prefix is peeled off.
+const MODEL = normalizeModelId(RAW_MODEL) || DEFAULT_MODEL;
 
 const ok = (m: string) => console.log(`  \x1b[32m✓\x1b[0m ${m}`);
 const bad = (m: string) => console.log(`  \x1b[31m✗\x1b[0m ${m}`);
@@ -145,7 +143,10 @@ async function main() {
     warn(`"${MODEL}" isn't in the public catalog, but the live call succeeded — the id is usable.`);
   }
   if (MODEL !== RAW_MODEL) {
-    warn(`LLM_MODEL is "${RAW_MODEL}"; the app normalizes it to "${MODEL}". Update .env to match.`);
+    warn(
+      `LLM_MODEL is "${RAW_MODEL}" — accepted, and normalized to "${MODEL}" on every call. ` +
+        `Set it to "${MODEL}" in .env to skip the rewrite.`,
+    );
   }
   console.log("\n\x1b[32mAll checks passed — agent chat and brief generation will use this model.\x1b[0m\n");
 }

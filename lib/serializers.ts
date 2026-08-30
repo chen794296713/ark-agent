@@ -20,7 +20,18 @@ import type {
 import { mergeSettings } from "@/lib/agent-settings";
 
 export function publicUser(u: User) {
-  return { id: u.id, email: u.email, name: u.name, locale: u.locale };
+  return {
+    id: u.id,
+    email: u.email,
+    name: u.name,
+    locale: u.locale,
+    // Drives the admin nav item. Gating the UI on it is a convenience only —
+    // every /api/admin route re-checks the role server-side.
+    platformRole: u.platformRole,
+    // An SSO-only account has no password, so the account screen must offer
+    // "set a password" rather than "change" it.
+    hasPassword: u.passwordHash !== null,
+  };
 }
 export type PublicUser = ReturnType<typeof publicUser>;
 
@@ -61,6 +72,16 @@ export function serializeAgent(
     lastHeartbeatAt: a.lastHeartbeatAt,
     createdAt: a.createdAt,
     instanceUuid: opts.instanceUuid ?? null,
+    /**
+     * Config sync state. `configRevision` is what this agent's brief, settings,
+     * skills, context, schedules and channels currently add up to;
+     * `appliedConfigRevision` is what the runtime has acknowledged. Behind means
+     * the VM is still running the previous configuration — the management page
+     * shows that rather than implying a save took effect on the machine.
+     */
+    configRevision: a.configRevision,
+    appliedConfigRevision: a.appliedConfigRevision,
+    configSynced: a.appliedConfigRevision >= a.configRevision,
   };
 }
 export type AgentDTO = ReturnType<typeof serializeAgent>;
@@ -106,12 +127,16 @@ export function serializeInvoice(i: Invoice) {
   return {
     id: i.id,
     number: i.number,
+    // Minor units of `currency` — US cents for a Stripe invoice, 分 for Alipay.
+    // The client formats it through lib/pricing.ts `formatMoney`.
     amountCents: i.amountCents,
     currency: i.currency,
     status: i.status,
+    provider: i.provider,
     issuedAt: i.issuedAt,
     paidAt: i.paidAt,
     pdfUrl: i.pdfUrl,
+    hostedUrl: i.hostedUrl,
   };
 }
 
@@ -120,8 +145,10 @@ export function serializePlan(p: Plan) {
     id: p.id,
     name: p.name,
     monthlyPriceCents: p.monthlyPriceCents,
+    monthlyPriceFen: p.monthlyPriceFen,
     includedCredits: p.includedCredits,
     overageCentsPer1k: p.overageCentsPer1k,
+    overageFenPer1k: p.overageFenPer1k,
     features: p.features,
   };
 }

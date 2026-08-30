@@ -16,6 +16,8 @@ import {
 } from "@/lib/db/schema";
 import type { Agent } from "@/lib/db/schema";
 import { getAgentManager } from "@/lib/agent-manager";
+import type { Harness } from "@/lib/harness";
+import { categoryIdFor } from "@/lib/harness/provisioning";
 import type { AuthContext } from "@/lib/auth";
 import {
   serializeAgent,
@@ -165,7 +167,7 @@ export interface CreateAgentInput {
   name: string;
   roleId: string;
   managerAgentId?: number;
-  engine: "openclaw" | "hermes";
+  engine: Harness;
   planTier: PlanTier;
   instructions: string;
   rules: string;
@@ -209,7 +211,10 @@ export async function createAgent(ctx: AuthContext, input: CreateAgentInput) {
 
   // Call OpenClaw Manager API to create the instance
   try {
-    const categoryId = input.engine === "openclaw" ? 2 : 4;
+    // Exhaustive, and throws on a harness the Manager has no id for. The old
+    // `input.engine === "openclaw" ? 2 : 4` was a two-way branch on what is now
+    // a four-value enum: hiring a Codex agent silently provisioned a Hermes VM.
+    const categoryId = categoryIdFor(input.engine);
     const { config, preprocessed } = await createOpenclawInstance({
       agentId: agent.id,
       managerAgentId: input.roleId === "custom" ? undefined : input.managerAgentId,
@@ -281,10 +286,14 @@ export async function setLifecycle(
 ) {
   const row = await getAgentRow(agentId, workspaceId);
   if (!row) return null;
-  const am = getAgentManager();
   let status: Agent["status"] = row.status;
 
   try {
+    // Resolved inside the try: `getAgentManager()` throws when the runtime is
+    // unconfigured, and an operator must still be able to pause or delete an
+    // agent whose runtime we can no longer reach. The catch below records the
+    // intended local status either way.
+    const am = getAgentManager();
     // OpenClaw agents use the instance API for runtime lifecycle changes.
     // Termination is also a stop operation here because the Manager client
     // currently exposes no instance-delete endpoint. Do not require the

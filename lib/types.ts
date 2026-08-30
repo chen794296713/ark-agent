@@ -1,14 +1,19 @@
-/** Shared domain types for the ArkAgent prototype. */
+/**
+ * Shared domain types.
+ *
+ * Deliberately small: everything the API returns is typed by the DTOs in
+ * lib/serializers.ts and lib/client-api.ts. What remains here is the reference
+ * catalog's shape (lib/data.ts) plus `Lang`, which twenty-odd modules import.
+ *
+ * The presentational prototype types that used to live here — `Agent`,
+ * `ActItem`, `TaskItem`, `PerfItem`, `QueueItem`, `ChatMsg`, `InvoiceFixture` —
+ * described the fictional demo roster and now live with it in
+ * lib/db/demo-fixtures.ts, behind `server-only`. `BillDataset` described the
+ * invented billing chart and is gone entirely; see lib/services/billing.ts.
+ */
+import type { PlanTier } from "@/lib/pricing";
 
 export type Lang = "en" | "zh" | "zht" | "ja";
-
-export type Screen =
-  | "landing"
-  | "auth"
-  | "hire"
-  | "dashboard"
-  | "payment"
-  | "directions";
 
 export interface Role {
   id: string;
@@ -16,62 +21,12 @@ export interface Role {
   mono: string;
   hue: string;
   blurb: string;
-}
-
-export interface ActItem {
-  t: string;
-  txt: string;
-  tag: string;
-  tagC: string;
-}
-
-export interface TaskItem {
-  txt: string;
-  sym: string;
-  c: string;
-  tc: string;
-  meta: string;
-}
-
-export interface PerfItem {
-  label: string;
-  val: string;
-  delta: string;
-  w: string;
-}
-
-export interface QueueItem {
-  id: string;
-  txt: string;
-  impact: string;
-}
-
-export interface ChatMsg {
-  who: "me" | "them";
-  txt: string;
-  meta: string;
-}
-
-export interface Agent {
-  id: string;
-  name: string;
-  role: string;
-  engine: string;
-  hue: string;
-  mono: string;
-  st: string;
-  sc: string;
-  vm: string;
-  up: string;
-  credits: string;
-  chansTxt: string;
-  line: string;
-  act: ActItem[];
-  tasks: TaskItem[];
-  perfNote: string;
-  perf: PerfItem[];
-  queue: QueueItem[];
-  chat: ChatMsg[];
+  /**
+   * Cheapest tier that can run the role. The landing roster's "from …/mo" line
+   * formats it against the visitor's currency instead of storing a price, and
+   * the seed writes it to agent_roles.min_plan.
+   */
+  minPlan: PlanTier;
 }
 
 export interface ChannelField {
@@ -83,40 +38,11 @@ export interface ChannelField {
 export interface ChannelDef {
   name: string;
   desc: string;
-  connected: boolean;
-  note: string;
   fields: ChannelField[];
 }
 
+/** Seeded default brief text for a role: `i` instructions, `r` rules. */
 export interface GenText {
   i: string;
   r: string;
-}
-
-export interface BillDataset {
-  label: string;
-  cr: string;
-  inc: string;
-  w: string;
-  inv: string;
-  seatsLabel: string;
-  seats: string;
-  overLabel: string;
-  over: string;
-  disc: string;
-  total: string;
-  x: [string, string, string];
-  bars: Array<[number, string]>;
-  /** Optional per-agent override rows for the selected range. */
-  pr?: Array<{ cr: string; w: string }>;
-}
-
-export interface PlanRow {
-  name: string;
-  mono: string;
-  hue: string;
-  plan: string;
-  cr: string;
-  w: string;
-  price: string;
 }

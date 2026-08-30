@@ -1,7 +1,7 @@
 import { eq } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { users, workspaces, workspaceMembers } from "@/lib/db/schema";
-import { hashPassword, createSession } from "@/lib/auth";
+import { hashPassword, createSession, isReservedEmail } from "@/lib/auth";
 import { parseBody, apiError, json } from "@/lib/api";
 import { registerSchema } from "@/lib/validation";
 import { publicUser, publicWorkspace } from "@/lib/serializers";
@@ -14,6 +14,12 @@ export async function POST(req: Request) {
   if (parsed.res) return parsed.res;
   const email = parsed.data.email.toLowerCase().trim();
   const { password, name } = parsed.data;
+
+  // Same 409 as a taken address: telling an anonymous caller that this
+  // particular address is "reserved" is a free hint about where staff live.
+  if (isReservedEmail(email)) {
+    return apiError("An account with this email already exists", 409);
+  }
 
   const existing = await db
     .select({ id: users.id })

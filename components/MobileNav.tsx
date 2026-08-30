@@ -13,6 +13,7 @@ import { c, font, gridBg } from "@/lib/theme";
 import { common } from "@/lib/i18n/common";
 import { useApp } from "@/lib/store";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { DirectionSwitcher } from "@/components/DirectionSwitcher";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 
 const links = [
@@ -87,7 +88,7 @@ export function MobileNav({ open, onClose }: { open: boolean; onClose: () => voi
           </span>
         </div>
         <button
-          aria-label="Close menu"
+          aria-label={t.closeMenu}
           onClick={onClose}
           style={{
             marginLeft: "auto",
@@ -131,10 +132,11 @@ export function MobileNav({ open, onClose }: { open: boolean; onClose: () => voi
         ))}
       </nav>
 
-      {/* Footer cluster: language + auth */}
+      {/* Footer cluster: language + theme + auth */}
       <div style={{ marginTop: "auto", display: "flex", flexDirection: "column", gap: 16 }}>
         <LanguageSwitcher compact={false} style={{ alignSelf: "stretch" }} />
 
+        <DirectionSwitcher compact={false} style={{ alignSelf: "stretch" }} />
         <ThemeToggle compact={false} style={{ alignSelf: "stretch" }} />
 
         <button

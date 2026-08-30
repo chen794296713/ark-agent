@@ -16,6 +16,12 @@ export type ResponseLanguage = "auto" | "en" | "zh" | "zht" | "ja";
 export type Autonomy = "suggest" | "ask" | "auto";
 export type ReasoningEffort = "low" | "medium" | "high";
 
+/**
+ * Fixed denomination of `AgentSettings.approvalAmount`. Not the display
+ * currency — see the field docs for why the two must not be linked.
+ */
+export const APPROVAL_CURRENCY = "USD";
+
 export interface AgentSettings {
   // ---- Behavior ----
   tone: Tone;
@@ -24,7 +30,15 @@ export interface AgentSettings {
 
   // ---- Autonomy & approvals ----
   autonomy: Autonomy;
-  approvalAmount: number; // require human approval for money/commitments at or above this (USD); 0 = always ask
+  /**
+   * Require human approval for money/commitments at or above this amount.
+   * `0` = always ask. Denominated in `APPROVAL_CURRENCY` (USD) as a WHOLE
+   * currency unit, deliberately independent of the visitor's display currency:
+   * this is an agent policy threshold, and re-reading a stored 300 as ¥300
+   * because someone switched the price toggle would quietly tighten every
+   * agent's escalation rule by ~7x.
+   */
+  approvalAmount: number;
   approveExternalSends: boolean; // approve before sending anything externally
   dailyActionLimit: number; // 0 = unlimited
 

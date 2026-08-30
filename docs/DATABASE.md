@@ -6,9 +6,9 @@ The data model spans five domains:
 
 - **Identity** — `users`, `sessions`, `workspaces`, `workspace_members`
 - **Catalog** (seeded reference) — `agent_roles`, `plans`
-- **Agents** — `agents`, `agent_tasks`, `agent_activities`, `agent_metrics`, `agent_improvements`
+- **Agents** — `agents`, `agent_tasks`, `agent_activities`, `agent_metrics`, `agent_improvements`, `agent_manager_config`
 - **Channels & messaging** — `channels`, `agent_channels`, `conversations`, `messages`
-- **Billing** — `subscriptions`, `invoices`, `usage_records`
+- **Billing** — `subscriptions`, `invoices`, `usage_records`, `payment_orders`, `payment_events`
 
 ---
 
@@ -65,7 +65,10 @@ All enums are Postgres `pgEnum` types.
 | `subscription_status` | `trialing`, `active`, `past_due`, `canceled` |
 | `invoice_status` | `draft`, `open`, `paid`, `void` |
 | `payment_provider` | `stripe`, `alipay` |
+| `payment_order_status` | `pending`, `paid`, `failed`, `closed`, `refunded` |
 | `usage_kind` | `message`, `task`, `research`, `compute`, `adjustment` |
+
+`payment_order_status` is the lifecycle of one checkout attempt: `pending` is written before the user leaves for the provider; the provider's webhook (Stripe) or notify callback (Alipay) moves it to a terminal state. `closed` is the provider's own timeout/cancel. `refunded` exists as a value but nothing in the app sets it — see [PAYMENTS.md → Known gaps](PAYMENTS.md#known-gaps).
 
 ---
 
@@ -98,9 +101,10 @@ Constraints: `users_email_uniq` UQ on `(email)`.
 | `credits_included` | integer | no | `0` | aggregate cycle credit allowance (sum of agent seats) |
 | `credits_used` | integer | no | `0` | |
 | `cycle_resets_at` | timestamptz | yes | — | |
+| `stripe_customer_id` | varchar(64) | yes | — | Stripe Customer (`cus_…`) this workspace bills through. Created lazily on the first international checkout and reused, so a workspace accumulates one payment history rather than one per purchase. |
 | `created_at` | timestamptz | no | now() | |
 
-Constraints: `workspaces_owner_idx` IDX on `(owner_id)`.
+Constraints: `workspaces_owner_idx` IDX on `(owner_id)`; `workspaces_stripe_customer_uniq` UNIQUE on `(stripe_customer_id)` — one Stripe Customer belongs to exactly one workspace, so a provider event can never mutate the wrong billing row. NULLs are exempt, so workspaces that have never paid are fine.
 
 #### `workspace_members`
 | Column | Type | Null | Default | Notes |
@@ -147,9 +151,13 @@ Constraints: `sessions_token_uniq` UQ on `(token_hash)`; `sessions_user_idx` IDX
 | --- | --- | --- | --- | --- |
 | `id` | `plan_tier` | no | — | PK |
 | `name` | varchar(60) | no | — | |
-| `monthly_price_cents` | integer | no | — | |
+| `monthly_price_cents` | integer | no | — | USD list price in **cents** (international market) |
 | `included_credits` | integer | no | — | |
-| `overage_cents_per_1k` | integer | no | `200` | overage price per 1,000 credits |
+| `overage_cents_per_1k` | integer | no | `200` | USD overage price per 1,000 credits |
+| `monthly_price_fen` | integer | no | `0` | CNY list price in **分** (China market). A deliberately local ladder, not an FX conversion of the USD one — see [`lib/pricing.ts`](../lib/pricing.ts). |
+| `overage_fen_per_1k` | integer | no | `1400` | CNY overage price per 1,000 credits |
+
+> The two CNY columns arrive in migration `0004`, which also **backfills** them for the three seeded plans. The `DEFAULT 0` alone would only be right on a fresh database — an already-seeded one would carry `monthly_price_fen = 0` and quote every China-market seat at ¥0.00 until someone re-seeded. The backfill values must stay in step with `priceLadder.cny` in [`lib/pricing.ts`](../lib/pricing.ts); `npm run pricing:check` pins the ladder itself.
 | `features` | jsonb (`string[]`) | no | `[]` | feature bullet list |
 | `sort_order` | integer | no | `0` | |
 
@@ -236,6 +244,31 @@ Constraints: `agent_improvements_agent_idx` IDX on `(agent_id, status)`.
 
 ### Channels & messaging
 
+
+#### `agent_manager_config`
+Cached per-provider configuration returned by the external Agent Manager for one agent
+(see [API.md](API.md)). One row per `(agent, provider)` pair.
+
+| Column | Type | Null | Default | Notes |
+| --- | --- | --- | --- | --- |
+| `id` | uuid | no | `gen_random_uuid()` | PK |
+| `agent_id` | uuid | no | — | FK → `agents.id` (CASCADE) |
+| `provider` | varchar(40) | no | — | runtime/provider name |
+| `external_id` | varchar(120) | no | — | the provider's own id for this agent |
+| `status` | varchar(40) | no | `pending` | |
+| `last_error` | text | yes | — | |
+| `config` | jsonb | no | `{}` | provider config blob, surfaced by `GET /api/agents/[id]/instance-info` |
+| `created_at` | timestamptz | no | now() | |
+| `updated_at` | timestamptz | no | now() | |
+
+Constraints: `agent_manager_config_agent_provider_uniq` UNIQUE on `(agent_id, provider)`;
+`agent_manager_config_external_idx` IDX on `(provider, external_id)`.
+
+> This table predates migration `0004` in `lib/db/schema.ts` but was only ever applied
+> with `db:push`, so `0004` is the first migration that contains it. Its statements there
+> are guarded (`CREATE TABLE IF NOT EXISTS`, and a `duplicate_object`-tolerant FK) so the
+> migration applies cleanly to both a fresh database and one that was already pushed.
+
 #### `channels`
 | Column | Type | Null | Default | Notes |
 | --- | --- | --- | --- | --- |
@@ -297,27 +330,35 @@ Constraints: `messages_conversation_idx` IDX on `(conversation_id, created_at)`;
 | `plan_id` | `plan_tier` | no | — | |
 | `cycle` | `billing_cycle` | no | `monthly` | |
 | `status` | `subscription_status` | no | `active` | |
+| `provider` | `payment_provider` | yes | — | How this seat is paid for. |
+| `external_id` | varchar(80) | yes | — | Stripe: the `sub_…` id, which is what the webhook matches on. Alipay: the `out_trade_no`, because there is no recurring object to point at. |
+| `currency` | varchar(8) | no | `usd` | `usd` or `cny` — the currency the seat was bought in. |
+| `cancel_at_period_end` | boolean | no | `false` | Mirrored from Stripe by `customer.subscription.updated`. |
 | `current_period_start` | timestamptz | no | now() | |
 | `current_period_end` | timestamptz | yes | — | |
 | `created_at` | timestamptz | no | now() | |
 
 Constraints: `subscriptions_workspace_idx` IDX on `(workspace_id)`.
 
+A Stripe seat renews itself and its row is kept in sync by the webhook. An Alipay seat is a one-off payment that opens a fixed period — 30 days for a monthly purchase (`ALIPAY_PERIOD_DAYS`), 365 for an annual one — and extending it means a fresh purchase, which creates a new row. That asymmetry is why `provider` exists on this table.
+
 #### `invoices`
 | Column | Type | Null | Default | Notes |
 | --- | --- | --- | --- | --- |
 | `id` | uuid | no | random | PK |
 | `workspace_id` | uuid | no | — | FK → `workspaces.id` (CASCADE) |
-| `number` | varchar(40) | no | — | |
-| `amount_cents` | integer | no | — | |
-| `currency` | varchar(8) | no | `usd` | |
-| `status` | `invoice_status` | no | `open` | |
-| `provider` | `payment_provider` | yes | — | |
+| `number` | varchar(40) | no | — | `INV-{year}-{out_trade_no suffix}`, derived from the order number rather than from fresh randomness. `out_trade_no` already carries a unique index, so this is collision-free by construction — a random suffix would eventually violate `invoices_number_uniq` and abort a fulfilment transaction *after* the money was taken |
+| `amount_cents` | integer | no | — | **Minor units of `currency`** — US cents for a Stripe invoice, 分 for an Alipay one. The column name predates the second currency. |
+| `currency` | varchar(8) | no | `usd` | `usd` or `cny` |
+| `status` | `invoice_status` | no | `open` | fulfilment writes `paid` |
+| `provider` | `payment_provider` | yes | — | which provider settled it; drives the badge in the billing table |
 | `period_start` | timestamptz | yes | — | |
 | `period_end` | timestamptz | yes | — | |
 | `issued_at` | timestamptz | no | now() | |
 | `paid_at` | timestamptz | yes | — | |
 | `pdf_url` | text | yes | — | |
+| `provider_ref` | varchar(120) | yes | — | Provider-side identifier — a Stripe payment-intent/session id, or the Alipay `out_trade_no`. Lets a support request be traced from our invoice number straight into the provider dashboard. |
+| `hosted_url` | text | yes | — | Provider-hosted receipt/invoice page, when the provider gives us one. |
 
 Constraints: `invoices_workspace_idx` IDX on `(workspace_id, issued_at)`; `invoices_number_uniq` UQ on `(number)`.
 
@@ -333,6 +374,84 @@ Constraints: `invoices_workspace_idx` IDX on `(workspace_id, issued_at)`; `invoi
 | `occurred_at` | timestamptz | no | now() | |
 
 Constraints: `usage_records_workspace_idx` IDX on `(workspace_id, occurred_at)`.
+
+#### `payment_orders`
+
+One row per checkout attempt, for **both** providers. The row is written *before* the user is redirected, so an asynchronous confirmation always has a local order to land on.
+
+| Column | Type | Null | Default | Notes |
+| --- | --- | --- | --- | --- |
+| `id` | uuid | no | random | PK |
+| `workspace_id` | uuid | no | — | FK → `workspaces.id` (CASCADE) |
+| `user_id` | uuid | no | — | FK → `users.id` (CASCADE) |
+| `out_trade_no` | varchar(64) | no | — | Our order number, `ARK-{base36 ms}-{6 hex}`. Sent to Alipay as `out_trade_no` and set on Stripe as `client_reference_id`, so both confirmations look the order up by one key. |
+| `provider` | `payment_provider` | no | — | |
+| `status` | `payment_order_status` | no | `pending` | |
+| `plan_id` | `plan_tier` | no | — | |
+| `cycle` | `billing_cycle` | no | `monthly` | |
+| `agent_id` | uuid | yes | — | FK → `agents.id` (SET NULL); optional seat association |
+| `amount_minor` | integer | no | — | Charged amount in **minor units** (US cents / 分). Computed server-side from `lib/pricing.ts`, never taken from the client. |
+| `currency` | varchar(8) | no | — | `usd` for Stripe, `cny` for Alipay |
+| `return_url` | text | yes | — | where the browser is sent once the provider hands control back |
+| `pay_url` | text | yes | — | the provider-hosted page we redirected to |
+| `stripe_session_id` | varchar(120) | yes | — | Checkout Session (`cs_…`) |
+| `stripe_payment_intent_id` | varchar(120) | yes | — | |
+| `stripe_subscription_id` | varchar(120) | yes | — | |
+| `stripe_customer_id` | varchar(64) | yes | — | |
+| `alipay_trade_status` | varchar(32) | yes | — | `WAIT_BUYER_PAY` / `TRADE_SUCCESS` / `TRADE_CLOSED` |
+| `provider_payload` | jsonb | yes | — | verbatim last provider payload, kept for support and reconciliation |
+| `invoice_id` | uuid | yes | — | FK → `invoices.id` (SET NULL); set by fulfilment |
+| `subscription_id` | uuid | yes | — | FK → `subscriptions.id` (SET NULL); set by fulfilment |
+| `failure_reason` | text | yes | — | truncated to 480 chars |
+| `completed_at` | timestamptz | yes | — | when the order was claimed as `paid` |
+| `created_at` | timestamptz | no | now() | |
+| `updated_at` | timestamptz | no | now() | |
+
+Constraints: `payment_orders_out_trade_no_uniq` UQ on `(out_trade_no)`; `payment_orders_stripe_session_uniq` UQ on `(stripe_session_id)`; `payment_orders_workspace_idx` IDX on `(workspace_id, created_at)`; `payment_orders_status_idx` IDX on `(status)`.
+
+Fulfilment — creating the subscription + invoice — happens **exactly once**, guarded by a conditional `UPDATE … SET status='paid'` inside a transaction whose `WHERE` carries three clauses:
+
+- `provider = $expected`, passed in by the caller, so the CN gateway cannot settle a USD Stripe order (or vice versa) even if a future caller forgets to check;
+- `status = 'pending'`, the normal path;
+- **or** `status = 'closed'` **and** `updated_at` within the two-hour reclaim window. Alipay sends `TRADE_CLOSED` on timeout and can still deliver a later `TRADE_SUCCESS`, so a success notify has to be able to rescue a just-closed order. The window is what stops that becoming dangerous: Alipay also closes a trade once it has been **refunded**, and the gateway reports both the same way, so an old `closed` order is ambiguous and is escalated to a human instead of being fulfilled.
+
+Postgres row-locks the order, so of N concurrent deliveries exactly one gets a row back and does the work; the rest get a `blockedBy` reason. `closeOrder()` is `WHERE status='pending'`, so a late `TRADE_CLOSED` or `checkout.session.expired` can never revoke a paid seat.
+
+The invoice records what the **provider** collected (`session.amount_total`), not the order's asking price — a promotion code or a trial makes the two differ. A zero-value cycle is written `status='open'` with `paid_at` null, and its subscription starts `trialing`.
+
+#### `payment_events`
+
+An audit trail of the provider events that actually drove a fulfilment. The unique index on `(provider, event_id)` makes a redelivery a no-op insert.
+
+| Column | Type | Null | Default | Notes |
+| --- | --- | --- | --- | --- |
+| `id` | uuid | no | random | PK |
+| `provider` | `payment_provider` | no | — | |
+| `event_id` | varchar(160) | no | — | Stripe's own `evt_…`. The Alipay gateway sends no event id, so the callback synthesises `"{out_trade_no}:{pay_status}"` — a redelivery of the same status is deduplicated, a genuine status change still gets through. |
+| `event_type` | varchar(80) | no | — | Stripe event type, or the Alipay `pay_status` |
+| `order_id` | uuid | yes | — | FK → `payment_orders.id` (SET NULL). Set to the order the event fulfilled. `NULL` only if that order is later deleted. |
+| `payload` | jsonb | yes | — | |
+| `received_at` | timestamptz | no | now() | |
+
+Constraints: `payment_events_provider_event_uniq` UQ on `(provider, event_id)`; `payment_events_order_idx` IDX on `(order_id)`.
+
+**This table is an audit trail, not the concurrency guard.** Exactly-once is enforced by
+the conditional claim on `payment_orders` (`WHERE provider = $1 AND status IN
+('pending','closed')`), and the row here is written *after* that claim succeeds, in the
+same transaction — so it commits with the fulfilment or not at all.
+
+That ordering is deliberate, and both halves of it matter:
+
+- Writing the row **before** fulfilling would let a process killed mid-transaction (a
+  function timeout, an OOM) leave a committed claim nothing could release. The provider's
+  retry would be discarded as a duplicate: money taken, seat never granted, silently.
+- **Gating** on the row would mask a real problem. A success notify for an order in a
+  terminal state is reported once and then, on every redelivery, answered "duplicate,
+  200" — so the one signal that money moved against a written-off order would disappear
+  after the first delivery.
+
+A row present with its order still `pending` should therefore be impossible; if you see
+one, treat it as a bug. See [PAYMENTS.md](PAYMENTS.md#idempotency-and-failure-handling).
 
 ---
 
@@ -388,23 +507,33 @@ The external **Agent Manager** provisions and monitors the remote OpenClaw/Herme
   workspaces ──► subscriptions (agent_id → agents, SET NULL; one seat per agent)
   workspaces ──► invoices
   workspaces ──► usage_records (agent_id → agents, SET NULL)
+  workspaces ──► payment_orders (user_id → users, CASCADE;
+                                 agent_id → agents, SET NULL)
+                      │
+                      ├── invoice_id ──────► invoices        (SET NULL)
+                      ├── subscription_id ─► subscriptions   (SET NULL)
+                      └──◄ order_id ──────── payment_events  (SET NULL)
 ```
 
-Deleting a `users` row cascades to `workspaces` → `agents` → all agent children, channels, conversations, messages, subscriptions, invoices, and usage records. (The seed relies on this: it deletes the demo user to rebuild the demo workspace.)
+Deleting a `users` row cascades to `workspaces` → `agents` → all agent children, channels, conversations, messages, subscriptions, invoices, usage records, and payment orders. (The seed relies on this: it deletes the demo user to rebuild the demo workspace.) `payment_events.order_id` is `SET NULL`, so the dedup ledger survives an order being deleted — a redelivered webhook for a purged order is still recognised as already-seen.
 
 ---
 
 ## 6. Seeded data (`npm run db:seed`)
 
-The seed is **idempotent for reference data** (`onConflictDoNothing`) and **rebuilds the demo workspace** each run by deleting the demo user (`demo`) and letting cascades clear its data. The `demo` account is the ONLY one seeded with mock data; every registered user starts with an empty, real workspace.
+The seed is **idempotent for reference data** (`onConflictDoNothing`, except `plans`, which upserts so a repricing takes effect on a re-seed) and **rebuilds the demo workspace** each run by deleting the demo user (`demo`) and letting cascades clear its data. The `demo` account is the ONLY one seeded with mock data; every registered user starts with an empty, real workspace.
 
 ### Reference: 3 plans
 
-| id | name | monthly price | included credits | overage / 1k |
-| --- | --- | --- | --- | --- |
-| `associate` | Associate | $49.00 (4900¢) | 5,000 | 200¢ |
-| `professional` | Professional | $149.00 (14900¢) | 25,000 | 200¢ |
-| `director` | Director | $399.00 (39900¢) | 100,000 | 200¢ |
+Prices are written from [`lib/pricing.ts`](../lib/pricing.ts) (`planPrice` / `overagePer1k`), so the table can never drift from the ladder the landing page and checkout quote from. The plans insert is an **upsert**, not `onConflictDoNothing`: the three ids exist in every database that has ever been seeded, so a do-nothing insert would leave the CNY columns pinned at their defaults forever.
+
+| id | name | USD / month | CNY / month | included credits | overage / 1k |
+| --- | --- | --- | --- | --- | --- |
+| `associate` | Associate | $49.00 (4900¢) | ¥349.00 (34900分) | 5,000 | 200¢ / 1400分 |
+| `professional` | Professional | $149.00 (14900¢) | ¥1,068.00 (106800分) | 25,000 | 200¢ / 1400分 |
+| `director` | Director | $399.00 (39900¢) | ¥2,868.00 (286800分) | 100,000 | 200¢ / 1400分 |
+
+CNY is a local ladder, not an FX conversion of the USD one.
 
 Each plan ships a `features` bullet list (e.g. Associate: 1 channel + OpenClaw engine; Professional: all channels + both engines; Director: dedicated VM + OPC mode + audit log).
 

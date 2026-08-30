@@ -3,8 +3,9 @@ import { db } from "@/lib/db";
 import { agentRoles } from "@/lib/db/schema";
 import { requireAuth, parseBody, json, notFound } from "@/lib/api";
 import { generateBriefSchema } from "@/lib/validation";
-import { isLLMConfigured, chatCompletion } from "@/lib/llm/openrouter";
+import { isLLMConfigured, chatCompletion, type LlmUsageSample } from "@/lib/llm/openrouter";
 import { buildBriefPrompt } from "@/lib/llm/agent-prompt";
+import { recordLlmUsage, classifyLlmError } from "@/lib/llm/usage";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -35,6 +36,11 @@ export async function POST(req: Request) {
     return json({ text: fallback, source: "default" as const });
   }
 
+  // Captured by the onUsage callback below; still populated on the failure
+  // path when the provider answered but the response was unusable.
+  let sample: LlmUsageSample | undefined;
+  const startedAt = Date.now();
+
   try {
     const { system, user } = buildBriefPrompt({
       field,
@@ -51,13 +57,34 @@ export async function POST(req: Request) {
       ],
       temperature: 0.6,
       maxTokens: 700,
+      onUsage: (u) => {
+        sample = u;
+      },
+    });
+    await recordLlmUsage({
+      sample,
+      kind: "brief",
+      userId: auth.ctx.user.id,
+      workspaceId: auth.ctx.workspace.id,
+      latencyMs: Date.now() - startedAt,
     });
     const clean = text.trim();
     return json({
       text: clean || fallback,
       source: clean ? ("llm" as const) : ("default" as const),
     });
-  } catch {
+  } catch (e) {
+    // Recorded, not just swallowed — a silent fallback to seeded copy is
+    // indistinguishable from success in the UI, so the error rate only exists
+    // here.
+    await recordLlmUsage({
+      sample,
+      kind: "brief",
+      userId: auth.ctx.user.id,
+      workspaceId: auth.ctx.workspace.id,
+      latencyMs: Date.now() - startedAt,
+      errorCode: classifyLlmError(e),
+    });
     // Never break the hire flow on an LLM hiccup — fall back to seeded copy.
     return json({ text: fallback, source: "default" as const });
   }

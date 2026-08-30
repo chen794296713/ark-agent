@@ -7,6 +7,8 @@ import {
 } from "next/font/google";
 import "./globals.css";
 import { AppProvider } from "@/lib/store";
+import { DEFAULT_DIRECTION, DEFAULT_THEME, THEME_COLOR } from "@/lib/theme-init";
+import { ThemeBoot } from "@/components/ThemeBoot";
 
 const spaceGrotesk = Space_Grotesk({
   subsets: ["latin"],
@@ -29,7 +31,13 @@ const ibmPlexMono = IBM_Plex_Mono({
 
 const newsreader = Newsreader({
   subsets: ["latin"],
-  style: ["italic"],
+  // "normal" is not optional. `--f-display` for the Ivory Studio direction
+  // resolves to `var(--font-serif), Georgia, serif` and every heading it draws
+  // is `font-style: normal` — so an italic-only @font-face meant that until
+  // now EVERY Ivory heading in the product silently rendered in Georgia.
+  // Italic stays because the display face is a serif and emphasis in a serif
+  // wants a real italic rather than a synthesised slant.
+  style: ["normal", "italic"],
   variable: "--font-serif",
   display: "swap",
 });
@@ -42,10 +50,15 @@ export const metadata: Metadata = {
 
 // Ensures the page renders at true device width (not a zoomed-out 980px canvas)
 // so the responsive token layer in globals.css can take effect on phones.
+//
+// themeColor describes the SSR theme, and cannot express the other two: Next's
+// ThemeColorDescriptor only keys off prefers-color-scheme, which says nothing
+// about a manually chosen data-theme. The tag is rewritten imperatively instead
+// — by ThemeBoot before paint, and by setTheme on every switch.
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
-  themeColor: "#0B0D10",
+  themeColor: THEME_COLOR[DEFAULT_DIRECTION][DEFAULT_THEME],
 };
 
 export default function RootLayout({
@@ -54,20 +67,15 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      data-theme="dark"
+      // ThemeBoot corrects these from localStorage before the page paints.
+      // Both are required: globals.css matches on the direction+mode PAIR.
+      data-direction={DEFAULT_DIRECTION}
+      data-theme={DEFAULT_THEME}
       suppressHydrationWarning
       className={`${spaceGrotesk.variable} ${instrumentSans.variable} ${ibmPlexMono.variable} ${newsreader.variable}`}
     >
       <body>
-        {/* Apply the saved theme before first paint to avoid a flash. Runs as
-            the first thing in <body>, so data-theme is set before the page
-            content lays out. Defaults to the SSR value ("dark"). */}
-        <script
-          dangerouslySetInnerHTML={{
-            __html:
-              "(function(){try{var t=localStorage.getItem('ark-theme');if(t==='light'||t==='dark'){document.documentElement.setAttribute('data-theme',t);}}catch(e){}})();",
-          }}
-        />
+        <ThemeBoot />
         <AppProvider>
           {children}
         </AppProvider>

@@ -140,14 +140,17 @@ are masked to `"••••••••"` before leaving the server.
 }
 ```
 
-**Plan**
+**Plan** — carries both market ladders. All amounts are integer **minor units**;
+`lib/pricing.ts` is the source of truth and the client formats through `formatMoney`.
 ```jsonc
 {
   "id": "associate" | "professional" | "director",
   "name": "string",
-  "monthlyPriceCents": 0,
+  "monthlyPriceCents": 0,        // USD, in cents      — international market
+  "monthlyPriceFen": 0,          // CNY, in 分          — China market (a local ladder, not FX)
   "includedCredits": 0,
   "overageCentsPer1k": 200,
+  "overageFenPer1k": 1400,
   "features": ["string"]
 }
 ```
@@ -173,12 +176,33 @@ are masked to `"••••••••"` before leaving the server.
 {
   "id": "uuid",
   "number": "string",
-  "amountCents": 0,
+  "amountCents": 0,              // MINOR units of `currency` — US cents or 分
   "currency": "string",          // "usd" | "cny"
   "status": "draft" | "open" | "paid" | "void",
+  "provider": "stripe" | "alipay" | null,   // which provider settled it
   "issuedAt": "iso",
   "paidAt": "iso" | null,
-  "pdfUrl": "string" | null
+  "pdfUrl": "string" | null,
+  "hostedUrl": "string" | null   // provider-hosted receipt page, when one exists
+}
+```
+
+**PaymentOrder** (from `lib/payments/serialize.ts`) — provider ids, the Stripe customer
+and the raw provider payload stay server-side and never appear here.
+```jsonc
+{
+  "outTradeNo": "ARK-M1K2P9F-3A7B0C",       // our order number, both providers
+  "provider": "stripe" | "alipay",
+  "status": "pending" | "paid" | "failed" | "closed" | "refunded",
+  "planId": "associate" | "professional" | "director",
+  "cycle": "monthly" | "annual",
+  "amountMinor": 0,                          // minor units of `currency`
+  "currency": "usd" | "cny",
+  "payUrl": "string" | null,                 // the provider-hosted page
+  "returnUrl": "string" | null,
+  "failureReason": "string" | null,
+  "completedAt": "iso" | null,
+  "createdAt": "iso"
 }
 ```
 
@@ -599,9 +623,21 @@ subscription count, and the plan catalog.
 
 ### POST `/api/billing/checkout`
 
-Simulated checkout. Records a `subscriptions` row and a **paid** `invoices` row.
-Annual cycle applies a 20% discount (`monthly * 12 * 0.8`); `alipay` invoices are
-billed in `cny`, otherwise `usd`.
+Start a checkout. Writes a `pending` `payment_orders` row, then hands back a
+provider-hosted URL to redirect to — Stripe Checkout for USD, Alipay for CNY. **The
+seat is not granted here:** fulfilment happens when the provider confirms, via
+`/api/webhooks/stripe` or `/api/payments/alipay/callback`.
+
+The currency is decided by the provider (`stripe` → `usd`, `alipay` → `cny`) and the
+amount is computed server-side from `lib/pricing.ts` (`cycleTotal`) — the client never
+sends an amount, so a tampered request cannot buy a Director seat at Associate prices.
+Annual is `monthly × 12 × 0.8`.
+
+Outside production, a provider with no credentials runs in **mock** mode and fulfils the
+order inline, so the demo works end to end without an external account. In production
+that fallback is deliberately unavailable — an unconfigured provider returns `503`
+instead, because inline fulfilment would hand out paid seats for free. Reaching mock in
+production requires an explicit `PAYMENTS_MODE=mock`. See [docs/PAYMENTS.md](PAYMENTS.md).
 
 - **Auth:** required.
 - **Request body** (`checkoutSchema`):
@@ -612,15 +648,86 @@ billed in `cny`, otherwise `usd`.
   | `cycle` | enum | no | `"monthly"` \| `"annual"` (default `"monthly"`) |
   | `provider` | enum | no | `"stripe"` \| `"alipay"` (default `"stripe"`) |
   | `agentId` | string (uuid) | no | optional seat association |
+  | `locale` | enum | no | `"en"` \| `"zh"` \| `"zht"` \| `"ja"` — order subject shown inside the Alipay app; falls back to the user's locale |
 
 - **Success — `201 Created`:**
   ```jsonc
-  { "subscriptionId": "uuid", "invoice": Invoice }
+  // live — redirect the browser to redirectUrl, then poll the order
+  { "mode": "live", "order": PaymentOrder,
+    "redirectUrl": "https://checkout.stripe.com/…",
+    "subscriptionId": null, "invoice": null }
+
+  // mock — already fulfilled, nothing to redirect to
+  { "mode": "mock", "order": PaymentOrder, "redirectUrl": null,
+    "subscriptionId": "uuid", "invoice": Invoice }
   ```
 - **Errors:**
   - `401`.
   - `400` — `"Unknown plan"` if `planId` has no matching plan row.
   - `422` / `400` — validation / malformed body.
+  - `502` — `"Could not reach the payment provider. Please try again."` The real
+    provider error can carry price ids, customer ids and account state, so it is
+    logged (`[checkout] provider error`) and written to
+    `payment_orders.provider_payload` instead of being returned.
+  - `503` — `"This payment method is not available right now."` The provider is
+    `unconfigured`: no credentials, in production. Deliberately **not** a fallback to
+    mock fulfilment, which would grant a paid seat for free.
+
+## Payments
+
+### GET `/api/payments/orders/{outTradeNo}`
+
+Poll one payment order. The return page uses this after the provider hands the browser
+back, because the seat is granted asynchronously by the webhook/notify — the redirect
+itself proves nothing.
+
+**Workspace-scoped:** an order belonging to another workspace returns `404`, so an order
+number leaking into a URL or a log cannot be used to read someone else's billing state.
+
+- **Auth:** required.
+- **Success — `200 OK`:** `{ "order": PaymentOrder, "invoice": Invoice | null }`
+- **Errors:** `401`; `404` (`"Order not found"`).
+
+### GET|POST `/api/payments/alipay/callback`
+
+Alipay notify from the GoHire gateway — the **only** place an Alipay payment grants a
+seat. The gateway delivers the result as either a GET query string or a POST body, so
+both verbs share one handler, and parameters are read from the query string, a JSON
+body, or form data.
+
+- **Auth:** **not** session-authenticated. The gateway sends no signature, so the
+  request is authenticated by a secret token baked into the `notify_url` we handed it:
+  `?token=<ALIPAY_CALLBACK_SECRET>`, compared in constant time. With no secret
+  configured nothing is accepted, in any environment — and Alipay cannot reach `live`
+  without one, so no real notify can be pending. The token is stripped from the
+  parameters before anything is persisted, so it never reaches `payment_events.payload`
+  or `payment_orders.provider_payload`.
+- **Parameters:** `pay_status` (`WAIT_BUYER_PAY` \| `TRADE_SUCCESS` \| `TRADE_CLOSED`)
+  and `out_trade_no`.
+- **Behavior:** `TRADE_SUCCESS` fulfils the order (subscription + invoice);
+  `TRADE_CLOSED` closes a still-`pending` order and never touches a paid one;
+  `WAIT_BUYER_PAY` is a no-op. Exactly-once comes from the conditional claim on the
+  order row, not from the event table; a redelivery simply fails the claim and is
+  answered `200`.
+  A `TRADE_SUCCESS` for an order belonging to **Stripe** is refused (`404`) — the CN
+  gateway can only settle CN orders. A `TRADE_SUCCESS` on an order `closed` by a
+  timeout within the last two hours **does** rescue it, since money moving is
+  authoritative over a timeout; on any other terminal state — including an older
+  `closed`, which may mean a refund — it returns `409` and logs, rather than
+  acknowledging success while withholding the seat.
+- **Success — `200 OK`:** `{ "code": 0, "message": "success" }` (the gateway's contract
+  for "handled"). A duplicate delivery returns the same body without doing work.
+- **Errors:**
+  - `401` — `{ "code": 40003, "message": "unauthorized callback" }` (bad/missing token).
+  - `400` — `{ "code": 40001, "message": "invalid callback params" }` or
+    `"unknown pay_status"`.
+  - `404` — `{ "code": 40002, "message": "order not found" }` — unknown order number,
+    or one belonging to Stripe rather than Alipay.
+  - `409` — `{ "code": 50002, "message": "order not in a payable state" }` — a success
+    notify for an order in a terminal non-payable state. Logged at error level: money
+    moved against an order we had written off, and it needs a human.
+  - `500` — handler failure. Safe to retry: the dedup row lives inside the fulfilment
+    transaction, so a failure rolled it back with everything else.
 
 ## Webhooks
 
@@ -638,6 +745,42 @@ verified with an HMAC-SHA256 signature in the `x-arkagent-signature` header. See
   - `401` — `"Invalid signature"` (missing/invalid HMAC or missing secret).
   - `400` — `"Invalid JSON"`.
   - `404` — `"Unknown agent"` if `externalAgentId` matches no agent.
+
+### POST `/api/webhooks/stripe`
+
+Stripe webhook — the **only** place a Stripe payment grants a seat. The raw body is read
+with `req.text()`: parsing it first would change the bytes Stripe signed and break
+verification.
+
+- **Auth:** the `stripe-signature` header, verified against `STRIPE_WEBHOOK_SECRET`.
+  Verification failure returns `400` **on purpose**, so Stripe retries rather than the
+  event being lost.
+- **Events handled** (subscribe to exactly these on the Dashboard endpoint):
+
+  | Event | Effect |
+  |-------|--------|
+  | `checkout.session.completed` | Fulfils the order — subscription + invoice — when `payment_status` is `paid` or `no_payment_required`. Looked up by `client_reference_id`, which carries our `outTradeNo`. When the status is still `unpaid` (a delayed-notification method) the order is deliberately left `pending`. |
+  | `checkout.session.async_payment_succeeded` | Same fulfilment, for a delayed-notification method that has now settled. **Required** — without it those payments never grant a seat. |
+  | `checkout.session.async_payment_failed` | Marks the order `failed`. |
+  | `checkout.session.expired` | Closes the pending order (`status = "closed"`). |
+  | `customer.subscription.updated` | Re-reads the subscription from Stripe (delivery is unordered, so the payload may be stale) and mirrors status, `cancelAtPeriodEnd` and period end onto our row. |
+  | `customer.subscription.deleted` | Sets our subscription `canceled`. |
+  | `invoice.payment_failed` | Sets our subscription `past_due`. |
+
+  Every other event type is acknowledged and ignored, so Stripe stops retrying it.
+- **Success — `200 OK`:** `{ "received": true }`. Redelivery of an already-applied
+  `evt_…` is detected inside the fulfilment transaction and answered the same way.
+- **Errors:**
+  - `400` — `"Invalid signature"`.
+  - `500` — `"Handler error"`. Safe to retry: the dedup row is written inside the same
+    transaction as the fulfilment, so a failure rolled it back too and the retry is not
+    mistaken for a duplicate.
+- **Invoice amounts come from Stripe, not from our price ladder.** `session.amount_total`
+  is what gets recorded, so a promotion code or a trial produces an invoice for what was
+  actually collected. A zero-value cycle is written `status: "open"` with `paidAt` null
+  rather than being counted as revenue, and the subscription starts `trialing`.
+
+> Full provider setup, env vars and operator runbook: [docs/PAYMENTS.md](PAYMENTS.md).
 
 ---
 

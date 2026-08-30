@@ -9,8 +9,9 @@ import {
 import { requireAuth, parseBody, json, notFound, apiError } from "@/lib/api";
 import { selfReviewSchema } from "@/lib/validation";
 import { getAgentRow, getAgentDetail } from "@/lib/services/agents";
-import { isLLMConfigured, chatCompletion } from "@/lib/llm/openrouter";
+import { isLLMConfigured, chatCompletion, type LlmUsageSample } from "@/lib/llm/openrouter";
 import { buildSelfReviewPrompt, parseImprovements } from "@/lib/llm/agent-prompt";
+import { recordLlmUsage, classifyLlmError } from "@/lib/llm/usage";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -71,6 +72,8 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   });
 
   let suggestions: { text: string; impact: string | null }[] = [];
+  let sample: LlmUsageSample | undefined;
+  const startedAt = Date.now();
   try {
     const raw = await chatCompletion({
       messages: [
@@ -79,14 +82,34 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       ],
       temperature: 0.5,
       maxTokens: 700,
+      onUsage: (u) => {
+        sample = u;
+      },
     });
     suggestions = parseImprovements(raw);
   } catch (e) {
+    await recordLlmUsage({
+      sample,
+      kind: "self_review",
+      userId: auth.ctx.user.id,
+      workspaceId: auth.ctx.workspace.id,
+      agentId: id,
+      latencyMs: Date.now() - startedAt,
+      errorCode: classifyLlmError(e),
+    });
     return apiError(
       e instanceof Error ? e.message : "Self-review failed",
       502,
     );
   }
+  await recordLlmUsage({
+    sample,
+    kind: "self_review",
+    userId: auth.ctx.user.id,
+    workspaceId: auth.ctx.workspace.id,
+    agentId: id,
+    latencyMs: Date.now() - startedAt,
+  });
 
   if (!suggestions.length) {
     return json({

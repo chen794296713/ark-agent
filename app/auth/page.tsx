@@ -1,17 +1,62 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { c, font, gridBg, r } from "@/lib/theme";
 import { Btn } from "@/components/ui";
+import { PasswordField } from "@/components/PasswordField";
 import { useApp } from "@/lib/store";
 import { ApiError } from "@/lib/client-api";
-import { auth } from "@/lib/i18n/auth";
+import { auth, type AuthDict } from "@/lib/i18n/auth";
 
 type AuthMode = "login" | "signup" | "forgot";
 
+type SsoProvider = "google" | "wechat";
+/** null while the availability probe is still in flight. */
+type SsoAvailability = Record<SsoProvider, boolean> | null;
+
+/**
+ * Copy for a `?sso_error=` code handed back by the OAuth callback. Unknown codes
+ * — and `failed` itself — land on the generic message rather than going silent.
+ */
+function ssoErrorText(t: AuthDict, code: string): string {
+  switch (code) {
+    case "unconfigured":
+      return t.ssoErrUnconfigured;
+    case "denied":
+      return t.ssoErrDenied;
+    case "state":
+      return t.ssoErrState;
+    case "expired":
+      return t.ssoErrExpired;
+    case "email_taken":
+      return t.ssoErrEmailTaken;
+    case "already_linked":
+      return t.ssoErrAlreadyLinked;
+    case "suspended":
+      return t.ssoErrSuspended;
+    case "provider":
+      return t.ssoErrProvider;
+    default:
+      return t.ssoErrFailed;
+  }
+}
+
+/**
+ * `useSearchParams` opts the tree into client rendering, so the page body sits
+ * under a <Suspense> boundary — same shape as /hire and /payment/return.
+ */
 export default function AuthPage() {
+  return (
+    <Suspense fallback={null}>
+      <AuthInner />
+    </Suspense>
+  );
+}
+
+function AuthInner() {
   const router = useRouter();
+  const params = useSearchParams();
   const { user, authReady, login, register, lang } = useApp();
   const t = auth[lang];
   const authTitles: Record<AuthMode, [string, string]> = {
@@ -26,20 +71,81 @@ export default function AuthPage() {
   const [name, setName] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  // Seeded once from the URL: the code stays in state (rather than being read
+  // from `params` at render) so any later attempt can clear the banner without
+  // having to rewrite the address bar.
+  const [ssoErrorCode, setSsoErrorCode] = useState<string | null>(() =>
+    params.get("sso_error"),
+  );
+  const [sso, setSso] = useState<SsoAvailability>(null);
+  const [ssoBusy, setSsoBusy] = useState(false);
 
   // Already signed in → go straight to the dashboard.
   useEffect(() => {
     if (authReady && user) router.replace("/dashboard");
   }, [authReady, user, router]);
 
+  // Which providers actually have credentials on this deployment. Read with a
+  // plain fetch: availability is a concern of this screen alone and never
+  // reaches the typed API client.
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      try {
+        const res = await fetch("/api/auth/sso", { cache: "no-store" });
+        if (!res.ok) throw new Error(String(res.status));
+        const body = (await res.json()) as {
+          providers?: Partial<Record<SsoProvider, boolean>>;
+        };
+        if (cancelled) return;
+        setSso({
+          google: body.providers?.google === true,
+          wechat: body.providers?.wechat === true,
+        });
+      } catch {
+        // An unreachable probe reads exactly like "nothing is configured": the
+        // buttons stay dead rather than opening a flow that cannot come back.
+        if (!cancelled) setSso({ google: false, wechat: false });
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // Backing out of the provider's consent screen restores this page from the
+  // bfcache with its state intact — including the lock the outgoing navigation
+  // set, which would otherwise leave both buttons dead for good.
+  useEffect(() => {
+    const onShow = (e: PageTransitionEvent) => {
+      if (e.persisted) setSsoBusy(false);
+    };
+    window.addEventListener("pageshow", onShow);
+    return () => window.removeEventListener("pageshow", onShow);
+  }, []);
+
   const am = authMode;
+  const clearErrors = () => {
+    setError(null);
+    setSsoErrorCode(null);
+  };
   const setAuth = (m: AuthMode) => {
     setAuthMode(m);
     setResetSent(false);
-    setError(null);
+    clearErrors();
+  };
+  const startSso = (provider: SsoProvider) => {
+    clearErrors();
+    setSsoBusy(true);
+    // A real top-level navigation — neither fetch() nor router.push() will do.
+    // The start route answers with a 302 to the provider's cross-origin consent
+    // page, which the client router cannot follow and XHR is not allowed to.
+    const url = new URL(`/api/auth/${provider}/start`, window.location.origin);
+    url.searchParams.set("next", "/dashboard");
+    window.location.assign(url.toString());
   };
   const doAuth = async () => {
-    setError(null);
+    clearErrors();
     if (am === "forgot") {
       setResetSent(true);
       return;
@@ -62,7 +168,6 @@ export default function AuthPage() {
       setBusy(false);
     }
   };
-  const ssoUnavailable = () => setError(t.errSsoSoon);
 
   const aLogin = am === "login";
   const aSignup = am === "signup";
@@ -82,6 +187,17 @@ export default function AuthPage() {
         : resetSent
           ? t.btnResendLink
           : t.btnSendResetLink;
+
+  // A fresh local/API failure supersedes the code the redirect arrived with.
+  const banner = error ?? (ssoErrorCode ? ssoErrorText(t, ssoErrorCode) : null);
+  // Named so the note below the buttons says which provider is missing, instead
+  // of writing off social sign-in wholesale while the other one works.
+  const ssoMissing = sso
+    ? [
+        ...(sso.google ? [] : [t.ssoNameGoogle]),
+        ...(sso.wechat ? [] : [t.ssoNameWeChat]),
+      ]
+    : [];
 
   return (
     <div
@@ -219,8 +335,9 @@ export default function AuthPage() {
             {authTitle}
           </h2>
           <p style={{ color: c.muted, margin: "0 0 28px", fontSize: 14.5 }}>{authSub}</p>
-          {error && (
+          {banner && (
             <div
+              role="alert"
               style={{
                 border: `1px solid ${c.redBorder}`,
                 background: c.redWash,
@@ -228,9 +345,10 @@ export default function AuthPage() {
                 padding: "12px 14px",
                 marginBottom: 16,
                 fontSize: 13.5,
+                lineHeight: 1.5,
               }}
             >
-              {error}
+              {banner}
             </div>
           )}
           {aForgotSent && (
@@ -261,39 +379,33 @@ export default function AuthPage() {
             {aSSO && (
               <>
                 <div style={{ display: "grid", gridTemplateColumns: r.split, gap: 10 }}>
-                  <Btn
-                    onClick={ssoUnavailable}
-                    hoverStyle={{ borderColor: c.borderMute }}
-                    style={{
-                      border: `1px solid ${c.borderStrong}`,
-                      background: "transparent",
-                      color: c.text,
-                      padding: 12,
-                      fontFamily: font.sans,
-                      fontSize: 14,
-                      cursor: "pointer",
-                      borderRadius: r.radiusSm,
-                    }}
-                  >
-                    {t.ssoGoogle}
-                  </Btn>
-                  <Btn
-                    onClick={ssoUnavailable}
-                    hoverStyle={{ borderColor: c.borderMute }}
-                    style={{
-                      border: `1px solid ${c.borderStrong}`,
-                      background: "transparent",
-                      color: c.text,
-                      padding: 12,
-                      fontFamily: font.sans,
-                      fontSize: 14,
-                      cursor: "pointer",
-                      borderRadius: r.radiusSm,
-                    }}
-                  >
-                    {t.ssoWeChat}
-                  </Btn>
+                  <SsoBtn
+                    label={t.ssoGoogle}
+                    ready={sso && sso.google}
+                    busy={ssoBusy}
+                    title={sso && !sso.google ? t.ssoNotConfigured(t.ssoNameGoogle) : undefined}
+                    onClick={() => startSso("google")}
+                  />
+                  <SsoBtn
+                    label={t.ssoWeChat}
+                    ready={sso && sso.wechat}
+                    busy={ssoBusy}
+                    title={sso && !sso.wechat ? t.ssoNotConfigured(t.ssoNameWeChat) : undefined}
+                    onClick={() => startSso("wechat")}
+                  />
                 </div>
+                {ssoMissing.length > 0 && (
+                  <div
+                    style={{
+                      fontFamily: font.sans,
+                      fontSize: 12.5,
+                      color: c.faint,
+                      lineHeight: 1.5,
+                    }}
+                  >
+                    {t.ssoNotConfigured(ssoMissing.join(t.ssoJoin))}
+                  </div>
+                )}
                 <div
                   style={{
                     display: "flex",
@@ -383,11 +495,15 @@ export default function AuthPage() {
                 >
                   {t.labelPassword}
                 </div>
-                <input
-                  type="password"
+                <PasswordField
                   value={pw}
-                  onChange={(e) => setPw(e.target.value)}
+                  onChange={setPw}
                   placeholder={t.placeholderPassword}
+                  showLabel={t.showPassword}
+                  hideLabel={t.hidePassword}
+                  // Signup is a new secret — telling the password manager so is
+                  // what makes it offer to generate and save one.
+                  autoComplete={aSignup ? "new-password" : "current-password"}
                   style={{
                     width: "100%",
                     background: c.panel,
@@ -506,5 +622,48 @@ export default function AuthPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+/**
+ * One provider button. `ready === null` means the availability probe has not
+ * answered yet — dead but undimmed, so the row does not flash "unavailable" on
+ * every load; `false` is a real "no credentials here", which reads as disabled.
+ */
+function SsoBtn({
+  label,
+  ready,
+  busy,
+  title,
+  onClick,
+}: {
+  label: string;
+  ready: boolean | null;
+  busy: boolean;
+  title?: string;
+  onClick: () => void;
+}) {
+  const live = ready === true && !busy;
+  return (
+    <Btn
+      type="button"
+      onClick={onClick}
+      disabled={!live}
+      title={title}
+      hoverStyle={live ? { borderColor: c.borderMute } : undefined}
+      style={{
+        border: `1px solid ${c.borderStrong}`,
+        background: "transparent",
+        color: c.text,
+        padding: 12,
+        fontFamily: font.sans,
+        fontSize: 14,
+        cursor: live ? "pointer" : "default",
+        opacity: ready === false ? 0.45 : 1,
+        borderRadius: r.radiusSm,
+      }}
+    >
+      {label}
+    </Btn>
   );
 }

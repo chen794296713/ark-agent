@@ -157,7 +157,11 @@ export default function ChannelsPage() {
             const rowBusy = !!busy[d.name];
             const flash = !!savedFlash[d.name];
             const saveLabel = rowBusy ? t.saving : flash ? t.saved : conn ? t.saveChanges : t.connect;
-            const note = ch?.label || d.note;
+            // Real agents from this workspace, never a canned string: the old
+            // `ch?.label || d.note` printed "USED BY NOVA" to anyone whose own
+            // channel row had no label.
+            const users = ch?.usedBy ?? [];
+            const note = users.length ? t.usedBy(users.join(" · ")) : ch?.label || "—";
             const rErr = rowError[d.name];
             return (
               <div key={d.name} style={{ border: `1px solid ${c.border}`, background: c.panel, borderRadius: r.radiusMd, overflow: "hidden" }}>

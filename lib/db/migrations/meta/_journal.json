@@ -29,6 +29,48 @@
       "when": 1781470567174,
       "tag": "0003_worthless_ultron",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1787829922130,
+      "tag": "0004_brainy_zeigeist",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1787944958390,
+      "tag": "0005_charming_carmella_unuscione",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1787947820937,
+      "tag": "0006_goofy_dorian_gray",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1788007550400,
+      "tag": "0007_v2_enum_values",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1788011330964,
+      "tag": "0008_v2_enum_values_2",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1788018888836,
+      "tag": "0009_v2_schema",
+      "breakpoints": true
     }
   ]
 }

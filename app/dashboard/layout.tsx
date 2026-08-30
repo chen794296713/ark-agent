@@ -4,35 +4,65 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { c, font, r } from "@/lib/theme";
+import { formatMoney, overagePer1k } from "@/lib/pricing";
 import { Btn } from "@/components/ui";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { DirectionSwitcher } from "@/components/DirectionSwitcher";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { useApp } from "@/lib/store";
 import { common } from "@/lib/i18n/common";
 import { dashLayout } from "@/lib/i18n/dashboard-layout";
+import { SHOW_DIRECTIONS } from "@/lib/feature-flags";
 
 const navDefs = [
   { id: "overview", key: "navOverview", icon: "◫", href: "/dashboard" },
   { id: "agents", key: "navFleet", icon: "◉", href: "/dashboard/fleet" },
+  { id: "templates", key: "navTemplates", icon: "▤", href: "/dashboard/templates" },
+  { id: "skills", key: "navSkills", icon: "◈", href: "/dashboard/skills" },
   // { id: "channels", key: "navChannels", icon: "⌁", href: "/dashboard/channels" },
   { id: "billing", key: "navBilling", icon: "▤", href: "/dashboard/billing" },
   { id: "payment", key: "navPayment", icon: "◇", href: "/payment" },
-  { id: "directions", key: "navDirections", icon: "⌘", href: "/directions" },
+  // `internal` rows exist only while the design-direction review is open;
+  // SHOW_DIRECTIONS filters them out of the rendered nav below.
+  { id: "directions", key: "navDirections", icon: "⌘", href: "/directions", internal: true },
   { id: "account", key: "navAccount", icon: "◇", href: "/dashboard/account" },
+  // `staff` hides the row from ordinary users. That gate is cosmetic only —
+  // every /api/admin route re-checks platformRole server-side, so typing the
+  // URL gets a 403, not a console.
+  { id: "admin", key: "navAdmin", icon: "▧", href: "/dashboard/admin", staff: true },
 ] as const;
 
 const fmt = (n: number) => n.toLocaleString("en-US");
 
+/**
+ * Whole days until the credit cycle resets, or null when there is no cycle.
+ *
+ * Module scope, like `relTime`/`uptimeText` in lib/agent-display.ts, because
+ * reading the clock inside a component body is a render-time impurity. It is
+ * safe here for a second reason too: `workspace` is null until the client
+ * fetches the session, so the server never renders a day count for the client
+ * to disagree with.
+ */
+function daysUntil(iso: string | Date | null | undefined): number | null {
+  if (!iso) return null;
+  const ms = new Date(iso).getTime() - Date.now();
+  return Number.isFinite(ms) ? Math.max(0, Math.ceil(ms / 86400_000)) : null;
+}
+
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
-  const { user, workspace, authReady, logout, lang } = useApp();
+  const { user, workspace, authReady, logout, lang, currency } = useApp();
   const t = dashLayout[lang];
-  const [drawerOpen, setDrawerOpen] = useState(false);
-
-  useEffect(() => {
-    setDrawerOpen(false);
-  }, [pathname]);
+  /**
+   * The drawer is open only on the route it was opened from, so navigating
+   * closes it for free. This used to be an effect that called setDrawerOpen
+   * synchronously on every pathname change — a cascading render, and one that
+   * briefly painted the drawer over the new page before closing it.
+   */
+  const [openedAt, setOpenedAt] = useState<string | null>(null);
+  const drawerOpen = openedAt === pathname;
+  const setDrawerOpen = (open: boolean) => setOpenedAt(open ? pathname : null);
 
   // Auth gate: bounce to /auth once we know there is no session.
   useEffect(() => {
@@ -42,11 +72,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   function isActive(id: string): boolean {
     if (id === "overview") return pathname === "/dashboard";
     if (id === "agents") return pathname.startsWith("/dashboard/fleet");
+    if (id === "templates") return pathname.startsWith("/dashboard/templates");
+    if (id === "skills") return pathname.startsWith("/dashboard/skills");
     if (id === "channels") return pathname.startsWith("/dashboard/channels");
     if (id === "billing") return pathname.startsWith("/dashboard/billing");
     if (id === "payment") return pathname.startsWith("/payment");
     if (id === "directions") return pathname.startsWith("/directions");
     if (id === "account") return pathname.startsWith("/dashboard/account");
+    if (id === "admin") return pathname.startsWith("/dashboard/admin");
     return false;
   }
   function go(href: string) {
@@ -79,9 +112,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const creditsUsed = workspace?.creditsUsed ?? 0;
   const creditsIncluded = workspace?.creditsIncluded ?? 0;
   const pct = creditsIncluded > 0 ? Math.min(100, Math.round((creditsUsed / creditsIncluded) * 100)) : 0;
-  const resetDays = workspace?.cycleResetsAt
-    ? Math.max(0, Math.ceil((new Date(workspace.cycleResetsAt).getTime() - Date.now()) / 86400_000))
-    : null;
+  const resetDays = daysUntil(workspace?.cycleResetsAt);
+  const isStaff = user.platformRole === "admin" || user.platformRole === "support";
+  const navItems = navDefs.filter(
+    (n) => (!("staff" in n) || isStaff) && (!("internal" in n) || SHOW_DIRECTIONS),
+  );
   const initial = (user.name || "?").slice(0, 1).toUpperCase();
   const creditsChip = `${fmt(creditsUsed)} / ${creditsIncluded >= 1000 ? Math.round(creditsIncluded / 1000) + "k" : creditsIncluded}`;
 
@@ -149,7 +184,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         </div>
 
         <div style={{ padding: "14px 12px", display: "flex", flexDirection: "column", gap: 2 }}>
-          {navDefs.map((n) => {
+          {navItems.map((n) => {
             const on = isActive(n.id);
             return (
               <button
@@ -220,7 +255,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           </div>
           <div style={{ fontSize: 11.5, color: c.faint, marginTop: 8 }}>
             {resetDays !== null ? t.resetsIn(resetDays) : t.usageThisCycle} ·{" "}
-            <span style={{ color: c.muted }}>{t.overage}</span>
+            <span style={{ color: c.muted }}>
+              {t.overage(formatMoney(overagePer1k("professional", currency), currency))}
+            </span>
           </div>
           <LanguageSwitcher compact={false} style={{ marginTop: 16 }} />
           <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 18 }}>
@@ -273,7 +310,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               >
                 ⎋
               </button>
-              <ThemeToggle />
+              <DirectionSwitcher />
+              <DirectionSwitcher />
+          <ThemeToggle />
             </div>
           </div>
         </div>
