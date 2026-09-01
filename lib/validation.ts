@@ -201,6 +201,6 @@ export const generateBriefSchema = z.object({
   roleId: z.string().min(1).max(40),
   field: z.enum(["instructions", "rules"]),
   agentName: z.string().max(80).optional(),
-  tasks: z.array(z.string().min(1).max(400)).max(20).optional(),
+  draft: z.string().max(8000).optional(),
   locale: z.enum(["en", "zh", "zht", "ja"]).optional(),
 });

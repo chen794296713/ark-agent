@@ -172,7 +172,7 @@ function HireInner() {
         roleId: selRoleObj.id,
         field: "instructions",
         agentName: agentName.trim() || undefined,
-        tasks: tasks.length ? tasks : undefined,
+        draft: instructions.trim() || undefined,
         locale: lang,
       });
       setInstructions(text || selRoleObj.defaultInstructions || "");
@@ -190,7 +190,7 @@ function HireInner() {
         roleId: selRoleObj.id,
         field: "rules",
         agentName: agentName.trim() || undefined,
-        tasks: tasks.length ? tasks : undefined,
+        draft: rules.trim() || undefined,
         locale: lang,
       });
       setRules(text || selRoleObj.defaultRules || "");

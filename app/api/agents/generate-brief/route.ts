@@ -20,7 +20,7 @@ export async function POST(req: Request) {
   if (auth.res) return auth.res;
   const parsed = await parseBody(req, generateBriefSchema);
   if (parsed.res) return parsed.res;
-  const { roleId, field, agentName, tasks, locale } = parsed.data;
+  const { roleId, field, agentName, draft, locale } = parsed.data;
 
   const [role] = await db
     .select()
@@ -47,7 +47,7 @@ export async function POST(req: Request) {
       roleName: role.name,
       roleBlurb: role.blurb,
       agentName,
-      tasks,
+      draft,
       lang: locale ?? "en",
     });
     const text = await chatCompletion({

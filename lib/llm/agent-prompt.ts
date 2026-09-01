@@ -202,36 +202,39 @@ export function buildBriefPrompt(opts: {
   roleName: string;
   roleBlurb?: string | null;
   agentName?: string | null;
-  tasks?: string[];
+  draft?: string | null;
   lang: Lang;
 }): { system: string; user: string } {
   const langName = langLabel(opts.lang);
   const who = opts.agentName?.trim() ? opts.agentName.trim() : `a ${opts.roleName}`;
-  const taskLine =
-    opts.tasks && opts.tasks.length
-      ? `\nThe manager has listed these initial tasks:\n- ${opts.tasks.join("\n- ")}`
-      : "";
+  const draft = opts.draft?.trim();
+  const draftLabel = opts.field === "instructions" ? "job brief" : "operating rules";
+  const draftContext = draft
+    ? `\n\nThe manager has already entered this ${draftLabel}. Preserve every concrete requirement and improve or complete this exact field:\n<current-${opts.field}>\n${draft}\n</current-${opts.field}>`
+    : "";
 
   if (opts.field === "instructions") {
     return {
       system:
         "You help a manager write a clear, first-person job brief (instructions) for an AI employee they are about to hire. " +
         `Write it in ${langName}. Output only the brief itself — no headings, preamble, or quotes. ` +
-        "Address the agent directly ('you'), 4–7 sentences, concrete and actionable, covering goals, scope, channels/tools, and cadence where relevant.",
+        "Address the agent directly ('you'), 4–7 sentences, concrete and actionable, covering goals, scope, channels/tools, and cadence where relevant. " +
+        "When current field content is provided, edit that content rather than replacing its intent or inventing unrelated work.",
       user:
         `Write the job brief for ${who}, whose role is "${opts.roleName}"` +
         (opts.roleBlurb ? ` (${opts.roleBlurb})` : "") +
-        `.${taskLine}`,
+        `.${draftContext}`,
     };
   }
   return {
     system:
       "You help a manager write the operating rules and guardrails for an AI employee. " +
       `Write it in ${langName}. Output only the rules — no headings or preamble. ` +
-      "Give 3–6 short, imperative rules on one line each (limits, approvals, escalation, what never to do). Keep them realistic for the role.",
+      "Give 3–6 short, imperative rules on one line each (limits, approvals, escalation, what never to do). Keep them realistic for the role. " +
+      "When current field content is provided, edit that content rather than replacing its intent or inventing unrelated work.",
     user:
       `Write the rules for ${who}, whose role is "${opts.roleName}"` +
       (opts.roleBlurb ? ` (${opts.roleBlurb})` : "") +
-      `.${taskLine}`,
+      `.${draftContext}`,
   };
 }

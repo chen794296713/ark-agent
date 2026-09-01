@@ -80,7 +80,7 @@ export const api = {
     roleId: string;
     field: "instructions" | "rules";
     agentName?: string;
-    tasks?: string[];
+    draft?: string;
     locale?: "en" | "zh" | "zht" | "ja";
   }) => req<{ text: string; source: "llm" | "default" }>("POST", "/api/agents/generate-brief", body),
   updateAgent: (id: string, body: UpdateAgentBody) =>
