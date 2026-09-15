@@ -399,6 +399,38 @@ export const sessions = pgTable(
 );
 
 /**
+ * Long-lived credentials for programmatic access to the same API surface as a
+ * signed-in user. The raw secret is returned once at creation time; only its
+ * SHA-256 digest and a short display prefix are persisted.
+ */
+export const apiKeys = pgTable(
+  "api_keys",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    workspaceId: uuid("workspace_id")
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    name: varchar("name", { length: 80 }).notNull(),
+    description: varchar("description", { length: 500 }),
+    tokenPrefix: varchar("token_prefix", { length: 20 }).notNull(),
+    tokenHash: varchar("token_hash", { length: 64 }).notNull(),
+    expiresAt: timestamp("expires_at", { withTimezone: true }),
+    disabledAt: timestamp("disabled_at", { withTimezone: true }),
+    lastUsedAt: timestamp("last_used_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [
+    uniqueIndex("api_keys_token_hash_uniq").on(t.tokenHash),
+    index("api_keys_workspace_idx").on(t.workspaceId),
+    index("api_keys_user_idx").on(t.userId),
+  ],
+);
+
+/**
  * An external login (Google / WeChat) bound to a local user.
  *
  * `subject` is the provider's stable id for the person — Google's `sub`, and
@@ -2002,6 +2034,8 @@ export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;
 export type Workspace = typeof workspaces.$inferSelect;
 export type Session = typeof sessions.$inferSelect;
+export type ApiKey = typeof apiKeys.$inferSelect;
+export type NewApiKey = typeof apiKeys.$inferInsert;
 export type AgentRole = typeof agentRoles.$inferSelect;
 export type Plan = typeof plans.$inferSelect;
 export type Agent = typeof agents.$inferSelect;

@@ -8,6 +8,7 @@ export interface DashLayoutDict {
   navSkills: string;
   navChannels: string;
   navBilling: string;
+  navApiKeys: string;
   navPayment: string;
   navDirections: string;
   navAccount: string;
@@ -36,6 +37,7 @@ export const dashLayout: Record<Lang, DashLayoutDict> = {
     navSkills: "Skills",
     navChannels: "Channels",
     navBilling: "Billing & usage",
+    navApiKeys: "API keys",
     navPayment: "Payment",
     navDirections: "Directions",
     navAccount: "Personal center",
@@ -56,6 +58,7 @@ export const dashLayout: Record<Lang, DashLayoutDict> = {
     navSkills: "技能库",
     navChannels: "渠道",
     navBilling: "账单与用量",
+    navApiKeys: "API Key 管理",
     navPayment: "支付",
     navDirections: "导航",
     navAccount: "个人中心",
@@ -76,6 +79,7 @@ export const dashLayout: Record<Lang, DashLayoutDict> = {
     navSkills: "技能庫",
     navChannels: "通路",
     navBilling: "帳單與用量",
+    navApiKeys: "API Key 管理",
     navPayment: "支付",
     navDirections: "導航",
     navAccount: "個人中心",
@@ -96,6 +100,7 @@ export const dashLayout: Record<Lang, DashLayoutDict> = {
     navSkills: "スキル",
     navChannels: "チャネル",
     navBilling: "請求と利用状況",
+    navApiKeys: "APIキー管理",
     navPayment: "支払い",
     navDirections: "ナビゲーション",
     navAccount: "マイページ",

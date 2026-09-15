@@ -21,6 +21,7 @@ const navDefs = [
   { id: "skills", key: "navSkills", icon: "◈", href: "/dashboard/skills" },
   // { id: "channels", key: "navChannels", icon: "⌁", href: "/dashboard/channels" },
   { id: "billing", key: "navBilling", icon: "▤", href: "/dashboard/billing" },
+  { id: "apiKeys", key: "navApiKeys", icon: "⌗", href: "/dashboard/api-keys" },
   { id: "payment", key: "navPayment", icon: "◇", href: "/payment" },
   // `internal` rows exist only while the design-direction review is open;
   // SHOW_DIRECTIONS filters them out of the rendered nav below.
@@ -76,6 +77,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     if (id === "skills") return pathname.startsWith("/dashboard/skills");
     if (id === "channels") return pathname.startsWith("/dashboard/channels");
     if (id === "billing") return pathname.startsWith("/dashboard/billing");
+    if (id === "apiKeys") return pathname.startsWith("/dashboard/api-keys");
     if (id === "payment") return pathname.startsWith("/payment");
     if (id === "directions") return pathname.startsWith("/directions");
     if (id === "account") return pathname.startsWith("/dashboard/account");

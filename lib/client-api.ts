@@ -68,6 +68,17 @@ export const api = {
   changePassword: (body: { currentPassword?: string; newPassword: string }) =>
     req<{ ok: true }>("PATCH", "/api/me/password", body),
 
+  // ---- API keys ----
+  apiKeys: () => req<{ apiKeys: ApiKeyDTO[] }>("GET", "/api/api-keys"),
+  createApiKey: (body: { name: string; description?: string | null; expiresAt?: string | null }) =>
+    req<{ apiKey: ApiKeyDTO; key: string }>("POST", "/api/api-keys", body),
+  updateApiKey: (
+    id: string,
+    body: { name?: string; description?: string | null; expiresAt?: string | null; enabled?: boolean },
+  ) => req<{ apiKey: ApiKeyDTO }>("PATCH", `/api/api-keys/${encodeURIComponent(id)}`, body),
+  deleteApiKey: (id: string) =>
+    req<{ ok: true }>("DELETE", `/api/api-keys/${encodeURIComponent(id)}`),
+
   // ---- reference ----
   roles: () => req<{ roles: RoleDTO[] }>("GET", "/api/roles"),
   plans: () => req<{ plans: PlanDTO[] }>("GET", "/api/plans"),
@@ -205,6 +216,18 @@ export const api = {
     }),
   adminLlmUsage: (days = 30) => req<AdminLlmUsageDTO>("GET", `/api/admin/llm-usage?days=${days}`),
 };
+
+export interface ApiKeyDTO {
+  id: string;
+  name: string;
+  description: string | null;
+  tokenPrefix: string;
+  expiresAt: string | null;
+  disabledAt: string | null;
+  lastUsedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
 
 // ---- admin console shapes ----
 // The console renders a live database, so a field the route stops sending must

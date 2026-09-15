@@ -192,6 +192,26 @@ export const prefsSchema = z.object({
   name: z.string().min(1).max(120).optional(),
 });
 
+const nullableExpiry = z.string().datetime({ offset: true }).nullable().optional();
+
+export const createApiKeySchema = z
+  .object({
+    name: z.string().trim().min(1).max(80),
+    description: z.string().trim().max(500).nullable().optional(),
+    expiresAt: nullableExpiry,
+  })
+  .strict();
+
+export const updateApiKeySchema = z
+  .object({
+    name: z.string().trim().min(1).max(80).optional(),
+    description: z.string().trim().max(500).nullable().optional(),
+    expiresAt: nullableExpiry,
+    enabled: z.boolean().optional(),
+  })
+  .strict()
+  .refine((body) => Object.keys(body).length > 0, "At least one field is required");
+
 export const selfReviewSchema = z.object({
   locale: z.enum(["en", "zh", "zht", "ja"]).optional(),
   count: z.number().int().min(1).max(5).optional(),
