@@ -2,51 +2,22 @@ import { and, desc, eq } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { apiKeys } from "@/lib/db/schema";
 import { apiError, jsonPrivate, parseBody, requireAuth } from "@/lib/api";
-import { apiKeyDisplayPrefix, generateApiKey, hashApiKey } from "@/lib/api-key-token";
+import {
+  apiKeyPublicColumns,
+  prepareApiKey,
+  serializeApiKey,
+} from "@/lib/services/api-keys";
 import { createApiKeySchema } from "@/lib/validation";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-
-const publicColumns = {
-  id: apiKeys.id,
-  name: apiKeys.name,
-  description: apiKeys.description,
-  tokenPrefix: apiKeys.tokenPrefix,
-  expiresAt: apiKeys.expiresAt,
-  disabledAt: apiKeys.disabledAt,
-  lastUsedAt: apiKeys.lastUsedAt,
-  createdAt: apiKeys.createdAt,
-  updatedAt: apiKeys.updatedAt,
-};
-
-function serialized(row: {
-  id: string;
-  name: string;
-  description: string | null;
-  tokenPrefix: string;
-  expiresAt: Date | null;
-  disabledAt: Date | null;
-  lastUsedAt: Date | null;
-  createdAt: Date;
-  updatedAt: Date;
-}) {
-  return {
-    ...row,
-    expiresAt: row.expiresAt?.toISOString() ?? null,
-    disabledAt: row.disabledAt?.toISOString() ?? null,
-    lastUsedAt: row.lastUsedAt?.toISOString() ?? null,
-    createdAt: row.createdAt.toISOString(),
-    updatedAt: row.updatedAt.toISOString(),
-  };
-}
 
 export async function GET() {
   const auth = await requireAuth();
   if (auth.res) return auth.res;
 
   const rows = await db
-    .select(publicColumns)
+    .select(apiKeyPublicColumns)
     .from(apiKeys)
     .where(
       and(
@@ -56,7 +27,7 @@ export async function GET() {
     )
     .orderBy(desc(apiKeys.createdAt));
 
-  return jsonPrivate({ apiKeys: rows.map(serialized) });
+  return jsonPrivate({ apiKeys: rows.map(serializeApiKey) });
 }
 
 export async function POST(req: Request) {
@@ -70,19 +41,17 @@ export async function POST(req: Request) {
     return apiError("Expiration must be in the future", 422);
   }
 
-  const token = generateApiKey();
+  const prepared = prepareApiKey({
+    userId: auth.ctx.user.id,
+    workspaceId: auth.ctx.workspace.id,
+    name: parsed.data.name,
+    description: parsed.data.description,
+    expiresAt,
+  });
   const [row] = await db
     .insert(apiKeys)
-    .values({
-      userId: auth.ctx.user.id,
-      workspaceId: auth.ctx.workspace.id,
-      name: parsed.data.name,
-      description: parsed.data.description || null,
-      tokenPrefix: apiKeyDisplayPrefix(token),
-      tokenHash: hashApiKey(token),
-      expiresAt,
-    })
-    .returning(publicColumns);
+    .values(prepared.values)
+    .returning(apiKeyPublicColumns);
 
-  return jsonPrivate({ apiKey: serialized(row), key: token }, 201);
+  return jsonPrivate({ apiKey: serializeApiKey(row), key: prepared.token }, 201);
 }

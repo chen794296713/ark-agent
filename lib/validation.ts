@@ -24,6 +24,13 @@ export const loginSchema = z.object({
   password: z.string().min(1).max(200),
 });
 
+export const apiKeyCredentialsSchema = z
+  .object({
+    username: z.string().trim().min(1).max(320),
+    password: z.string().min(1).max(200),
+  })
+  .strict();
+
 export const PLATFORM_ROLES = ["user", "support", "admin"] as const;
 export const USER_STATUSES = ["active", "suspended"] as const;
 export const IDENTITY_PROVIDERS = ["google", "wechat"] as const;

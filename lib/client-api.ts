@@ -58,7 +58,17 @@ export interface WorkspaceDTO {
 export const api = {
   // ---- auth ----
   register: (body: { email: string; password: string; name: string }) =>
-    req<{ user: SessionUser; workspace: WorkspaceDTO }>("POST", "/api/auth/register", body),
+    req<{ user: SessionUser; workspace: WorkspaceDTO; apiKey: ApiKeyDTO; key: string }>(
+      "POST",
+      "/api/auth/register",
+      body,
+    ),
+  apiKeyForCredentials: (body: { username: string; password: string }) =>
+    req<{ apiKey: ApiKeyDTO; key: string; created: boolean }>(
+      "POST",
+      "/api/auth/api-key",
+      body,
+    ),
   login: (body: { email: string; password: string }) =>
     req<{ user: SessionUser; workspace: WorkspaceDTO | null }>("POST", "/api/auth/login", body),
   logout: () => req<{ ok: true }>("POST", "/api/auth/logout"),

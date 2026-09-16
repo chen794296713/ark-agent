@@ -400,8 +400,9 @@ export const sessions = pgTable(
 
 /**
  * Long-lived credentials for programmatic access to the same API surface as a
- * signed-in user. The raw secret is returned once at creation time; only its
- * SHA-256 digest and a short display prefix are persisted.
+ * signed-in user. The raw secret is persisted so the credential exchange API
+ * can return an existing key; the SHA-256 digest remains the lookup value used
+ * by Bearer authentication.
  */
 export const apiKeys = pgTable(
   "api_keys",
@@ -415,6 +416,7 @@ export const apiKeys = pgTable(
       .references(() => workspaces.id, { onDelete: "cascade" }),
     name: varchar("name", { length: 80 }).notNull(),
     description: varchar("description", { length: 500 }),
+    token: varchar("token", { length: 128 }),
     tokenPrefix: varchar("token_prefix", { length: 20 }).notNull(),
     tokenHash: varchar("token_hash", { length: 64 }).notNull(),
     expiresAt: timestamp("expires_at", { withTimezone: true }),

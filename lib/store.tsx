@@ -263,7 +263,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const register = useCallback(async (name: string, email: string, password: string) => {
-    const { user: u, workspace: w } = await api.register({ name, email, password });
+    const { user: u, workspace: w, apiKey, key } = await api.register({ name, email, password });
+    try {
+      sessionStorage.setItem("ark_api_key_secrets", JSON.stringify({ [apiKey.id]: key }));
+    } catch {
+      /* private mode / storage disabled */
+    }
     setUser(u);
     setWorkspace(w);
     setLangState(u.locale);
