@@ -17,7 +17,7 @@ export async function GET() {
   if (auth.res) return auth.res;
 
   const rows = await db
-    .select(apiKeyPublicColumns)
+    .select({ ...apiKeyPublicColumns, key: apiKeys.token })
     .from(apiKeys)
     .where(
       and(
@@ -27,7 +27,9 @@ export async function GET() {
     )
     .orderBy(desc(apiKeys.createdAt));
 
-  return jsonPrivate({ apiKeys: rows.map(serializeApiKey) });
+  return jsonPrivate({
+    apiKeys: rows.map((row) => ({ ...serializeApiKey(row), key: row.key })),
+  });
 }
 
 export async function POST(req: Request) {

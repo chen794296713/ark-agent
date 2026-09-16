@@ -104,7 +104,22 @@ export default function ApiKeysPage() {
 
   useEffect(() => {
     let cancelled = false;
-    api.apiKeys().then(({ apiKeys }) => !cancelled && setKeys(apiKeys)).catch(() => !cancelled && setError(t.loadError)).finally(() => !cancelled && setLoading(false));
+    api.apiKeys().then(({ apiKeys }) => {
+      if (cancelled) return;
+      setKeys(apiKeys);
+      setSecrets((current) => {
+        const next = { ...current };
+        for (const apiKey of apiKeys) {
+          if (apiKey.key) next[apiKey.id] = apiKey.key;
+        }
+        try {
+          sessionStorage.setItem("ark_api_key_secrets", JSON.stringify(next));
+        } catch {
+          /* private mode / storage disabled */
+        }
+        return next;
+      });
+    }).catch(() => !cancelled && setError(t.loadError)).finally(() => !cancelled && setLoading(false));
     return () => { cancelled = true; };
   }, [t.loadError]);
 

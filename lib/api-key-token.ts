@@ -1,10 +1,10 @@
-import { createHash, randomBytes } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 
 export const API_KEY_PREFIX = "ark_live_";
 
 /** Generate a high-entropy API key in the application's credential namespace. */
 export function generateApiKey(): string {
-  return `${API_KEY_PREFIX}${randomBytes(32).toString("base64url")}`;
+  return `${API_KEY_PREFIX}${randomUUID().replace(/-/g, "")}`;
 }
 
 export function hashApiKey(token: string): string {

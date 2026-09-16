@@ -79,7 +79,7 @@ export const api = {
     req<{ ok: true }>("PATCH", "/api/me/password", body),
 
   // ---- API keys ----
-  apiKeys: () => req<{ apiKeys: ApiKeyDTO[] }>("GET", "/api/api-keys"),
+  apiKeys: () => req<{ apiKeys: ApiKeyWithSecretDTO[] }>("GET", "/api/api-keys"),
   createApiKey: (body: { name: string; description?: string | null; expiresAt?: string | null }) =>
     req<{ apiKey: ApiKeyDTO; key: string }>("POST", "/api/api-keys", body),
   updateApiKey: (
@@ -237,6 +237,10 @@ export interface ApiKeyDTO {
   lastUsedAt: string | null;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface ApiKeyWithSecretDTO extends ApiKeyDTO {
+  key: string | null;
 }
 
 // ---- admin console shapes ----

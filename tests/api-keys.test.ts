@@ -16,6 +16,7 @@ test("a prepared API key persists matching plaintext and digest values", () => {
   });
 
   assert.ok(prepared.token.startsWith(API_KEY_PREFIX));
+  assert.match(prepared.token, /^ark_live_[0-9a-f]{32}$/);
   assert.equal(prepared.values.token, prepared.token);
   assert.equal(prepared.values.tokenHash, hashApiKey(prepared.token));
   assert.equal(prepared.values.tokenPrefix, prepared.token.slice(0, 16));
@@ -26,7 +27,7 @@ test("a prepared API key persists matching plaintext and digest values", () => {
 
 test("the public API key serializer never exposes stored plaintext", () => {
   const createdAt = new Date("2026-09-16T08:00:00.000Z");
-  const serialized = serializeApiKey({
+  const storedRow = {
     id: "key-id",
     name: "Default",
     description: null,
@@ -37,7 +38,8 @@ test("the public API key serializer never exposes stored plaintext", () => {
     createdAt,
     updatedAt: createdAt,
     token: "ark_live_secret",
-  });
+  };
+  const serialized = serializeApiKey(storedRow);
 
   assert.equal(serialized.createdAt, createdAt.toISOString());
   assert.equal("token" in serialized, false);
