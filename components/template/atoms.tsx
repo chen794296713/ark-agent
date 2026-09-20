@@ -9,12 +9,8 @@ import { c, font, r } from "@/lib/theme";
 import { HUE_FALLBACK, firstGlyph, safeHue } from "./derive";
 
 /**
- * The template's monogram on its own hue. `onBrand` and not `ink`: `hue` is a
- * FIXED colour stored on the row, so its ink must not invert with the theme.
- *
- * The hue goes through `safeHue` first. On a `scope=public` row it is another
- * tenant's free text landing in a CSS `background`, and a valid-but-hostile
- * value (`url(https://…)`) would make every viewer fetch a stranger's URL.
+ * Keep a template's stored identity hue as a quiet tint. It is untrusted input
+ * on public rows, so it is validated before it becomes a CSS value.
  */
 export function Glyph({ mono, hue, size = 38 }: { mono: string; hue: string; size?: number }) {
   const fill = safeHue(hue) ?? HUE_FALLBACK;
@@ -25,8 +21,9 @@ export function Glyph({ mono, hue, size = 38 }: { mono: string; hue: string; siz
         width: size,
         height: size,
         flex: "0 0 auto",
-        background: fill,
-        color: c.onBrand,
+        background: `color-mix(in srgb, ${fill} 18%, ${c.panel})`,
+        border: `1px solid ${c.border}`,
+        color: c.text,
         display: "grid",
         placeItems: "center",
         fontFamily: font.space,
@@ -50,9 +47,9 @@ export function OwnershipBadge({ kind, label }: { kind: "yours" | "public"; labe
         display: "inline-flex",
         alignItems: "center",
         gap: 4,
-        fontFamily: font.mono,
-        fontSize: 10,
-        letterSpacing: ".08em",
+        fontFamily: font.sans,
+        fontSize: 12,
+        letterSpacing: "normal",
         color: tint,
         border: `1px solid ${tint}`,
         borderRadius: r.radiusSm,
@@ -61,7 +58,7 @@ export function OwnershipBadge({ kind, label }: { kind: "yours" | "public"; labe
         whiteSpace: "nowrap",
       }}
     >
-      ⬦ {label}
+      {label}
     </span>
   );
 }
@@ -71,10 +68,10 @@ export function HarnessPill({ label, style }: { label: string; style?: CSSProper
   return (
     <span
       style={{
-        fontFamily: font.mono,
-        fontSize: 10,
-        letterSpacing: ".08em",
-        textTransform: "uppercase",
+        fontFamily: font.sans,
+        fontSize: 12,
+        letterSpacing: "normal",
+        textTransform: "none",
         color: c.muted,
         border: `1px solid ${c.border}`,
         borderRadius: r.radiusSm,
@@ -94,8 +91,8 @@ export function Chip({ children, title }: { children: ReactNode; title?: string 
     <span
       title={title}
       style={{
-        fontFamily: font.mono,
-        fontSize: 10.5,
+        fontFamily: font.sans,
+        fontSize: 12,
         color: c.muted,
         border: `1px solid ${c.line}`,
         borderRadius: r.radiusSm,
@@ -128,7 +125,7 @@ export function RiskDot({ level }: { level: "low" | "medium" | "high" }) {
   );
 }
 
-/** One cell of the three-up metric strip: a mono label over a display value. */
+/** One cell of the three-up setup summary. */
 export function Metric({
   label,
   value,
@@ -143,25 +140,25 @@ export function Metric({
       style={{
         flex: 1,
         minWidth: 0,
-        padding: "9px 12px",
-        borderRight: last ? "none" : `1px solid ${c.line}`,
+        padding: "4px 10px 4px 0",
+        paddingRight: last ? 0 : 10,
       }}
     >
       <div
         style={{
-          fontFamily: font.mono,
-          fontSize: 10,
-          letterSpacing: ".08em",
+          fontFamily: font.sans,
+          fontSize: 12,
+          letterSpacing: "normal",
           color: c.muted,
-          textTransform: "uppercase",
+          textTransform: "none",
         }}
       >
         {label}
       </div>
       <div
         style={{
-          fontFamily: font.space,
-          fontWeight: 700,
+          fontFamily: font.sans,
+          fontWeight: 600,
           fontSize: 14,
           color: c.text,
           marginTop: 3,

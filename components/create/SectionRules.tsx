@@ -174,9 +174,9 @@ export default function SectionRules({
                   })
                 }
                 style={{
-                  fontFamily: font.mono,
+                  fontFamily: font.sans,
                   fontSize: 10,
-                  letterSpacing: ".08em",
+                  letterSpacing: "normal",
                   color: rule.severity === "hard" ? c.red : c.muted,
                   border: `1px solid ${rule.severity === "hard" ? c.redBorder : c.borderField}`,
                   background: rule.severity === "hard" ? c.redWash : "transparent",

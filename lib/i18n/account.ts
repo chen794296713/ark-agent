@@ -67,7 +67,7 @@ export interface AccountDict {
 export const account: Record<Lang, AccountDict> = {
   en: {
     eyebrow: "ACCOUNT SETTINGS",
-    heading: "Personal center",
+    heading: "Account",
     subheading: "Manage your profile, password, and active session.",
     profileTitle: "Personal information",
     profileDescription: "Update the name shown across your workspace.",

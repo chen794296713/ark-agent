@@ -217,9 +217,9 @@ export function SkillsPanel({
       actions={
         <span
           style={{
-            fontFamily: font.mono,
-            fontSize: 11,
-            letterSpacing: ".08em",
+            fontFamily: font.sans,
+            fontSize: 12,
+            letterSpacing: "normal",
             color: atCap ? c.amber : c.muted,
           }}
         >
@@ -303,10 +303,12 @@ export function SkillsPanel({
           <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
             <span
               style={{
-                fontFamily: font.mono,
-                fontSize: 11,
-                letterSpacing: ".1em",
-                color: c.muted,
+                fontWeight: 600,
+                marginTop: 0,
+                fontFamily: font.space,
+                fontSize: 16,
+                letterSpacing: "-.01em",
+                color: c.text,
               }}
             >
               {t.browseSkills}
@@ -403,8 +405,8 @@ export function SkillsPanel({
                         background: already || atCap ? "transparent" : c.limeWash,
                         color: already || atCap ? c.faint : c.accent,
                         padding: "6px 12px",
-                        fontFamily: font.mono,
-                        fontSize: 11.5,
+                        fontFamily: font.sans,
+                        fontSize: 12,
                         borderRadius: r.radiusSm,
                         cursor: already || atCap ? "not-allowed" : "pointer",
                         whiteSpace: "nowrap",
@@ -636,7 +638,7 @@ function SkillRow({
 
       {row.unmetRequirements.length > 0 && (
         <div style={{ fontSize: 12.5, color: c.muted, lineHeight: 1.6 }}>
-          <span style={{ fontFamily: font.mono, fontSize: 11, letterSpacing: ".08em" }}>
+          <span style={{ fontFamily: font.sans, fontSize: 12, letterSpacing: "normal" }}>
             {t.unmetTitle}
           </span>
           <ul style={{ margin: "4px 0 0", paddingLeft: 18 }}>
@@ -654,7 +656,7 @@ function SkillRow({
           <span style={{ color: c.red }} aria-hidden="true">
             ▲{" "}
           </span>
-          <span style={{ fontFamily: font.mono, fontSize: 11, letterSpacing: ".08em", color: c.muted }}>
+          <span style={{ fontFamily: font.sans, fontSize: 12, letterSpacing: "normal", color: c.muted }}>
             {t.installErrorLabel}
           </span>{" "}
           <span style={{ fontFamily: font.mono, fontSize: 11.5, overflowWrap: "anywhere" }}>
@@ -697,7 +699,7 @@ function PrimaryGhost({
         background: "transparent",
         color: disabled ? c.faint : c.muted,
         padding: "8px 14px",
-        fontFamily: font.mono,
+        fontFamily: font.sans,
         fontSize: 12,
         borderRadius: r.radiusSm,
         cursor: disabled ? "not-allowed" : "pointer",

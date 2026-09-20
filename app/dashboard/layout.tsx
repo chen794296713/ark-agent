@@ -1,10 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { c, font, r } from "@/lib/theme";
 import { formatMoney, overagePer1k } from "@/lib/pricing";
+import { Brand } from "@/components/Brand";
+import { WorkspaceIcon } from "@/components/WorkspaceIcon";
 import { Btn } from "@/components/ui";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { DirectionSwitcher } from "@/components/DirectionSwitcher";
@@ -99,8 +100,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           display: "grid",
           placeItems: "center",
           color: c.muted,
-          fontFamily: font.mono,
-          fontSize: 13,
+          fontFamily: font.sans,
+          fontSize: 14,
         }}
       >
         {common[lang].loading}
@@ -121,7 +122,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const creditsChip = `${fmt(creditsUsed)} / ${creditsIncluded >= 1000 ? Math.round(creditsIncluded / 1000) + "k" : creditsIncluded}`;
 
   return (
-    <div style={{ minHeight: "100vh", display: "grid", gridTemplateColumns: r.dashGrid }}>
+    <div className="ark-workspace" style={{ minHeight: "100vh", display: "grid", gridTemplateColumns: r.dashGrid }}>
       {drawerOpen && <div className="r-scrim" onClick={() => setDrawerOpen(false)} />}
 
       <div
@@ -135,45 +136,17 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           top: 0,
         }}
       >
-        <Link
-          href="/"
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 10,
-            padding: "18px 20px",
-            borderBottom: `1px solid ${c.line}`,
-            cursor: "pointer",
-            textDecoration: "none",
-            color: c.text,
-          }}
-        >
-          <div
-            style={{
-              width: 24,
-              height: 24,
-              background: c.lime,
-              display: "grid",
-              placeItems: "center",
-              fontFamily: font.space,
-              fontWeight: 700,
-              color: c.ink,
-              fontSize: 14,
-            }}
-          >
-            A
-          </div>
-          <span style={{ fontFamily: font.mono, fontSize: 13.5, fontWeight: 500, letterSpacing: ".04em" }}>
-            ARK_AGENT
-          </span>
-        </Link>
+        <div style={{ padding: "27px 24px 23px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <Brand />
+          {drawerOpen && <button className="r-mobile-only" aria-label={common[lang].closeMenu} onClick={() => setDrawerOpen(false)} style={{ background: "none", border: "none", color: c.text, padding: 6 }}><WorkspaceIcon name="close" /></button>}
+        </div>
 
-        <div style={{ padding: "16px 20px", borderBottom: `1px solid ${c.line}` }}>
+        <div style={{ padding: "0 24px 20px", borderBottom: `1px solid ${c.line}` }}>
           <div
             style={{
-              fontFamily: font.mono,
-              fontSize: 10.5,
-              letterSpacing: ".12em",
+              fontFamily: font.sans,
+              fontSize: 12,
+              letterSpacing: "normal",
               color: c.faint,
               marginBottom: 4,
             }}
@@ -190,6 +163,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               <button
                 key={n.id}
                 onClick={() => go(n.href)}
+                aria-current={on ? "page" : undefined}
                 style={{
                   display: "flex",
                   alignItems: "center",
@@ -206,9 +180,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                   borderRadius: r.radiusSm,
                 }}
               >
-                <span style={{ fontFamily: font.mono, fontSize: 12, color: on ? c.accent : c.faint }}>
-                  {n.icon}
-                </span>
+                <WorkspaceIcon name={n.id} />
                 {t[n.key]}
               </button>
             );
@@ -217,18 +189,18 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
         <Btn
           onClick={() => go("/hire")}
-          hoverStyle={{ borderColor: c.accent }}
+          hoverStyle={{ background: c.limeHover }}
           style={{
             margin: "8px 12px",
-            border: `1px dashed ${c.borderStrong}`,
-            background: "transparent",
-            color: c.accent,
+            border: `1px solid ${c.lime}`,
+            background: c.lime,
+            color: c.ink,
             padding: 11,
             fontFamily: font.space,
             fontWeight: 500,
             fontSize: 13.5,
             cursor: "pointer",
-            borderRadius: r.radiusSm,
+            borderRadius: 999,
           }}
         >
           {t.hireNew}
@@ -239,7 +211,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             style={{
               display: "flex",
               justifyContent: "space-between",
-              fontFamily: font.mono,
+              fontFamily: font.sans,
               fontSize: 11,
               color: c.faint,
               marginBottom: 8,
@@ -259,14 +231,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               {t.overage(formatMoney(overagePer1k("professional", currency), currency))}
             </span>
           </div>
-          <LanguageSwitcher compact={false} style={{ marginTop: 16 }} />
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 18, gap: 8 }}><LanguageSwitcher /><DirectionSwitcher /></div>
           <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 18 }}>
             <div
               style={{
                 width: 28,
                 height: 28,
                 borderRadius: "50%",
-                background: c.borderStrong,
+                background: c.limeWash2,
                 display: "grid",
                 placeItems: "center",
                 fontSize: 12,
@@ -303,16 +275,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                   border: `1px solid ${c.border}`,
                   color: c.muted,
                   cursor: "pointer",
-                  fontFamily: font.mono,
+                  fontFamily: font.sans,
                   fontSize: 13,
                   borderRadius: r.radiusSm,
                 }}
               >
-                ⎋
+                <WorkspaceIcon name="logout" size={16} />
               </button>
-              <DirectionSwitcher />
-              <DirectionSwitcher />
-          <ThemeToggle />
+              <ThemeToggle />
             </div>
           </div>
         </div>
@@ -345,49 +315,22 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               background: "transparent",
               border: `1px solid ${c.border}`,
               color: c.text,
-              fontFamily: font.mono,
+              fontFamily: font.sans,
               fontSize: 18,
               cursor: "pointer",
               borderRadius: r.radiusSm,
             }}
           >
-            ≡
+            <WorkspaceIcon name="menu" />
           </button>
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <div
-              style={{
-                width: 22,
-                height: 22,
-                background: c.lime,
-                display: "grid",
-                placeItems: "center",
-                fontFamily: font.space,
-                fontWeight: 700,
-                color: c.ink,
-                fontSize: 13,
-              }}
-            >
-              A
-            </div>
-            <span
-              style={{
-                fontFamily: font.mono,
-                fontSize: 13,
-                fontWeight: 500,
-                letterSpacing: ".04em",
-                color: c.text,
-              }}
-            >
-              ARK_AGENT
-            </span>
-          </div>
-          <span style={{ marginLeft: "auto", fontFamily: font.mono, fontSize: 11.5, color: c.muted }}>
+          <Brand compact />
+          <span style={{ marginLeft: "auto", fontFamily: font.sans, fontSize: 11.5, color: c.muted }}>
             {creditsChip}
           </span>
           <LanguageSwitcher />
           <ThemeToggle />
         </div>
-        {children}
+        <main id="workspace-content">{children}</main>
       </div>
     </div>
   );

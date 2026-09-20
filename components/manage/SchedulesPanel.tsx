@@ -452,8 +452,8 @@ function ScheduleCard({
 
           <div
             style={{
-              fontFamily: font.mono,
-              fontSize: 11,
+              fontFamily: font.sans,
+              fontSize: 12,
               color: c.faint,
               marginTop: 5,
               lineHeight: 1.6,
@@ -706,10 +706,12 @@ function ScheduleCard({
         <div style={{ borderTop: `1px solid ${c.lineSoft}`, paddingTop: 12, display: "grid", gap: 8 }}>
           <div
             style={{
-              fontFamily: font.mono,
-              fontSize: 11,
-              letterSpacing: ".1em",
-              color: c.muted,
+              fontWeight: 600,
+              marginTop: 0,
+              fontFamily: font.space,
+              fontSize: 16,
+              letterSpacing: "-.01em",
+              color: c.text,
             }}
           >
             {t.historyTitle}
@@ -731,9 +733,9 @@ function ScheduleCard({
                         scope="col"
                         style={{
                           textAlign: "left",
-                          fontFamily: font.mono,
-                          fontSize: 10.5,
-                          letterSpacing: ".08em",
+                          fontFamily: font.sans,
+                          fontSize: 12,
+                          letterSpacing: "normal",
                           color: c.muted,
                           fontWeight: 400,
                           padding: "6px 10px 6px 0",
@@ -838,7 +840,7 @@ function GhostBtn({
         background: "transparent",
         color: disabled ? c.faint : c.muted,
         padding: "8px 14px",
-        fontFamily: font.mono,
+        fontFamily: font.sans,
         fontSize: 12,
         borderRadius: r.radiusSm,
         cursor: disabled ? "not-allowed" : "pointer",

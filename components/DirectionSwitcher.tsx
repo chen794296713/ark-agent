@@ -1,18 +1,6 @@
 "use client";
 
-/**
- * Brand-direction picker — Terminal Lime / Ivory Studio / Midnight Console.
- *
- * A sibling of ThemeToggle rather than part of it: direction and mode are two
- * independent axes in the design source (ArkAgent.dc.html), so folding six
- * combinations into one menu would make choosing "light" mean re-picking the
- * brand as well.
- *
- * The swatch, not a glyph, is the icon. Three line-icons for three brand looks
- * would be arbitrary — the accent colour IS the difference, so each option
- * shows its own signal colour on its own surface, sampled live from the
- * palette that option would apply.
- */
+/** Appearance picker. Team Directory is the default; legacy palettes remain selectable. */
 import { useRef, type CSSProperties } from "react";
 import { c, font } from "@/lib/theme";
 import { useApp, DIRECTIONS, type Direction } from "@/lib/store";
@@ -29,6 +17,7 @@ import { MenuPopover } from "@/components/MenuPopover";
  * not currently in.
  */
 const SWATCH: Record<Direction, { dark: [string, string]; light: [string, string] }> = {
+  team: { dark: ["#101C17", "#C6D897"], light: ["#FEFEFD", "#15362D"] },
   terminal: { dark: ["#0A0D12", "#D8FF3E"], light: ["#F3F5F8", "#4C7A00"] },
   ivory: { dark: ["#1A1714", "#D8814F"], light: ["#F4EFE6", "#B65C36"] },
   midnight: { dark: ["#0A0F1E", "#5B8CFF"], light: ["#EEF2FA", "#2F62E6"] },
@@ -67,7 +56,7 @@ export function DirectionSwitcher({
   drop,
   style,
 }: {
-  /** `false` renders the three options inline, for the mobile drawer. */
+  /** `false` renders the appearance options inline, for the mobile drawer. */
   compact?: boolean;
   drop?: "up" | "down";
   style?: CSSProperties;
@@ -75,6 +64,7 @@ export function DirectionSwitcher({
   const { lang, theme, direction, setDirection } = useApp();
   const t = common[lang];
   const labels: Record<Direction, string> = {
+    team: t.dirTeam,
     terminal: t.dirTerminal,
     ivory: t.dirIvory,
     midnight: t.dirMidnight,
@@ -104,7 +94,7 @@ export function DirectionSwitcher({
   );
 }
 
-/** Inline radiogroup for the mobile drawer, where there is room for all three. */
+/** Inline radiogroup for the mobile drawer, where there is room for all appearances. */
 function Segments({
   direction,
   mode,

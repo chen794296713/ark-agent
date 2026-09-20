@@ -593,7 +593,7 @@ const en: CreateDict = {
     warningsTitle: "Worth checking",
     warningsNone: "Nothing flagged.",
     untrustedNote:
-      "Text below came from a model or a third-party catalogue. It is shown as text and never run.",
+      "This draft is untrusted, editable text. Its contents are not executed on this page.",
     editHint: "Nothing is created until you press Continue. Change anything you like.",
     notProvisioned:
       "The agent exists, but no machine has been assigned to it yet. It starts on its own as soon as the runtime has capacity.",
@@ -1055,7 +1055,7 @@ const zh: CreateDict = {
     confidenceLow: "低——请逐项确认",
     warningsTitle: "值得看一眼",
     warningsNone: "没有需要提醒的。",
-    untrustedNote: "以下文字来自模型或第三方目录，只作为文本展示，绝不会被执行。",
+    untrustedNote: "这是一份需要你检查和修改的草稿。其内容按不可信文本处理，不会在此页面执行。",
     editHint: "按下「继续」之前什么都不会创建，随便改。",
     notProvisioned: "智能体已创建，但还没有分配到机器。运行环境一有余量就会自动启动。",
     error: "没成功。什么都没有创建。",
@@ -1495,7 +1495,7 @@ const zht: CreateDict = {
     confidenceLow: "低——請逐項確認",
     warningsTitle: "值得看一眼",
     warningsNone: "沒有需要提醒的。",
-    untrustedNote: "以下文字來自模型或第三方目錄，只當作文字顯示，絕不會被執行。",
+    untrustedNote: "這是一份需要你檢查和修改的草稿。內容會視為不可信文字，不會在此頁面執行。",
     editHint: "按下「繼續」之前什麼都不會建立，隨你怎麼改。",
     notProvisioned: "智能體已建立，但還沒有分配到機器。執行環境一有餘量就會自動啟動。",
     error: "沒成功。什麼都沒有建立。",
@@ -1944,7 +1944,7 @@ const ja: CreateDict = {
     warningsTitle: "確認しておきたい点",
     warningsNone: "指摘はありません。",
     untrustedNote:
-      "以下の文章はモデルまたは外部カタログ由来です。文字として表示するだけで、実行されることはありません。",
+      "この下書きは、確認・編集が必要な未検証のテキストです。この画面で内容が実行されることはありません。",
     editHint: "「次へ」を押すまで何も作成されません。自由に書き換えてください。",
     notProvisioned:
       "エージェントは作成されましたが、まだマシンが割り当てられていません。実行環境に空きができ次第、自動で起動します。",

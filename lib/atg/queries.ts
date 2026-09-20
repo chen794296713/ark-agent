@@ -20,7 +20,7 @@ import "server-only";
  * `template_generations` is simpler: `workspace_id` is NOT NULL and every read
  * and write is scoped by it. There is no cross-workspace case at all.
  */
-import { and, asc, desc, eq, gte, inArray, isNull, ne, or, sql, type SQL } from "drizzle-orm";
+import { and, asc, desc, eq, gte, inArray, isNull, lt, ne, or, sql, type SQL } from "drizzle-orm";
 import { db } from "@/lib/db";
 import {
   agentTemplates,
@@ -433,7 +433,7 @@ export async function releaseStaleGenerations(workspaceId: string, now = new Dat
       and(
         eq(templateGenerations.workspaceId, workspaceId),
         inArray(templateGenerations.status, ["queued", "running"]),
-        sql`${templateGenerations.createdAt} < ${cutoff}`,
+        lt(templateGenerations.createdAt, cutoff),
       ),
     );
 }
@@ -464,7 +464,7 @@ export async function checkGenerationQuota(
   // token bucket is not.
   const [counts] = await db
     .select({
-      hour: sql<number>`count(*) filter (where ${templateGenerations.createdAt} >= ${hourAgo})::int`,
+      hour: sql<number>`count(*) filter (where ${gte(templateGenerations.createdAt, hourAgo)})::int`,
       day: sql<number>`count(*)::int`,
     })
     .from(templateGenerations)

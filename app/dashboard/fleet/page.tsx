@@ -11,6 +11,7 @@ import type { Harness } from "@/lib/harness";
 import { Btn, HoverDiv } from "@/components/ui";
 import { useApp } from "@/lib/store";
 import { fleet } from "@/lib/i18n/fleet";
+import { AgentAvatar } from "@/components/AgentAvatar";
 
 // Derived, so a new harness appears in the filter instead of silently
 // hiding every agent that runs on it.
@@ -39,81 +40,67 @@ function FleetCard({
       style={{
         border: `1px solid ${c.border}`,
         background: c.panel,
-        padding: 22,
+        padding: 24,
         cursor: "pointer",
         borderRadius: r.radiusMd,
       }}
     >
-      <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 16 }}>
-        <div
-          style={{
-            width: 42,
-            height: 42,
-            background: a.hue ?? c.lime,
-            // c.onBrand is fixed dark — right on a fixed role hue, wrong on the
-            // themed lime fallback, which pairs with c.ink.
-            color: a.hue ? c.onBrand : c.ink,
-            display: "grid",
-            placeItems: "center",
-            fontFamily: font.space,
-            fontWeight: 700,
-            fontSize: 18,
-          }}
-        >
-          {a.mono}
-        </div>
-        <div style={{ flex: 1 }}>
-          <div style={{ fontFamily: font.space, fontWeight: 700, fontSize: 17 }}>{a.name}</div>
-          <div style={{ fontSize: 13, color: c.muted }}>{a.role}</div>
+      <div style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: 14, marginBottom: 24 }}>
+        <AgentAvatar roleId={a.roleId} name={a.name} mono={a.mono} size={56} />
+        <div style={{ flex: "1 1 140px", minWidth: 0 }}>
+          <Link href={`/dashboard/fleet/${a.id}`} onClick={(event) => event.stopPropagation()} style={{ fontFamily: font.space, fontWeight: 600, fontSize: 21, color: c.text, textDecoration: "none", overflowWrap: "anywhere" }}>{a.name}</Link>
+          <div style={{ fontSize: 14, color: c.muted, marginTop: 3 }}>{a.role}</div>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
           <span style={{ width: 6, height: 6, borderRadius: "50%", background: st.color }} />
-          <span style={{ fontFamily: font.mono, fontSize: 11, color: st.color }}>{st.label}</span>
+          <span style={{ fontFamily: font.sans, fontSize: 12, color: st.color }}>{st.label}</span>
         </div>
       </div>
       <div
         style={{
           display: "flex",
-          gap: 0,
-          border: `1px solid ${c.line}`,
-          fontFamily: font.mono,
-          fontSize: 11,
-          color: c.faint,
+          gap: 16,
+          flexWrap: "wrap",
+          borderTop: `1px solid ${c.line}`,
+          paddingTop: 18,
+          fontFamily: font.sans,
+          fontSize: 12,
+          color: c.muted,
         }}
       >
-        <div style={{ padding: "10px 14px", borderRight: `1px solid ${c.line}`, flex: 1 }}>
+        <div style={{ flex: 1 }}>
           {t.labelEngine}
           <div style={{ color: c.text2, fontSize: 12.5, marginTop: 3 }}>
             {ENGINE_LABEL[a.engine] ?? a.engine}
           </div>
         </div>
-        <div style={{ padding: "10px 14px", borderRight: `1px solid ${c.line}`, flex: 1 }}>
+        <div style={{ flex: 1 }}>
           {t.labelCredits}
           <div style={{ color: c.text2, fontSize: 12.5, marginTop: 3 }}>{a.creditsUsed}</div>
         </div>
-        <div style={{ padding: "10px 14px", flex: 1 }}>
+        <div style={{ flex: 1 }}>
           {t.labelChannels}
           <div style={{ color: c.text2, fontSize: 12.5, marginTop: 3 }}>{chans}</div>
         </div>
       </div>
-      <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 24 }}>
         <Btn
           onClick={(e) => {
             e.stopPropagation();
             router.push(`/dashboard/fleet/${a.id}?tab=settings`);
           }}
-          hoverStyle={{ borderColor: c.accent, color: c.accent }}
+          hoverStyle={{ background: c.limeHover }}
           style={{
             flex: 1,
-            border: `1px solid ${c.borderStrong}`,
-            background: "transparent",
-            color: c.text,
-            padding: 9,
-            fontFamily: font.space,
-            fontSize: 13,
-            fontWeight: 500,
+            border: `1px solid ${c.lime}`,
+            background: c.lime,
+            color: c.ink,
+            padding: "10px 14px",
+            fontFamily: font.sans,
+            fontSize: 14,
+            fontWeight: 600,
             cursor: "pointer",
-            borderRadius: r.radiusSm,
+            borderRadius: 999,
           }}
         >
           {t.manage}
@@ -140,7 +127,7 @@ function FleetCard({
             background: "transparent",
             color: c.muted,
             padding: 9,
-            fontFamily: font.space,
+            fontFamily: font.sans,
             fontSize: 13,
             cursor: busy ? "default" : "pointer",
             opacity: busy ? 0.6 : 1,
@@ -161,7 +148,7 @@ function FleetCard({
             background: "transparent",
             color: c.muted,
             padding: 9,
-            fontFamily: font.space,
+            fontFamily: font.sans,
             fontSize: 13,
             cursor: "pointer",
             borderRadius: r.radiusSm,
@@ -250,23 +237,9 @@ export default function FleetPage() {
           marginBottom: 28,
         }}
       >
-        <h2 style={{ fontFamily: font.space, fontWeight: 700, fontSize: 26, margin: 0 }}>{t.heading}</h2>
-        <Link href="/hire" style={{ textDecoration: "none" }}>
-          <button
-            style={{
-              background: c.lime,
-              color: c.ink,
-              border: "none",
-              padding: "10px 18px",
-              fontFamily: font.space,
-              fontWeight: 700,
-              fontSize: 13.5,
-              cursor: "pointer",
-              borderRadius: r.radiusSm,
-            }}
-          >
-            {t.hireNewAgent}
-          </button>
+        <h1 style={{ fontFamily: font.space, fontWeight: 650, fontSize: 32, lineHeight: 1.15, letterSpacing: "-.025em", margin: 0 }}>{t.heading}</h1>
+        <Link href="/hire" style={{ textDecoration: "none", background: c.lime, color: c.ink, padding: "12px 22px", fontFamily: font.sans, fontWeight: 600, fontSize: 14, borderRadius: 999 }}>
+          {t.hireNewAgent}
         </Link>
       </div>
 
@@ -285,11 +258,12 @@ export default function FleetPage() {
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           placeholder={t.filterPlaceholder}
+          aria-label={t.filterPlaceholder}
           style={{
             flex: "1 1 200px",
-            maxWidth: 240,
+            maxWidth: 320,
             background: c.panel,
-            border: `1px solid ${c.border}`,
+            border: `1px solid ${c.borderField}`,
             color: c.text,
             padding: "10px 14px",
             fontSize: 14,
@@ -302,11 +276,12 @@ export default function FleetPage() {
         {/* Filter by Engine */}
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <select
+            aria-label={t.filterByEngine}
             value={engineFilter}
             onChange={(e) => setEngineFilter(e.target.value as EngineFilter)}
             style={{
               background: c.panel,
-              border: `1px solid ${c.border}`,
+              border: `1px solid ${c.borderField}`,
               color: c.text,
               padding: "10px 14px",
               fontSize: 13,
@@ -328,11 +303,12 @@ export default function FleetPage() {
         {/* Filter by Status */}
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <select
+            aria-label={t.filterByStatus}
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value as StatusFilter)}
             style={{
               background: c.panel,
-              border: `1px solid ${c.border}`,
+              border: `1px solid ${c.borderField}`,
               color: c.text,
               padding: "10px 14px",
               fontSize: 13,
@@ -380,9 +356,9 @@ export default function FleetPage() {
             background: c.panel,
             padding: 40,
             textAlign: "center",
-            fontFamily: font.mono,
+            fontFamily: font.sans,
             fontSize: 12,
-            letterSpacing: ".06em",
+            letterSpacing: "normal",
             color: c.faint,
             borderRadius: r.radiusMd,
           }}
@@ -396,7 +372,7 @@ export default function FleetPage() {
             background: c.redWash,
             padding: 40,
             textAlign: "center",
-            fontFamily: font.mono,
+            fontFamily: font.sans,
             fontSize: 12.5,
             color: c.red,
           }}

@@ -17,7 +17,9 @@
  */
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
-import { c, font, r } from "@/lib/theme";
+import { c } from "@/lib/theme";
+import { Brand } from "@/components/Brand";
+import styles from "../payment.module.css";
 import { useApp } from "@/lib/store";
 import { api, ApiError, type InvoiceDTO, type PaymentOrderDTO } from "@/lib/client-api";
 import { Btn } from "@/components/ui";
@@ -149,39 +151,12 @@ function PaymentReturn() {
     : null;
 
   const billingBtn = (
-    <Btn
-      onClick={() => router.push("/dashboard/billing")}
-      hoverStyle={{ borderColor: c.borderMute, color: c.text }}
-      style={{
-        background: "none",
-        border: `1px solid ${c.borderStrong}`,
-        color: c.muted,
-        padding: "12px 26px",
-        fontFamily: font.space,
-        fontWeight: 700,
-        fontSize: "14px",
-        cursor: "pointer",
-      }}
-    >
+    <Btn onClick={() => router.push("/dashboard/billing")} className={styles.secondary}>
       {t.backToBilling}
     </Btn>
   );
-
   const retryBtn = (
-    <Btn
-      onClick={() => router.push("/payment")}
-      hoverStyle={{ background: c.limeHover }}
-      style={{
-        background: c.lime,
-        color: c.ink,
-        border: "none",
-        padding: "12px 26px",
-        fontFamily: font.space,
-        fontWeight: 700,
-        fontSize: "14px",
-        cursor: "pointer",
-      }}
-    >
+    <Btn onClick={() => router.push("/payment")} className={styles.primary}>
       {t.retryPayment}
     </Btn>
   );
@@ -202,20 +177,7 @@ function PaymentReturn() {
         // it is requested.
         meta={refCode && order?.currency === "cny" ? `${refCode} · ${t.eInvoiceNote}` : refCode}
         actions={
-          <Btn
-            onClick={() => router.push("/dashboard/billing")}
-            hoverStyle={{ opacity: 0.88 }}
-            style={{
-              background: c.green,
-              color: c.greenInk,
-              border: "none",
-              padding: "12px 26px",
-              fontFamily: font.space,
-              fontWeight: 700,
-              fontSize: "14px",
-              cursor: "pointer",
-            }}
-          >
+          <Btn onClick={() => router.push("/dashboard/billing")} className={styles.primary}>
             {t.backToBilling}
           </Btn>
         }
@@ -289,146 +251,35 @@ function PaymentReturn() {
   return <ReturnFrame>{card}</ReturnFrame>;
 }
 
-/** Top bar + centred column, shared by the Suspense fallback and the real screen. */
+/** Shared by the Suspense fallback and every confirmed order state. */
 function ReturnFrame({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const { lang } = useApp();
   const t = payment[lang];
-
   return (
-    <div data-screen-label="Payment return" style={{ minHeight: "100vh" }}>
-      <div
-        style={{
-          height: "60px",
-          borderBottom: `1px solid ${c.line}`,
-          display: "flex",
-          alignItems: "center",
-          padding: "0 32px",
-          gap: "24px",
-        }}
-      >
-        <Btn
-          onClick={() => router.push("/dashboard/billing")}
-          hoverStyle={{ color: c.text }}
-          style={{
-            background: "none",
-            border: "none",
-            color: c.muted,
-            fontSize: "14px",
-            cursor: "pointer",
-            fontFamily: font.sans,
-            padding: 0,
-          }}
-        >
-          {t.backBilling}
-        </Btn>
-        <span
-          style={{
-            fontFamily: font.mono,
-            fontSize: "12px",
-            letterSpacing: ".14em",
-            color: c.accent,
-          }}
-        >
-          {t.checkout}
-        </span>
-        <span
-          style={{
-            marginLeft: "auto",
-            fontFamily: font.mono,
-            fontSize: "11px",
-            color: c.faint,
-            letterSpacing: ".06em",
-          }}
-        >
-          {t.encrypted}
-        </span>
-      </div>
-
-      <div
-        style={{
-          maxWidth: "620px",
-          margin: "0 auto",
-          padding: `${r.pagePxWide} ${r.pagePx} 140px`,
-        }}
-      >
-        <div
-          style={{
-            fontFamily: font.mono,
-            fontSize: "12px",
-            letterSpacing: ".14em",
-            color: c.accent,
-            marginBottom: "16px",
-          }}
-        >
-          {t.statusEyebrow}
-        </div>
-        {children}
-      </div>
-    </div>
+    <main data-screen-label="Payment return" className={styles.page}>
+      <header className={styles.header}>
+        <Brand />
+        <Btn onClick={() => router.push("/dashboard/billing")} className={styles.back}>{t.backBilling}</Btn>
+      </header>
+      <div className={styles.returnContent}>{children}</div>
+    </main>
   );
 }
 
-/** The polling state — deliberately identical to the Suspense fallback. */
+/** The polling state is identical in the fallback and the hydrated screen. */
 function Waiting({ t, refCode }: { t: PaymentDict; refCode: string | null }) {
   return (
-    <div
-      style={{
-        border: `1px solid ${c.border}`,
-        background: c.panel,
-        padding: "44px 32px",
-        textAlign: "center",
-      }}
-    >
-      <div
-        style={{
-          width: "36px",
-          height: "36px",
-          border: `3px solid ${c.line}`,
-          borderTopColor: c.accent,
-          borderRadius: "50%",
-          margin: "0 auto 22px",
-          animation: "spin 1s linear infinite",
-        }}
-      />
-      <div
-        style={{ fontFamily: font.space, fontWeight: 700, fontSize: "19px", marginBottom: "8px" }}
-      >
-        {t.confirmingPay}
-      </div>
-      <div
-        style={{
-          fontSize: "13.5px",
-          color: c.muted,
-          lineHeight: 1.6,
-          maxWidth: "40ch",
-          margin: "0 auto",
-        }}
-      >
-        {t.awaitingConfirmationNote}
-      </div>
-      {refCode && (
-        <div
-          style={{ marginTop: "18px", fontFamily: font.mono, fontSize: "11.5px", color: c.faint }}
-        >
-          {refCode}
-        </div>
-      )}
-    </div>
+    <section className={styles.status} role="status">
+      <div className={styles.spinner} aria-hidden="true" />
+      <h1>{t.confirmingPay}</h1>
+      <p>{t.awaitingConfirmationNote}</p>
+      {refCode && <p className={styles.reference}>{refCode}</p>}
+    </section>
   );
 }
 
-function StatusCard({
-  accent,
-  wash,
-  border,
-  glyph,
-  title,
-  body,
-  extra,
-  meta,
-  actions,
-}: {
+function StatusCard({ accent, wash, border, glyph, title, body, extra, meta, actions }: {
   accent: string;
   wash: string;
   border: string;
@@ -440,81 +291,17 @@ function StatusCard({
   actions: React.ReactNode;
 }) {
   return (
-    <div
-      style={{
-        border: `1px solid ${border}`,
-        background: wash,
-        padding: "36px 32px",
-        textAlign: "center",
-      }}
-    >
-      <div
-        style={{
-          width: "52px",
-          height: "52px",
-          borderRadius: "50%",
-          border: `2px solid ${accent}`,
-          color: accent,
-          display: "grid",
-          placeItems: "center",
-          fontFamily: font.space,
-          fontSize: "24px",
-          fontWeight: 700,
-          margin: "0 auto 20px",
-        }}
-      >
-        {glyph}
+    <section className={styles.status} style={{ borderTopColor: border }} aria-live="polite">
+      <div className={styles.statusIcon} style={{ color: accent, background: wash }} aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+          {glyph === "✓" ? <path d="m5 12 4 4L19 6" /> : glyph === "✕" ? <path d="m7 7 10 10M7 17 17 7" /> : glyph === "!" ? <><path d="M12 6v7" /><circle cx="12" cy="17" r=".6" fill="currentColor" /></> : <><circle cx="6" cy="12" r="1" /><circle cx="12" cy="12" r="1" /><circle cx="18" cy="12" r="1" /></>}
+        </svg>
       </div>
-      <div
-        style={{
-          fontFamily: font.space,
-          fontWeight: 700,
-          fontSize: "21px",
-          color: accent,
-          marginBottom: "8px",
-          lineHeight: 1.3,
-        }}
-      >
-        {title}
-      </div>
-      {body && (
-        <div
-          style={{
-            fontSize: "14px",
-            color: c.muted,
-            lineHeight: 1.6,
-            maxWidth: "42ch",
-            margin: "0 auto",
-          }}
-        >
-          {body}
-        </div>
-      )}
-      {extra && <div style={{ fontSize: "13.5px", color: c.muted, marginTop: "8px" }}>{extra}</div>}
-      {meta && (
-        <div
-          style={{
-            fontFamily: font.mono,
-            fontSize: "11.5px",
-            color: c.faint,
-            margin: "16px 0 0",
-            wordBreak: "break-word",
-          }}
-        >
-          {meta}
-        </div>
-      )}
-      <div
-        style={{
-          display: "flex",
-          gap: "10px",
-          justifyContent: "center",
-          flexWrap: "wrap",
-          marginTop: "24px",
-        }}
-      >
-        {actions}
-      </div>
-    </div>
+      <h1>{title}</h1>
+      {body && <p>{body}</p>}
+      {extra && <p>{extra}</p>}
+      {meta && <p className={styles.reference}>{meta}</p>}
+      <div className={styles.actions}>{actions}</div>
+    </section>
   );
 }

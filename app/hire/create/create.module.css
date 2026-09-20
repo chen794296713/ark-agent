@@ -1,0 +1,22 @@
+.page { min-height: 100vh; background: var(--c-bg); color: var(--c-text); font-family: var(--font-sans), sans-serif; }
+.header { max-width: 1440px; margin: auto; padding: 24px 48px; min-height: 96px; display: flex; align-items: center; justify-content: space-between; gap: 24px; }
+.back { border: 0; background: transparent; color: var(--c-muted); font: inherit; font-size: 14px; padding: 10px 0; cursor: pointer; }
+.back:hover { text-decoration: underline; text-underline-offset: 4px; color: var(--c-text); }
+.content { max-width: 1240px; margin: auto; padding: 44px 40px 96px; }
+.content h1 { text-wrap: balance; }
+.content :is(input, textarea, select) { caret-color: var(--c-accent); }
+.content :is(input, textarea)::placeholder { color: var(--c-muted); }
+.page :is(button, a, input, textarea, select, summary):focus-visible { outline: 2px solid var(--c-accent) !important; outline-offset: 4px; }
+.content section[id] { scroll-margin-top: 24px; }
+.content :is(button, input, select) { min-height: 40px; }
+.content :is(textarea, select, input) { min-width: 0; }
+.content button[role="switch"] { min-height: auto; }
+@media (max-width: 760px) {
+  .header { min-height: 80px; padding: 20px 24px; }
+  .content { padding: 28px 24px 72px; }
+  .content :is(button, input, select) { min-height: 44px; }
+  .content button[role="switch"] { min-height: auto; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .page * { transition: none !important; scroll-behavior: auto; }
+}

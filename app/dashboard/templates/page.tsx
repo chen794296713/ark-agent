@@ -83,13 +83,11 @@ const selectStyle: React.CSSProperties = {
 /** A framed message — used by all three empty states and the error state so
  *  they cannot drift apart visually. */
 function Frame({
-  glyph,
   title,
   body,
   children,
   tone = "quiet",
 }: {
-  glyph: string;
   title: string;
   body: string;
   children?: React.ReactNode;
@@ -106,11 +104,8 @@ function Frame({
         textAlign: "center",
       }}
     >
-      <div aria-hidden="true" style={{ fontSize: 30, color: c.faint, lineHeight: 1 }}>
-        {glyph}
-      </div>
-      <div
-        style={{
+      <h2
+        style={{ margin: 0,
           fontFamily: font.space,
           fontWeight: 700,
           fontSize: 18,
@@ -119,7 +114,7 @@ function Frame({
         }}
       >
         {title}
-      </div>
+      </h2>
       <p
         style={{
           margin: "8px auto 0",
@@ -188,7 +183,7 @@ function Skeleton({ view, label }: { view: ViewMode; label: string }) {
       <div
         style={
           view === "card"
-            ? { display: "grid", gridTemplateColumns: r.col3, gap: r.gapSm }
+            ? { display: "grid", gridTemplateColumns: r.col3, gap: "12px 30px" }
             : { display: "grid", gap: 0, border: `1px solid ${c.border}`, borderRadius: r.radiusMd }
         }
       >
@@ -408,7 +403,6 @@ function TemplatesInner() {
   } else if (errorStatus !== null) {
     body = (
       <Frame
-        glyph="⚠"
         title={t.errorTitle}
         body={errorStatus === 422 ? t.errorFilters : t.errorBody}
         tone="error"
@@ -421,10 +415,10 @@ function TemplatesInner() {
             background: "transparent",
             color: c.text2,
             padding: "9px 16px",
-            fontFamily: font.space,
+            fontFamily: font.sans,
             fontSize: 13,
             cursor: "pointer",
-            borderRadius: r.radiusSm,
+            borderRadius: 999,
           }}
         >
           {t.tryAgain}
@@ -438,10 +432,10 @@ function TemplatesInner() {
               background: "transparent",
               color: c.text2,
               padding: "9px 16px",
-              fontFamily: font.space,
+              fontFamily: font.sans,
               fontSize: 13,
               cursor: "pointer",
-              borderRadius: r.radiusSm,
+              borderRadius: 999,
             }}
           >
             {t.clearFilters}
@@ -451,7 +445,7 @@ function TemplatesInner() {
     );
   } else if (visible.length === 0 && pastEnd) {
     body = (
-      <Frame glyph="⌦" title={t.pageEmptyTitle} body={t.pageEmptyBody}>
+      <Frame title={t.pageEmptyTitle} body={t.pageEmptyBody}>
         <Btn
           onClick={() => pushFilters({ ...filters, page: 1 })}
           hoverStyle={{ borderColor: c.text, color: c.text }}
@@ -460,10 +454,10 @@ function TemplatesInner() {
             background: "transparent",
             color: c.text2,
             padding: "9px 16px",
-            fontFamily: font.space,
+            fontFamily: font.sans,
             fontSize: 13,
             cursor: "pointer",
-            borderRadius: r.radiusSm,
+            borderRadius: 999,
           }}
         >
           {t.firstPage}
@@ -472,7 +466,7 @@ function TemplatesInner() {
     );
   } else if (visible.length === 0 && filters.scope === "workspace" && !nonScopeFilters) {
     body = (
-      <Frame glyph="▦" title={t.workspaceEmptyTitle} body={t.workspaceEmptyBody}>
+      <Frame title={t.workspaceEmptyTitle} body={t.workspaceEmptyBody}>
         <Link
           href="/dashboard/fleet"
           style={{ color: c.accent, fontSize: 13, alignSelf: "center", textDecoration: "none" }}
@@ -483,7 +477,7 @@ function TemplatesInner() {
     );
   } else if (visible.length === 0 && active) {
     body = (
-      <Frame glyph="⌕" title={t.filteredTitle} body={t.filteredBody}>
+      <Frame title={t.filteredTitle} body={t.filteredBody}>
         <Btn
           onClick={clearAll}
           hoverStyle={{ borderColor: c.text, color: c.text }}
@@ -492,10 +486,10 @@ function TemplatesInner() {
             background: "transparent",
             color: c.text2,
             padding: "9px 16px",
-            fontFamily: font.space,
+            fontFamily: font.sans,
             fontSize: 13,
             cursor: "pointer",
-            borderRadius: r.radiusSm,
+            borderRadius: 999,
           }}
         >
           {t.clearFilters}
@@ -510,7 +504,7 @@ function TemplatesInner() {
     );
   } else if (visible.length === 0) {
     body = (
-      <Frame glyph="▦" title={t.emptyTitle} body={t.emptyBody}>
+      <Frame title={t.emptyTitle} body={t.emptyBody}>
         <Link href="/hire" style={{ textDecoration: "none" }}>
           <button
             style={{
@@ -518,11 +512,11 @@ function TemplatesInner() {
               color: c.ink,
               border: "none",
               padding: "10px 18px",
-              fontFamily: font.space,
+              fontFamily: font.sans,
               fontWeight: 700,
               fontSize: 13.5,
               cursor: "pointer",
-              borderRadius: r.radiusSm,
+              borderRadius: 999,
             }}
           >
             {t.emptyCta} →
@@ -532,7 +526,7 @@ function TemplatesInner() {
     );
   } else if (effectiveView === "card") {
     body = (
-      <div style={{ display: "grid", gridTemplateColumns: r.col3, gap: r.gapSm }}>
+      <div style={{ display: "grid", gridTemplateColumns: r.col3, gap: "12px 30px" }}>
         {visible.map((tpl) => (
           <TemplateCard
             key={tpl.id}
@@ -583,7 +577,7 @@ function TemplatesInner() {
   }
 
   return (
-    <div style={{ padding: `${r.contentPy} ${r.pagePx}` }}>
+    <div data-screen-label="Templates" style={{ padding: `${r.contentPy} ${r.pagePx}` }}>
       {/* header */}
       <div
         style={{
@@ -595,10 +589,10 @@ function TemplatesInner() {
         }}
       >
         <div>
-          <h2 style={{ fontFamily: font.space, fontWeight: 700, fontSize: 26, margin: 0 }}>
+          <h1 style={{ fontFamily: font.space, fontWeight: 650, fontSize: 32, margin: 0 }}>
             {t.heading}
-          </h2>
-          <p style={{ margin: "6px 0 0", fontSize: 14, color: c.text2 }}>{t.subheading}</p>
+          </h1>
+          <p style={{ margin: "6px 0 0", fontSize: 15, color: c.muted, maxWidth: 680, lineHeight: 1.6 }}>{t.subheading}</p>
         </div>
         <Link href="/hire" style={{ textDecoration: "none" }}>
           <button
@@ -607,11 +601,11 @@ function TemplatesInner() {
               color: c.ink,
               border: "none",
               padding: "10px 18px",
-              fontFamily: font.space,
+              fontFamily: font.sans,
               fontWeight: 700,
               fontSize: 13.5,
               cursor: "pointer",
-              borderRadius: r.radiusSm,
+              borderRadius: 999,
             }}
           >
             + {t.buildWithAi}
@@ -757,7 +751,7 @@ function TemplatesInner() {
           minHeight: 20,
         }}
       >
-        <span style={{ fontFamily: font.mono, fontSize: 11, color: c.muted }}>
+        <span style={{ fontFamily: font.sans, fontSize: 12, color: c.muted }}>
           {t.resultCount(total || visible.length, t.sorts[filters.sort])}
           {visible.length !== rows.length && rows.length > 0
             ? ` · ${t.resultCountFiltered(visible.length, rows.length)}`
@@ -775,8 +769,7 @@ function TemplatesInner() {
               fontFamily: font.sans,
               fontSize: 12.5,
               cursor: "pointer",
-              minHeight: 0,
-            }}
+              minHeight: 0, borderRadius: 999 }}
           >
             {t.clearAll}
           </Btn>
@@ -809,12 +802,12 @@ function TemplatesInner() {
               fontSize: 13,
               cursor: filters.page <= 1 ? "not-allowed" : "pointer",
               opacity: filters.page <= 1 ? 0.5 : 1,
-              borderRadius: r.radiusSm,
+              borderRadius: 999,
             }}
           >
             {t.prevPage}
           </Btn>
-          <span style={{ fontFamily: font.mono, fontSize: 11, color: c.muted }}>
+          <span style={{ fontFamily: font.sans, fontSize: 12, color: c.muted }}>
             {t.pageOf(filters.page, pages)}
           </span>
           <Btn
@@ -830,7 +823,7 @@ function TemplatesInner() {
               fontSize: 13,
               cursor: filters.page >= pages ? "not-allowed" : "pointer",
               opacity: filters.page >= pages ? 0.5 : 1,
-              borderRadius: r.radiusSm,
+              borderRadius: 999,
             }}
           >
             {t.nextPage}
@@ -862,7 +855,7 @@ function TemplatesInner() {
             border: `1px solid ${c.border}`,
             borderRadius: r.radiusSm,
             padding: "10px 14px",
-            fontFamily: font.mono,
+            fontFamily: font.sans,
             fontSize: 12,
             color: c.text2,
             zIndex: 60,

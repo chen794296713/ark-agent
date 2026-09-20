@@ -428,8 +428,7 @@ function DayHeader({ group, label }: { group: Group; label: string }) {
         position: "sticky",
         top: 0,
         zIndex: 2,
-        background: c.glass,
-        backdropFilter: "blur(8px)",
+        background: c.panel,
         borderBottom: `1px solid ${c.lineSoft}`,
         padding: "9px 16px",
         display: "flex",
@@ -440,17 +439,17 @@ function DayHeader({ group, label }: { group: Group; label: string }) {
     >
       <span
         style={{
-          fontFamily: font.mono,
-          fontSize: 11,
-          letterSpacing: ".08em",
-          textTransform: "uppercase",
+          fontFamily: font.sans,
+          fontSize: 12,
+          letterSpacing: "normal",
+          textTransform: "none",
           color: c.text2,
         }}
       >
         {label}
       </span>
       {group.runs > 0 && (
-        <span style={{ fontFamily: font.mono, fontSize: 11, color: c.muted }}>
+        <span style={{ fontFamily: font.sans, fontSize: 12, color: c.muted }}>
           {interpolate(t.ui.timeline.dayCounts, {
             runs: group.runs,
             ok: group.ok,
@@ -459,7 +458,7 @@ function DayHeader({ group, label }: { group: Group; label: string }) {
         </span>
       )}
       {group.running > 0 && (
-        <span style={{ fontFamily: font.mono, fontSize: 11, color: c.accent }}>
+        <span style={{ fontFamily: font.sans, fontSize: 12, color: c.accent }}>
           {interpolate(t.ui.timeline.stillRunning, { n: group.running })}
         </span>
       )}
@@ -520,13 +519,13 @@ function RunRow({
       </span>
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-          <span style={{ fontFamily: font.mono, fontSize: 11, color: tg.color }}>
+          <span style={{ fontFamily: font.sans, fontSize: 12, color: tg.color }}>
             <span aria-hidden="true" style={{ marginRight: 4 }}>
               {tg.glyph}
             </span>
             {t.trigger[run.trigger]}
           </span>
-          <span style={{ fontFamily: font.mono, fontSize: 11, color: st.color }}>
+          <span style={{ fontFamily: font.sans, fontSize: 12, color: st.color }}>
             {t.status[run.status]}
           </span>
           <span style={{ fontFamily: font.mono, fontSize: 11, color: c.faint }}>{time}</span>
@@ -550,8 +549,8 @@ function RunRow({
             gap: 14,
             flexWrap: "wrap",
             marginTop: 6,
-            fontFamily: font.mono,
-            fontSize: 11,
+            fontFamily: font.sans,
+            fontSize: 12,
             color: c.muted,
           }}
         >
@@ -630,8 +629,8 @@ function ActivityRow({
             gap: 12,
             flexWrap: "wrap",
             marginTop: 4,
-            fontFamily: font.mono,
-            fontSize: 11,
+            fontFamily: font.sans,
+            fontSize: 12,
             color: c.faint,
           }}
         >
@@ -705,8 +704,8 @@ function FilterBar({
                 aria-pressed={on}
                 hoverStyle={on ? undefined : { color: c.text, borderColor: c.borderMute }}
                 style={{
-                  fontFamily: font.mono,
-                  fontSize: 11,
+                  fontFamily: font.sans,
+                  fontSize: 12,
                   padding: "6px 10px",
                   cursor: "pointer",
                   background: on ? c.limeWash : "transparent",
@@ -757,8 +756,8 @@ function FilterBar({
           aria-expanded={open}
           hoverStyle={{ color: c.text, borderColor: c.borderMute }}
           style={{
-            fontFamily: font.mono,
-            fontSize: 11,
+            fontFamily: font.sans,
+            fontSize: 12,
             padding: "6px 10px",
             cursor: "pointer",
             background: "transparent",
@@ -900,10 +899,10 @@ function Select({
     <label style={{ display: "flex", flexDirection: "column", gap: 5, minWidth: 0 }}>
       <span
         style={{
-          fontFamily: font.mono,
-          fontSize: 10.5,
-          letterSpacing: ".07em",
-          textTransform: "uppercase",
+          fontFamily: font.sans,
+          fontSize: 12,
+          letterSpacing: "normal",
+          textTransform: "none",
           color: c.muted,
         }}
       >
@@ -1001,9 +1000,9 @@ export function GhostBtn({
       disabled={disabled}
       hoverStyle={disabled ? undefined : { color: c.text, borderColor: c.borderMute }}
       style={{
-        fontFamily: font.mono,
-        fontSize: 11.5,
-        letterSpacing: ".04em",
+        fontFamily: font.sans,
+        fontSize: 12,
+        letterSpacing: "normal",
         padding: "7px 12px",
         borderRadius: r.radiusSm,
         background: "transparent",
@@ -1063,8 +1062,8 @@ function ChipBtn({ label, onClick }: { label: string; onClick: () => void }) {
       }}
       hoverStyle={{ color: c.text, borderColor: c.borderMute }}
       style={{
-        fontFamily: font.mono,
-        fontSize: 10.5,
+        fontFamily: font.sans,
+        fontSize: 12,
         padding: "1px 7px",
         borderRadius: 999,
         background: "transparent",
@@ -1097,8 +1096,8 @@ function ScopeChip({
         borderRadius: 999,
         background: c.limeWash,
         border: `1px solid ${c.limeBorder}`,
-        fontFamily: font.mono,
-        fontSize: 11,
+        fontFamily: font.sans,
+        fontSize: 12,
         color: c.accent,
       }}
     >

@@ -188,11 +188,11 @@ function ActionButton({
       onClick={onClick}
       hoverStyle={primary ? { background: c.limeHover } : { borderColor: c.borderMute, color: c.text }}
       style={{
-        fontFamily: font.mono,
-        fontSize: 11.5,
-        letterSpacing: ".04em",
+        fontFamily: font.sans,
+        fontSize: 12,
+        letterSpacing: "normal",
         padding: "8px 14px",
-        borderRadius: r.radiusSm,
+        borderRadius: 999,
         cursor: "pointer",
         background: primary ? c.lime : "transparent",
         color: primary ? c.ink : c.text2,
@@ -249,10 +249,10 @@ function SpecimenFrame({ children }: { children: ReactNode }) {
           left: 12,
           background: c.panelDeep,
           padding: "0 6px",
-          fontFamily: font.mono,
-          fontSize: 10,
-          letterSpacing: ".08em",
-          textTransform: "uppercase",
+          fontFamily: font.sans,
+          fontSize: 12,
+          letterSpacing: "normal",
+          textTransform: "none",
           color: c.muted,
         }}
       >
@@ -268,10 +268,10 @@ function Cap({ children }: { children: ReactNode }) {
   return (
     <span
       style={{
-        fontFamily: font.mono,
-        fontSize: 9.5,
-        letterSpacing: ".06em",
-        textTransform: "uppercase",
+        fontFamily: font.sans,
+        fontSize: 12,
+        letterSpacing: "normal",
+        textTransform: "none",
         color: c.muted,
         whiteSpace: "nowrap",
       }}

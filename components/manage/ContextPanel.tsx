@@ -267,9 +267,9 @@ export function ContextPanel({
       actions={
         <span
           style={{
-            fontFamily: font.mono,
-            fontSize: 11,
-            letterSpacing: ".08em",
+            fontFamily: font.sans,
+            fontSize: 12,
+            letterSpacing: "normal",
             color: quotaError ? c.red : c.muted,
           }}
         >
@@ -357,7 +357,7 @@ export function ContextPanel({
                 background: "transparent",
                 color: canAdd ? c.muted : c.faint,
                 padding: "8px 14px",
-                fontFamily: font.mono,
+                fontFamily: font.sans,
                 fontSize: 12,
                 borderRadius: r.radiusSm,
                 cursor: canAdd ? "pointer" : "not-allowed",
@@ -481,8 +481,8 @@ export function ContextPanel({
 
                   <div
                     style={{
-                      fontFamily: font.mono,
-                      fontSize: 11,
+                      fontFamily: font.sans,
+                      fontSize: 12,
                       color: c.faint,
                       marginTop: 4,
                       overflowWrap: "anywhere",
@@ -523,7 +523,7 @@ export function ContextPanel({
                       <span aria-hidden="true" style={{ color: c.red }}>
                         ▲{" "}
                       </span>
-                      <span style={{ fontFamily: font.mono, fontSize: 11.5 }}>{item.stateError}</span>
+                      <span style={{ fontFamily: font.sans, fontSize: 12 }}>{item.stateError}</span>
                     </div>
                   )}
                 </div>
@@ -582,7 +582,7 @@ function AddBtn({
         background: "transparent",
         color: disabled ? c.faint : c.muted,
         padding: "8px 14px",
-        fontFamily: font.mono,
+        fontFamily: font.sans,
         fontSize: 12,
         borderRadius: r.radiusSm,
         cursor: disabled ? "not-allowed" : "pointer",

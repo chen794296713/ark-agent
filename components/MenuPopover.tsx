@@ -175,15 +175,15 @@ export function MenuPopover({
               display: "grid",
               placeItems: "center",
               width: 22,
-              fontFamily: font.mono,
-              fontSize: 11,
+              fontFamily: font.sans,
+              fontSize: 12,
               color: o.selected ? c.accent : c.muted,
             }}
           >
             {o.lead}
           </span>
           <span style={{ flex: 1 }}>{o.label}</span>
-          {o.selected && <span style={{ color: c.accent, fontSize: 12 }}>✓</span>}
+          {o.selected && <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m5 12 4 4L19 6" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" /></svg>}
         </Btn>
       ))}
     </div>
@@ -253,7 +253,7 @@ export function MenuPopover({
         {!compact && (
           <>
             <span style={{ flex: 1, textAlign: "left" }}>{valueLabel}</span>
-            <span style={{ fontFamily: font.mono, fontSize: 12, color: c.muted }}>
+            <span style={{ fontFamily: font.sans, fontSize: 12, color: c.muted }}>
               {dir === "down" ? "▾" : "▴"}
             </span>
           </>

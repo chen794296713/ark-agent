@@ -1,0 +1,86 @@
+.page {
+  min-height: 100vh;
+  background: var(--c-bg);
+  color: var(--c-text);
+  font-family: var(--font-sans), sans-serif;
+}
+
+.header {
+  max-width: 1440px;
+  margin: auto;
+  padding: 30px 48px;
+}
+
+.layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+  gap: clamp(48px, 8vw, 120px);
+  max-width: 1220px;
+  margin: auto;
+  padding: 54px 40px 100px;
+  align-items: start;
+}
+
+.introduction h2 {
+  max-width: 12ch;
+  margin: 0 0 18px;
+  font-family: var(--f-display), sans-serif;
+  font-size: clamp(40px, 4.5vw, 64px);
+  font-weight: 650;
+  line-height: 1.04;
+  letter-spacing: -.035em;
+  text-wrap: balance;
+}
+
+.introduction > p {
+  max-width: 40ch;
+  margin: 0;
+  color: var(--c-muted);
+  font-size: 18px;
+  line-height: 1.55;
+}
+
+.portraits { margin: 38px 0 0; }
+.portraitPair { display: grid; grid-template-columns: 1fr 1fr; align-items: start; gap: 16px; }
+.portraitPair img { width: 100%; height: auto; aspect-ratio: 4 / 5; object-fit: cover; display: block; }
+.portraitPair img:last-child { margin-top: 32px; }
+.portraits figcaption { margin-top: 16px; color: var(--c-muted); font-size: 13px; }
+
+.formColumn { width: 100%; max-width: 440px; padding-top: 12px; }
+.formHeading { margin-bottom: 30px; }
+.formHeading h1 { margin: 0 0 12px; font-family: var(--f-display), sans-serif; font-size: clamp(30px, 3vw, 42px); font-weight: 650; letter-spacing: -.025em; line-height: 1.1; text-wrap: balance; }
+.formHeading p { color: var(--c-muted); font-size: 16px; line-height: 1.55; margin: 0; }
+.form { display: flex; flex-direction: column; gap: 20px; }
+.field label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 8px; color: var(--c-text2); }
+.field > input { width: 100%; border: 1px solid var(--c-border-field); border-radius: 7px; background: var(--c-panel); color: var(--c-text); padding: 13px 15px; font: inherit; font-size: 16px; }
+.page :is(button, input, a):focus-visible { outline: 2px solid var(--c-accent) !important; outline-offset: 4px; }
+.page input::placeholder { color: var(--c-muted); }
+.page input { caret-color: var(--c-accent); }
+.primary { border: 0; border-radius: 100px; padding: 14px 24px; min-height: 50px; margin-top: 4px; background: var(--c-lime); color: var(--c-ink); font: inherit; font-weight: 600; cursor: pointer; }
+.primary:hover { background: var(--c-lime-hover); }
+.primary:disabled { opacity: .6; cursor: wait; }
+.ssoButtons { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.ssoButton { border: 1px solid var(--c-border-field); border-radius: 100px; padding: 12px 18px; min-height: 48px; background: transparent; color: var(--c-text); font: inherit; font-size: 15px; cursor: pointer; }
+.ssoButton:hover:enabled { background: var(--c-hover); }
+.ssoButton:disabled { cursor: not-allowed; }
+.ssoButton[data-unavailable="true"] { color: var(--c-muted); border-color: var(--c-border); }
+.providerNote { margin: 10px 0 0; color: var(--c-muted); font-size: 13px; line-height: 1.5; }
+.divider { display: flex; align-items: center; gap: 16px; color: var(--c-muted); font-size: 12px; margin: 22px 0; }
+.divider::before, .divider::after { content: ""; height: 1px; flex: 1; background: var(--c-line); }
+.footer { display: flex; gap: 10px 20px; justify-content: space-between; align-items: baseline; flex-wrap: wrap; margin-top: 22px; font-size: 13px; color: var(--c-muted); }
+.footer button { background: transparent; border: 0; padding: 8px 0; font: inherit; font-size: 14px; color: var(--c-text); cursor: pointer; text-align: left; }
+.footer button:hover { text-decoration: underline; text-underline-offset: 4px; }
+.error, .success { padding: 16px 18px; border: 1px solid var(--c-red-border); border-radius: 8px; color: var(--c-red); background: var(--c-red-wash); margin-bottom: 20px; font-size: 14px; line-height: 1.55; }
+.success { border-color: var(--c-green-border); color: var(--c-green); background: var(--c-green-wash); }
+.success p { color: var(--c-muted); margin: 4px 0 0; }
+
+@media (max-width: 900px) {
+  .header { padding: 24px; }
+  .layout { display: block; max-width: 520px; padding: 30px 24px 80px; }
+  .introduction { display: none; }
+  .formColumn { max-width: none; padding-top: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .page * { transition: none !important; }
+}

@@ -144,13 +144,13 @@ export default function DescribeStep({
   };
 
   return (
-    <div style={{ maxWidth: 720, display: "flex", flexDirection: "column", gap: 26 }}>
+    <div style={{ maxWidth: 760, margin: "0 auto", display: "flex", flexDirection: "column", gap: 26 }}>
       <div>
         <h1
           style={{
             fontFamily: font.space,
-            fontWeight: 700,
-            fontSize: "clamp(23px, 5vw, 30px)",
+            fontWeight: 650,
+            fontSize: "clamp(28px, 4vw, 36px)",
             letterSpacing: "-.02em",
             lineHeight: 1.2,
             margin: "0 0 10px",
@@ -159,7 +159,7 @@ export default function DescribeStep({
         >
           {t.title}
         </h1>
-        <p style={{ fontSize: 15, color: c.text2, margin: 0, lineHeight: 1.6 }}>{t.sub}</p>
+        <p style={{ fontSize: 16, color: c.text2, margin: 0, lineHeight: 1.6 }}>{t.sub}</p>
       </div>
 
       {/* ---- the box ---- */}
@@ -192,9 +192,9 @@ export default function DescribeStep({
           style={{ display: "flex", gap: 12, alignItems: "baseline", marginTop: 6, flexWrap: "wrap" }}
         >
           <span style={{ fontSize: 12.5, color: c.muted, flex: "1 1 200px" }}>
-            {chars > 0 && chars < BRIEF_MIN ? t.minHint(BRIEF_MIN - chars) : null}
+            {chars < BRIEF_MIN ? t.minHint(BRIEF_MIN - chars) : null}
           </span>
-          <span style={{ fontFamily: font.mono, fontSize: 11, color: c.faint }}>
+          <span style={{ fontFamily: font.sans, fontSize: 13, color: c.faint }}>
             {t.counter(value.brief.length, BRIEF_MAX)}
           </span>
         </div>
@@ -203,6 +203,28 @@ export default function DescribeStep({
             {t.err.thin}
           </div>
         )}
+        <FailureNotice
+          lang={lang}
+          failure={failure}
+          onRetry={onRetry}
+          onOpenConflict={onOpenConflict}
+        />
+
+        <div style={{ display: "flex", justifyContent: "flex-start", marginTop: 16 }}>
+          <Btn
+            type="button"
+            onClick={onSubmit}
+            disabled={!ready}
+            style={{
+              ...primaryBtn,
+              opacity: ready ? 1 : 0.45,
+              cursor: ready ? "pointer" : "not-allowed",
+            }}
+            hoverStyle={ready ? { background: c.limeHover } : undefined}
+          >
+            {busy ? t.submitBusy : t.submit}
+          </Btn>
+        </div>
       </div>
 
       {/* ---- starters ---- */}
@@ -243,7 +265,7 @@ export default function DescribeStep({
           type="button"
           aria-expanded={exampleOpen}
           onClick={() => setExampleOpen((v) => !v)}
-          style={{ ...ghostBtn, fontFamily: font.mono, fontSize: 11.5, letterSpacing: ".06em" }}
+          style={{ ...ghostBtn, fontFamily: font.sans, fontSize: 13, letterSpacing: "normal" }}
           hoverStyle={ghostBtnHover}
         >
           {exampleOpen ? "▾ " : "▸ "}
@@ -296,9 +318,9 @@ export default function DescribeStep({
                   >
                     <span
                       style={{
-                        fontFamily: font.mono,
-                        fontSize: 10.5,
-                        letterSpacing: ".08em",
+                        fontFamily: font.sans,
+                        fontSize: 12.5,
+                        letterSpacing: "normal",
                         color: c.muted,
                         flex: "0 0 130px",
                       }}
@@ -332,7 +354,7 @@ export default function DescribeStep({
           type="button"
           aria-expanded={lostOpen}
           onClick={() => setLostOpen((v) => !v)}
-          style={{ ...ghostBtn, fontFamily: font.mono, fontSize: 11.5, letterSpacing: ".06em" }}
+          style={{ ...ghostBtn, fontFamily: font.sans, fontSize: 13, letterSpacing: "normal" }}
           hoverStyle={ghostBtnHover}
         >
           {lostOpen ? "▾ " : "▸ "}
@@ -392,9 +414,9 @@ export default function DescribeStep({
         <summary
           style={{
             cursor: "pointer",
-            fontFamily: font.mono,
-            fontSize: 11.5,
-            letterSpacing: ".06em",
+            fontFamily: font.sans,
+            fontSize: 13,
+            letterSpacing: "normal",
             color: c.text2,
           }}
         >
@@ -458,29 +480,6 @@ export default function DescribeStep({
           </Field>
         </div>
       </details>
-
-      <FailureNotice
-        lang={lang}
-        failure={failure}
-        onRetry={onRetry}
-        onOpenConflict={onOpenConflict}
-      />
-
-      <div style={{ display: "flex", justifyContent: "flex-end" }}>
-        <Btn
-          type="button"
-          onClick={onSubmit}
-          disabled={!ready}
-          style={{
-            ...primaryBtn,
-            opacity: ready ? 1 : 0.45,
-            cursor: ready ? "pointer" : "not-allowed",
-          }}
-          hoverStyle={ready ? { background: c.limeHover } : undefined}
-        >
-          {busy ? t.submitBusy : t.submit}
-        </Btn>
-      </div>
     </div>
   );
 }

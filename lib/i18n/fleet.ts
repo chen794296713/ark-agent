@@ -27,15 +27,15 @@ export interface FleetDict {
 }
 
 const en: FleetDict = {
-  heading: "Fleet",
+  heading: "Your agents",
   hireNewAgent: "+ Hire new agent",
-  loadingFleet: "LOADING FLEET…",
+  loadingFleet: "Loading fleet…",
   loadError: "Failed to load fleet.",
   noAgentsTitle: "No agents yet",
   noAgentsBody: "Hire your first agent to start building your fleet.",
-  labelEngine: "ENGINE",
-  labelCredits: "CREDITS",
-  labelChannels: "CHANNELS",
+  labelEngine: "Engine",
+  labelCredits: "Credits",
+  labelChannels: "Channels",
   manage: "Manage",
   pause: "Pause",
   resume: "Resume",

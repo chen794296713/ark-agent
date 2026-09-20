@@ -100,7 +100,7 @@ export interface PaymentDict {
 
 const en: PaymentDict = {
   backBilling: "← Billing",
-  checkout: "CHECKOUT",
+  checkout: "Checkout",
   encrypted: "⬡ ENCRYPTED · TLS 1.3",
 
   eyebrow: "SECURE CHECKOUT",
@@ -108,8 +108,8 @@ const en: PaymentDict = {
   subStripe: "Professional seat for Nova — Sales Prospector. Processed securely by Stripe.",
   subAlipay: "Professional seat for Nova — Sales Prospector. Processed securely by Alipay.",
 
-  cycleMonthly: "MONTHLY",
-  cycleAnnual: "ANNUAL −20%",
+  cycleMonthly: "Monthly",
+  cycleAnnual: "Annual −20%",
 
   planName: "Professional — AI employee seat",
   planFor: "For: Nova · Sales Prospector",
@@ -124,9 +124,9 @@ const en: PaymentDict = {
 
   dueToday: "Due today",
   perCycle: (yearly) => (yearly ? " /yr" : " /mo"),
-  footnote: "CANCEL ANYTIME · OVERAGE METERED · VAT INVOICE ON REQUEST",
+  footnote: "Cancel anytime · Overage metered · VAT invoice on request",
 
-  regionGlobal: "GLOBAL · STRIPE",
+  regionGlobal: "Global · Stripe",
   regionCN: "中国大陆 · 支付宝",
   regionNote: "Detected from your language setting — switch anytime.",
 
@@ -134,14 +134,14 @@ const en: PaymentDict = {
   redirectingStripe: "Redirecting to Stripe…",
   stripeWallets:
     "Apple Pay, Google Pay and cards are all offered on Stripe’s hosted page. Your card details never reach us.",
-  stripeFootnote: "POWERED BY STRIPE · PCI DSS LEVEL 1 · 3-D SECURE",
+  stripeFootnote: "Powered by Stripe · PCI DSS Level 1 · 3-D Secure",
 
   alipayTitle: "支付宝 · Alipay",
   openAlipayApp: "Open Alipay to complete payment",
   redirectingAlipay: "Redirecting to Alipay…",
   completeOnPhone:
     "You’ll finish paying on Alipay — in the app, or by scanning the QR on their page.",
-  alipaySecured: "SECURED BY ALIPAY",
+  alipaySecured: "Secured by Alipay",
 
   paymentFailed: "Payment failed. Please try again.",
   checkoutUnavailable:

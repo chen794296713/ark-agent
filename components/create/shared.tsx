@@ -25,6 +25,7 @@ import {
 } from "react";
 import { c, font, r } from "@/lib/theme";
 import { Btn } from "@/components/ui";
+import { Glyph } from "./Glyph";
 import type { SectionState } from "./logic";
 
 // ---------------------------------------------------------------------------
@@ -32,9 +33,9 @@ import type { SectionState } from "./logic";
 // ---------------------------------------------------------------------------
 
 export const monoLabel: CSSProperties = {
-  fontFamily: font.mono,
-  fontSize: 11,
-  letterSpacing: ".1em",
+  fontFamily: font.sans,
+  fontSize: 13,
+  letterSpacing: "normal",
   color: c.muted,
   display: "block",
   marginBottom: 7,
@@ -42,14 +43,14 @@ export const monoLabel: CSSProperties = {
 
 export const inputStyle: CSSProperties = {
   width: "100%",
-  background: c.panelDeep,
+  background: c.panel,
   // borderField, not border: on an input the border IS the affordance, and
   // WCAG 1.4.11 wants 3:1 for that.
   border: `1px solid ${c.borderField}`,
   borderRadius: r.radiusSm,
   color: c.text,
-  padding: "10px 12px",
-  fontSize: 14,
+  padding: "12px 14px",
+  fontSize: 15,
   fontFamily: font.sans,
   outline: "none",
 };
@@ -57,11 +58,11 @@ export const inputStyle: CSSProperties = {
 export const ghostBtn: CSSProperties = {
   background: "none",
   border: `1px solid ${c.border}`,
-  borderRadius: r.radiusSm,
+  borderRadius: 100,
   color: c.text2,
   fontFamily: font.sans,
-  fontSize: 13,
-  padding: "7px 12px",
+  fontSize: 14,
+  padding: "9px 16px",
   cursor: "pointer",
 };
 
@@ -75,8 +76,8 @@ export const primaryBtn: CSSProperties = {
   background: c.lime,
   color: c.ink,
   border: "none",
-  borderRadius: r.radiusSm,
-  fontFamily: font.space,
+  borderRadius: 100,
+  fontFamily: font.sans,
   fontWeight: 600,
   fontSize: 15,
   padding: "0 22px",
@@ -125,7 +126,7 @@ export function IconBtn({
       }}
       hoverStyle={disabled ? undefined : { borderColor: c.borderMute, background: c.hover }}
     >
-      {glyph}
+      <Glyph symbol={glyph} />
     </Btn>
   );
 }
@@ -134,15 +135,8 @@ export function IconBtn({
 // Card shell
 // ---------------------------------------------------------------------------
 
-const STATE_EDGE: Record<SectionState, string> = {
-  ok: c.green,
-  review: c.amber,
-  empty: c.border,
-};
-
 /**
- * The section card. `state` tints the left edge, and is ALWAYS paired with a
- * text badge — §I.4, never colour-only.
+ * Flat section shell with a state badge that includes text, never colour alone.
  */
 export function Card({
   title,
@@ -169,11 +163,8 @@ export function Card({
       id={id}
       aria-labelledby={headingId}
       style={{
-        border: `1px solid ${c.border}`,
-        borderLeft: `2px solid ${state ? STATE_EDGE[state] : c.border}`,
-        background: c.panel,
-        padding: 22,
-        borderRadius: r.radiusMd,
+        borderTop: `1px solid ${c.line}`,
+        padding: "28px 0 16px",
         display: "flex",
         flexDirection: "column",
         gap: 16,
@@ -183,12 +174,12 @@ export function Card({
         <h3
           id={headingId}
           style={{
-            fontFamily: font.mono,
-            fontSize: 11,
-            letterSpacing: ".12em",
-            color: c.text2,
+            fontFamily: font.space,
+            fontSize: 25,
+            letterSpacing: "-.02em",
+            color: c.text,
             margin: 0,
-            fontWeight: 500,
+            fontWeight: 600,
           }}
         >
           {title}
@@ -196,9 +187,9 @@ export function Card({
         {state && stateLabel && (
           <span
             style={{
-              fontFamily: font.mono,
-              fontSize: 10.5,
-              letterSpacing: ".08em",
+              fontFamily: font.sans,
+              fontSize: 12,
+              letterSpacing: "normal",
               color: state === "ok" ? c.green : state === "review" ? c.amber : c.muted,
               border: `1px solid ${state === "ok" ? c.greenBorder : state === "review" ? c.amber : c.border}`,
               borderRadius: r.radiusSm,
@@ -214,8 +205,8 @@ export function Card({
             display: "flex",
             alignItems: "center",
             gap: 10,
-            fontFamily: font.mono,
-            fontSize: 11,
+            fontFamily: font.sans,
+            fontSize: 13,
             color: c.muted,
           }}
         >
@@ -326,8 +317,8 @@ export function TextArea({
       {counter && (
         <div
           style={{
-            fontFamily: font.mono,
-            fontSize: 11,
+            fontFamily: font.sans,
+            fontSize: 13,
             color: c.faint,
             textAlign: "right",
             marginTop: 4,
@@ -446,9 +437,9 @@ export function Seg<T extends string>({
               color: on ? c.ink : c.muted,
               border: "none",
               padding: "8px 15px",
-              fontFamily: font.mono,
-              fontSize: 11.5,
-              letterSpacing: ".03em",
+              fontFamily: font.sans,
+              fontSize: 13,
+              letterSpacing: "normal",
               cursor: "pointer",
               minHeight: 36,
             }}
@@ -666,7 +657,7 @@ export function Skeleton({ rows = 3 }: { rows?: number }) {
             height: 14,
             width: `${100 - i * 12}%`,
             borderRadius: r.radiusSm,
-            background: c.panelDeep,
+            background: c.panel,
             border: `1px solid ${c.lineSoft}`,
             animation: reduced ? "none" : "pulse 1.6s ease-in-out infinite",
           }}
@@ -704,9 +695,6 @@ export function Notice({
         flexWrap: "wrap",
       }}
     >
-      <span aria-hidden style={{ color: tone === "error" ? c.red : c.accent, lineHeight: 1.5 }}>
-        ◆
-      </span>
       <div style={{ flex: "1 1 240px", minWidth: 0, fontSize: 13, color: c.text2, lineHeight: 1.6 }}>
         {title && <strong style={{ color: c.text, fontWeight: 600 }}>{title} </strong>}
         {children}
@@ -727,7 +715,7 @@ export function Mono({
   size?: number;
 }) {
   return (
-    <span style={{ fontFamily: font.mono, fontSize: size, letterSpacing: ".06em", color }}>
+    <span style={{ fontFamily: font.mono, fontSize: Math.max(12, size), letterSpacing: "normal", color }}>
       {children}
     </span>
   );

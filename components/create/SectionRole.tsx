@@ -238,7 +238,7 @@ function MetricRow({
         value={metric.target}
         maxLength={40}
         onChange={(e) => onChange({ ...metric, target: e.target.value })}
-        style={{ ...inputStyle, flex: "1 1 110px", fontSize: 13.5, fontFamily: font.mono }}
+        style={{ ...inputStyle, flex: "1 1 110px", fontSize: 13.5, fontFamily: font.sans }}
       />
       <IconBtn
         label={`${removeText}: ${sanitizeUntrusted(metric.label, 40) || String(index + 1)}`}

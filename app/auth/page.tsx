@@ -2,7 +2,10 @@
 
 import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { c, font, gridBg, r } from "@/lib/theme";
+import Image from "next/image";
+import { Brand } from "@/components/Brand";
+import { marketing } from "@/lib/i18n/marketing";
+import styles from "./auth.module.css";
 import { Btn } from "@/components/ui";
 import { PasswordField } from "@/components/PasswordField";
 import { useApp } from "@/lib/store";
@@ -59,6 +62,8 @@ function AuthInner() {
   const params = useSearchParams();
   const { user, authReady, login, register, lang } = useApp();
   const t = auth[lang];
+  const m = marketing[lang];
+  const fieldLabel = (label: string) => lang === "en" ? label.charAt(0) + label.slice(1).toLowerCase() : label;
   const authTitles: Record<AuthMode, [string, string]> = {
     login: [t.loginTitle, t.loginSub],
     signup: [t.signupTitle, t.signupSub],
@@ -200,469 +205,100 @@ function AuthInner() {
     : [];
 
   return (
-    <div
-      data-screen-label="Sign in"
-      style={{ minHeight: "100vh", display: "grid", gridTemplateColumns: r.split }}
-    >
-      <div style={{ display: r.authHero }}>
-      <div
-        style={{
-          height: "100%",
-          background: c.panel,
-          borderRight: `1px solid ${c.line}`,
-          padding: `40px ${r.pagePxWide}`,
-          display: "flex",
-          flexDirection: "column",
-          ...gridBg,
-        }}
-      >
-        <div
-          onClick={() => router.push("/")}
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 10,
-            cursor: "pointer",
-            width: "fit-content",
-          }}
-        >
-          <div
-            style={{
-              width: 26,
-              height: 26,
-              background: c.lime,
-              display: "grid",
-              placeItems: "center",
-              fontFamily: font.space,
-              fontWeight: 700,
-              color: c.ink,
-              fontSize: 15,
-            }}
-          >
-            A
-          </div>
-          <span
-            style={{
-              fontFamily: font.mono,
-              fontSize: 15,
-              fontWeight: 500,
-              letterSpacing: ".04em",
-            }}
-          >
-            ARK_AGENT
-          </span>
-        </div>
-        <div style={{ margin: "auto 0", maxWidth: 440 }}>
-          <div
-            style={{
-              fontFamily: font.mono,
-              fontSize: 12,
-              letterSpacing: ".14em",
-              color: c.accent,
-              marginBottom: 18,
-            }}
-          >
-            {t.heroEyebrow}
-          </div>
-          <div
-            style={{
-              fontFamily: font.space,
-              fontWeight: 700,
-              fontSize: 34,
-              letterSpacing: "-.02em",
-              lineHeight: 1.12,
-              marginBottom: 28,
-            }}
-          >
-            {t.heroHeadline}
-          </div>
-          <div
-            style={{
-              border: `1px solid ${c.border}`,
-              background: c.panelDeep,
-              padding: "16px 18px",
-              fontFamily: font.mono,
-              fontSize: 12.5,
-              display: "flex",
-              flexDirection: "column",
-              gap: 10,
-            }}
-          >
-            <div style={{ display: "flex", gap: 10 }}>
-              <span style={{ color: c.faint }}>{t.feedTime0941}</span>
-              <span style={{ color: c.text2 }}>{t.feed0930}</span>
+    <main data-screen-label="Sign in" className={styles.page}>
+      <header className={styles.header}><Brand /></header>
+      <div className={styles.layout}>
+        <aside className={styles.introduction}>
+          <h2>{m.closingTitle}</h2>
+          <p>{m.closingBody}</p>
+          <figure className={styles.portraits}>
+            <div className={styles.portraitPair}>
+              <Image loading="eager" src="/images/agents/recruiting.png" alt="" width={640} height={800} sizes="(max-width: 900px) 0px, 24vw" />
+              <Image src="/images/agents/email-assistant.png" alt="" width={640} height={800} sizes="(max-width: 900px) 0px, 24vw" />
             </div>
-            <div style={{ display: "flex", gap: 10 }}>
-              <span style={{ color: c.faint }}>{t.feedTime0921}</span>
-              <span style={{ color: c.text2 }}>{t.feed0921}</span>
-            </div>
-            <div style={{ display: "flex", gap: 10 }}>
-              <span style={{ color: c.faint }}>{t.feedTime0830}</span>
-              <span style={{ color: c.text2 }}>{t.feed0830}</span>
-            </div>
+            <figcaption>{m.portraitNote}</figcaption>
+          </figure>
+        </aside>
+        <section className={styles.formColumn} aria-labelledby="auth-title">
+          <div className={styles.formHeading}>
+            <h1 id="auth-title">{authTitle}</h1>
+            <p>{aSignup ? m.customBody : authSub}</p>
           </div>
-        </div>
-        <div
-          style={{
-            fontFamily: font.mono,
-            fontSize: 11,
-            color: c.faint,
-            letterSpacing: ".08em",
-          }}
-        >
-          {t.regions}
-        </div>
-      </div>
-      </div>
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          padding: r.pagePxWide,
-        }}
-      >
-        <div style={{ width: r.formW }}>
-          <h2
-            style={{
-              fontFamily: font.space,
-              fontWeight: 700,
-              fontSize: 30,
-              letterSpacing: "-.02em",
-              margin: "0 0 8px",
-            }}
-          >
-            {authTitle}
-          </h2>
-          <p style={{ color: c.muted, margin: "0 0 28px", fontSize: 14.5 }}>{authSub}</p>
-          {banner && (
-            <div
-              role="alert"
-              style={{
-                border: `1px solid ${c.redBorder}`,
-                background: c.redWash,
-                color: c.red,
-                padding: "12px 14px",
-                marginBottom: 16,
-                fontSize: 13.5,
-                lineHeight: 1.5,
-              }}
-            >
-              {banner}
-            </div>
-          )}
+          {banner && <div role="alert" className={styles.error}>{banner}</div>}
           {aForgotSent && (
-            <div
-              style={{
-                border: `1px solid ${c.greenBorder}`,
-                background: c.greenWash,
-                padding: "18px 20px",
-                marginBottom: 20,
-              }}
-            >
-              <div
-                style={{
-                  fontFamily: font.space,
-                  fontWeight: 700,
-                  fontSize: 15,
-                  color: c.green,
-                }}
-              >
-                {t.resetSentTitle}
-              </div>
-              <div style={{ fontSize: 13.5, color: c.muted, marginTop: 4 }}>
-                {t.resetSentBody(authEmailShown)}
-              </div>
+            <div role="status" className={styles.success}>
+              <strong>{t.resetSentTitle}</strong>
+              <p>{t.resetSentBody(authEmailShown)}</p>
             </div>
           )}
-          <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-            {aSSO && (
-              <>
-                <div style={{ display: "grid", gridTemplateColumns: r.split, gap: 10 }}>
-                  <SsoBtn
-                    label={t.ssoGoogle}
-                    ready={sso && sso.google}
-                    busy={ssoBusy}
-                    title={sso && !sso.google ? t.ssoNotConfigured(t.ssoNameGoogle) : undefined}
-                    onClick={() => startSso("google")}
-                  />
-                  <SsoBtn
-                    label={t.ssoWeChat}
-                    ready={sso && sso.wechat}
-                    busy={ssoBusy}
-                    title={sso && !sso.wechat ? t.ssoNotConfigured(t.ssoNameWeChat) : undefined}
-                    onClick={() => startSso("wechat")}
-                  />
-                </div>
-                {ssoMissing.length > 0 && (
-                  <div
-                    style={{
-                      fontFamily: font.sans,
-                      fontSize: 12.5,
-                      color: c.faint,
-                      lineHeight: 1.5,
-                    }}
-                  >
-                    {t.ssoNotConfigured(ssoMissing.join(t.ssoJoin))}
-                  </div>
-                )}
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 14,
-                    color: c.faint,
-                    fontFamily: font.mono,
-                    fontSize: 11,
-                  }}
-                >
-                  <span style={{ flex: 1, height: 1, background: c.line }}></span>
-                  {t.orDivider}
-                  <span style={{ flex: 1, height: 1, background: c.line }}></span>
-                </div>
-              </>
-            )}
+          {aSSO && (
+            <div className={styles.ssoGroup}>
+              <div className={styles.ssoButtons}>
+                <SsoBtn label={t.ssoNameGoogle} ready={sso && sso.google} busy={ssoBusy}
+                  title={sso && !sso.google ? t.ssoNotConfigured(t.ssoNameGoogle) : undefined}
+                  onClick={() => startSso("google")} />
+                <SsoBtn label={t.ssoNameWeChat} ready={sso && sso.wechat} busy={ssoBusy}
+                  title={sso && !sso.wechat ? t.ssoNotConfigured(t.ssoNameWeChat) : undefined}
+                  onClick={() => startSso("wechat")} />
+              </div>
+              {ssoMissing.length > 0 && <p className={styles.providerNote}>{t.ssoNotConfigured(ssoMissing.join(t.ssoJoin))}</p>}
+              <div className={styles.divider}>{t.orDivider.toLocaleLowerCase()}</div>
+            </div>
+          )}
+          <form className={styles.form} onSubmit={(event) => { event.preventDefault(); void doAuth(); }}>
             {showName && (
-              <div>
-                <div
-                  style={{
-                    fontFamily: font.mono,
-                    fontSize: 11,
-                    letterSpacing: ".12em",
-                    color: c.muted,
-                    marginBottom: 7,
-                  }}
-                >
-                  {t.labelName}
-                </div>
-                <input
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder={t.placeholderName}
-                  style={{
-                    width: "100%",
-                    background: c.panel,
-                    border: `1px solid ${c.border}`,
-                    color: c.text,
-                    padding: "12px 14px",
-                    fontSize: 15,
-                    fontFamily: font.sans,
-                    outline: "none",
-                    borderRadius: r.radiusSm,
-                  }}
-                />
+              <div className={styles.field}>
+                <label htmlFor="auth-name">{fieldLabel(t.labelName)}</label>
+                <input id="auth-name" name="name" autoComplete="name" value={name}
+                  onChange={(e) => setName(e.target.value)} placeholder={t.placeholderName} />
               </div>
             )}
-            <div>
-              <div
-                style={{
-                  fontFamily: font.mono,
-                  fontSize: 11,
-                  letterSpacing: ".12em",
-                  color: c.muted,
-                  marginBottom: 7,
-                }}
-              >
-                {t.labelEmail}
-              </div>
-              <input
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder={t.placeholderEmail}
-                style={{
-                  width: "100%",
-                  background: c.panel,
-                  border: `1px solid ${c.border}`,
-                  color: c.text,
-                  padding: "12px 14px",
-                  fontSize: 15,
-                  fontFamily: font.sans,
-                  outline: "none",
-                  borderRadius: r.radiusSm,
-                }}
-              />
+            <div className={styles.field}>
+              <label htmlFor="auth-email">{fieldLabel(t.labelEmail)}</label>
+              <input id="auth-email" name="email" type={aLogin ? "text" : "email"} inputMode="email" autoComplete="email" value={email}
+                onChange={(e) => setEmail(e.target.value)} placeholder={t.placeholderEmail} />
             </div>
             {showPw && (
-              <div>
-                <div
-                  style={{
-                    fontFamily: font.mono,
-                    fontSize: 11,
-                    letterSpacing: ".12em",
-                    color: c.muted,
-                    marginBottom: 7,
-                  }}
-                >
-                  {t.labelPassword}
-                </div>
-                <PasswordField
-                  value={pw}
-                  onChange={setPw}
-                  placeholder={t.placeholderPassword}
-                  showLabel={t.showPassword}
-                  hideLabel={t.hidePassword}
-                  // Signup is a new secret — telling the password manager so is
-                  // what makes it offer to generate and save one.
+              <div className={styles.field}>
+                <label htmlFor="auth-password">{fieldLabel(t.labelPassword)}</label>
+                <PasswordField id="auth-password" name="password" value={pw} onChange={setPw}
+                  placeholder={t.placeholderPassword} showLabel={t.showPassword} hideLabel={t.hidePassword}
                   autoComplete={aSignup ? "new-password" : "current-password"}
-                  style={{
-                    width: "100%",
-                    background: c.panel,
-                    border: `1px solid ${c.border}`,
-                    color: c.text,
-                    padding: "12px 14px",
-                    fontSize: 15,
-                    fontFamily: font.sans,
-                    outline: "none",
-                    borderRadius: r.radiusSm,
-                  }}
-                />
+                  style={{ borderRadius: 7, padding: "13px 46px 13px 15px", fontSize: 16, borderColor: "var(--c-border-field)" }} />
               </div>
             )}
-            <Btn
-              onClick={doAuth}
-              disabled={busy}
-              hoverStyle={{ background: c.limeHover }}
-              style={{
-                background: c.lime,
-                color: c.ink,
-                border: "none",
-                padding: 14,
-                fontFamily: font.space,
-                fontWeight: 700,
-                fontSize: 15,
-                cursor: busy ? "default" : "pointer",
-                opacity: busy ? 0.7 : 1,
-                marginTop: 4,
-                borderRadius: r.radiusSm,
-              }}
-            >
+            <Btn type="submit" disabled={busy} className={styles.primary}>
               {busy ? t.btnPleaseWait : authBtnLabel}
             </Btn>
+          </form>
+          <div className={styles.footer}>
+            {aLogin && <>
+              <Btn type="button" onClick={() => setAuth("forgot")}>{t.forgotPassword}</Btn>
+              <Btn type="button" onClick={() => setAuth("signup")}>{t.newHere}</Btn>
+            </>}
+            {aSignup && <>
+              <span>{t.termsNotice}</span>
+              <Btn type="button" onClick={() => setAuth("login")}>{t.haveAccount}</Btn>
+            </>}
+            {aForgot && <Btn type="button" onClick={() => setAuth("login")}>{t.backToSignIn}</Btn>}
           </div>
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              marginTop: 20,
-              fontSize: 13.5,
-            }}
-          >
-            {aLogin && (
-              <>
-                <Btn
-                  onClick={() => setAuth("forgot")}
-                  hoverStyle={{ color: c.accent }}
-                  style={{
-                    background: "none",
-                    border: "none",
-                    color: c.muted,
-                    cursor: "pointer",
-                    fontFamily: font.sans,
-                    fontSize: 13.5,
-                    padding: 0,
-                  }}
-                >
-                  {t.forgotPassword}
-                </Btn>
-                <Btn
-                  onClick={() => setAuth("signup")}
-                  style={{
-                    background: "none",
-                    border: "none",
-                    color: c.accent,
-                    cursor: "pointer",
-                    fontFamily: font.sans,
-                    fontSize: 13.5,
-                    padding: 0,
-                  }}
-                >
-                  {t.newHere}
-                </Btn>
-              </>
-            )}
-            {aSignup && (
-              <>
-                <span style={{ color: c.faint, fontSize: 12.5 }}>
-                  {t.termsNotice}
-                </span>
-                <Btn
-                  onClick={() => setAuth("login")}
-                  style={{
-                    background: "none",
-                    border: "none",
-                    color: c.accent,
-                    cursor: "pointer",
-                    fontFamily: font.sans,
-                    fontSize: 13.5,
-                    padding: 0,
-                  }}
-                >
-                  {t.haveAccount}
-                </Btn>
-              </>
-            )}
-            {aForgot && (
-              <Btn
-                onClick={() => setAuth("login")}
-                hoverStyle={{ color: c.text }}
-                style={{
-                  background: "none",
-                  border: "none",
-                  color: c.muted,
-                  cursor: "pointer",
-                  fontFamily: font.sans,
-                  fontSize: 13.5,
-                  padding: 0,
-                }}
-              >
-                {t.backToSignIn}
-              </Btn>
-            )}
-          </div>
-        </div>
+        </section>
       </div>
-    </div>
+    </main>
   );
 }
 
-/**
- * One provider button. `ready === null` means the availability probe has not
- * answered yet — dead but undimmed, so the row does not flash "unavailable" on
- * every load; `false` is a real "no credentials here", which reads as disabled.
- */
-function SsoBtn({
-  label,
-  ready,
-  busy,
-  title,
-  onClick,
-}: {
+/** Provider availability and outgoing navigation control the actual disabled state. */
+function SsoBtn({ label, ready, busy, title, onClick }: {
   label: string;
   ready: boolean | null;
   busy: boolean;
   title?: string;
   onClick: () => void;
 }) {
-  const live = ready === true && !busy;
   return (
-    <Btn
-      type="button"
-      onClick={onClick}
-      disabled={!live}
-      title={title}
-      hoverStyle={live ? { borderColor: c.borderMute } : undefined}
-      style={{
-        border: `1px solid ${c.borderStrong}`,
-        background: "transparent",
-        color: c.text,
-        padding: 12,
-        fontFamily: font.sans,
-        fontSize: 14,
-        cursor: live ? "pointer" : "default",
-        opacity: ready === false ? 0.45 : 1,
-        borderRadius: r.radiusSm,
-      }}
-    >
+    <Btn type="button" onClick={onClick} disabled={ready !== true || busy}
+      title={title} className={styles.ssoButton} data-unavailable={ready === false}>
       {label}
     </Btn>
   );

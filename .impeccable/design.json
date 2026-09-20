@@ -1,24 +1,848 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-09-20T17:27:12.080343+00:00",
+  "generatedAt": "2026-09-20T18:38:33.068077+00:00",
   "title": "Design System: ArkAgent Team Directory",
   "extensions": {
     "colorMeta": {
       "forest": {
         "role": "primary",
-        "displayName": "Forest"
+        "displayName": "Forest",
+        "tonalRamp": [
+          "oklch(15.00% 0.0424 173.13)",
+          "oklch(26.43% 0.0424 173.13)",
+          "oklch(37.86% 0.0424 173.13)",
+          "oklch(49.29% 0.0424 173.13)",
+          "oklch(60.71% 0.0424 173.13)",
+          "oklch(72.14% 0.0424 173.13)",
+          "oklch(83.57% 0.0424 173.13)",
+          "oklch(95.00% 0.0424 173.13)"
+        ]
       },
       "leaf": {
         "role": "secondary",
-        "displayName": "Leaf"
+        "displayName": "Leaf",
+        "tonalRamp": [
+          "oklch(15.00% 0.0878 120.86)",
+          "oklch(26.43% 0.0878 120.86)",
+          "oklch(37.86% 0.0878 120.86)",
+          "oklch(49.29% 0.0878 120.86)",
+          "oklch(60.71% 0.0878 120.86)",
+          "oklch(72.14% 0.0878 120.86)",
+          "oklch(83.57% 0.0878 120.86)",
+          "oklch(95.00% 0.0878 120.86)"
+        ]
       },
       "ground": {
         "role": "neutral",
-        "displayName": "Near-white ground"
+        "displayName": "Near-white ground",
+        "tonalRamp": [
+          "oklch(15.00% 0.0013 106.42)",
+          "oklch(26.43% 0.0013 106.42)",
+          "oklch(37.86% 0.0013 106.42)",
+          "oklch(49.29% 0.0013 106.42)",
+          "oklch(60.71% 0.0013 106.42)",
+          "oklch(72.14% 0.0013 106.42)",
+          "oklch(83.57% 0.0013 106.42)",
+          "oklch(95.00% 0.0013 106.42)"
+        ]
       },
       "muted": {
         "role": "neutral",
-        "displayName": "Muted green"
+        "displayName": "Muted green",
+        "tonalRamp": [
+          "oklch(15.00% 0.0404 162.59)",
+          "oklch(26.43% 0.0404 162.59)",
+          "oklch(37.86% 0.0404 162.59)",
+          "oklch(49.29% 0.0404 162.59)",
+          "oklch(60.71% 0.0404 162.59)",
+          "oklch(72.14% 0.0404 162.59)",
+          "oklch(83.57% 0.0404 162.59)",
+          "oklch(95.00% 0.0404 162.59)"
+        ]
+      },
+      "workspace-light-bg": {
+        "role": "neutral",
+        "displayName": "Workspace light bg",
+        "tonalRamp": [
+          "oklch(15.00% 0.0013 106.42)",
+          "oklch(26.43% 0.0013 106.42)",
+          "oklch(37.86% 0.0013 106.42)",
+          "oklch(49.29% 0.0013 106.42)",
+          "oklch(60.71% 0.0013 106.42)",
+          "oklch(72.14% 0.0013 106.42)",
+          "oklch(83.57% 0.0013 106.42)",
+          "oklch(95.00% 0.0013 106.42)"
+        ]
+      },
+      "workspace-light-panel": {
+        "role": "neutral",
+        "displayName": "Workspace light panel",
+        "tonalRamp": [
+          "oklch(15.00% 0.0013 106.42)",
+          "oklch(26.43% 0.0013 106.42)",
+          "oklch(37.86% 0.0013 106.42)",
+          "oklch(49.29% 0.0013 106.42)",
+          "oklch(60.71% 0.0013 106.42)",
+          "oklch(72.14% 0.0013 106.42)",
+          "oklch(83.57% 0.0013 106.42)",
+          "oklch(95.00% 0.0013 106.42)"
+        ]
+      },
+      "workspace-light-panel-deep": {
+        "role": "neutral",
+        "displayName": "Workspace light panel deep",
+        "tonalRamp": [
+          "oklch(15.00% 0.0095 119.58)",
+          "oklch(26.43% 0.0095 119.58)",
+          "oklch(37.86% 0.0095 119.58)",
+          "oklch(49.29% 0.0095 119.58)",
+          "oklch(60.71% 0.0095 119.58)",
+          "oklch(72.14% 0.0095 119.58)",
+          "oklch(83.57% 0.0095 119.58)",
+          "oklch(95.00% 0.0095 119.58)"
+        ]
+      },
+      "workspace-light-hover": {
+        "role": "secondary",
+        "displayName": "Workspace light hover",
+        "tonalRamp": [
+          "oklch(15.00% 0.0152 123.04)",
+          "oklch(26.43% 0.0152 123.04)",
+          "oklch(37.86% 0.0152 123.04)",
+          "oklch(49.29% 0.0152 123.04)",
+          "oklch(60.71% 0.0152 123.04)",
+          "oklch(72.14% 0.0152 123.04)",
+          "oklch(83.57% 0.0152 123.04)",
+          "oklch(95.00% 0.0152 123.04)"
+        ]
+      },
+      "workspace-light-line": {
+        "role": "neutral",
+        "displayName": "Workspace light line",
+        "tonalRamp": [
+          "oklch(15.00% 0.0166 133.83)",
+          "oklch(26.43% 0.0166 133.83)",
+          "oklch(37.86% 0.0166 133.83)",
+          "oklch(49.29% 0.0166 133.83)",
+          "oklch(60.71% 0.0166 133.83)",
+          "oklch(72.14% 0.0166 133.83)",
+          "oklch(83.57% 0.0166 133.83)",
+          "oklch(95.00% 0.0166 133.83)"
+        ]
+      },
+      "workspace-light-line-soft": {
+        "role": "neutral",
+        "displayName": "Workspace light line soft",
+        "tonalRamp": [
+          "oklch(15.00% 0.0143 128.63)",
+          "oklch(26.43% 0.0143 128.63)",
+          "oklch(37.86% 0.0143 128.63)",
+          "oklch(49.29% 0.0143 128.63)",
+          "oklch(60.71% 0.0143 128.63)",
+          "oklch(72.14% 0.0143 128.63)",
+          "oklch(83.57% 0.0143 128.63)",
+          "oklch(95.00% 0.0143 128.63)"
+        ]
+      },
+      "workspace-light-border": {
+        "role": "neutral",
+        "displayName": "Workspace light border",
+        "tonalRamp": [
+          "oklch(15.00% 0.0226 132.56)",
+          "oklch(26.43% 0.0226 132.56)",
+          "oklch(37.86% 0.0226 132.56)",
+          "oklch(49.29% 0.0226 132.56)",
+          "oklch(60.71% 0.0226 132.56)",
+          "oklch(72.14% 0.0226 132.56)",
+          "oklch(83.57% 0.0226 132.56)",
+          "oklch(95.00% 0.0226 132.56)"
+        ]
+      },
+      "workspace-light-border-field": {
+        "role": "neutral",
+        "displayName": "Workspace light border field",
+        "tonalRamp": [
+          "oklch(15.00% 0.0378 137.15)",
+          "oklch(26.43% 0.0378 137.15)",
+          "oklch(37.86% 0.0378 137.15)",
+          "oklch(49.29% 0.0378 137.15)",
+          "oklch(60.71% 0.0378 137.15)",
+          "oklch(72.14% 0.0378 137.15)",
+          "oklch(83.57% 0.0378 137.15)",
+          "oklch(95.00% 0.0378 137.15)"
+        ]
+      },
+      "workspace-light-lime": {
+        "role": "primary",
+        "displayName": "Workspace light lime",
+        "tonalRamp": [
+          "oklch(15.00% 0.0424 173.13)",
+          "oklch(26.43% 0.0424 173.13)",
+          "oklch(37.86% 0.0424 173.13)",
+          "oklch(49.29% 0.0424 173.13)",
+          "oklch(60.71% 0.0424 173.13)",
+          "oklch(72.14% 0.0424 173.13)",
+          "oklch(83.57% 0.0424 173.13)",
+          "oklch(95.00% 0.0424 173.13)"
+        ]
+      },
+      "workspace-light-lime-hover": {
+        "role": "primary",
+        "displayName": "Workspace light lime hover",
+        "tonalRamp": [
+          "oklch(15.00% 0.0517 166.92)",
+          "oklch(26.43% 0.0517 166.92)",
+          "oklch(37.86% 0.0517 166.92)",
+          "oklch(49.29% 0.0517 166.92)",
+          "oklch(60.71% 0.0517 166.92)",
+          "oklch(72.14% 0.0517 166.92)",
+          "oklch(83.57% 0.0517 166.92)",
+          "oklch(95.00% 0.0517 166.92)"
+        ]
+      },
+      "workspace-light-lime-wash": {
+        "role": "secondary",
+        "displayName": "Workspace light lime wash",
+        "tonalRamp": [
+          "oklch(15.00% 0.0152 123.04)",
+          "oklch(26.43% 0.0152 123.04)",
+          "oklch(37.86% 0.0152 123.04)",
+          "oklch(49.29% 0.0152 123.04)",
+          "oklch(60.71% 0.0152 123.04)",
+          "oklch(72.14% 0.0152 123.04)",
+          "oklch(83.57% 0.0152 123.04)",
+          "oklch(95.00% 0.0152 123.04)"
+        ]
+      },
+      "workspace-light-lime-wash2": {
+        "role": "secondary",
+        "displayName": "Workspace light lime wash2",
+        "tonalRamp": [
+          "oklch(15.00% 0.0238 125.20)",
+          "oklch(26.43% 0.0238 125.20)",
+          "oklch(37.86% 0.0238 125.20)",
+          "oklch(49.29% 0.0238 125.20)",
+          "oklch(60.71% 0.0238 125.20)",
+          "oklch(72.14% 0.0238 125.20)",
+          "oklch(83.57% 0.0238 125.20)",
+          "oklch(95.00% 0.0238 125.20)"
+        ]
+      },
+      "workspace-light-lime-border": {
+        "role": "neutral",
+        "displayName": "Workspace light lime border",
+        "tonalRamp": [
+          "oklch(15.00% 0.0571 126.87)",
+          "oklch(26.43% 0.0571 126.87)",
+          "oklch(37.86% 0.0571 126.87)",
+          "oklch(49.29% 0.0571 126.87)",
+          "oklch(60.71% 0.0571 126.87)",
+          "oklch(72.14% 0.0571 126.87)",
+          "oklch(83.57% 0.0571 126.87)",
+          "oklch(95.00% 0.0571 126.87)"
+        ]
+      },
+      "workspace-light-ink": {
+        "role": "secondary",
+        "displayName": "Workspace light ink",
+        "tonalRamp": [
+          "oklch(15.00% 0.0013 106.42)",
+          "oklch(26.43% 0.0013 106.42)",
+          "oklch(37.86% 0.0013 106.42)",
+          "oklch(49.29% 0.0013 106.42)",
+          "oklch(60.71% 0.0013 106.42)",
+          "oklch(72.14% 0.0013 106.42)",
+          "oklch(83.57% 0.0013 106.42)",
+          "oklch(95.00% 0.0013 106.42)"
+        ]
+      },
+      "workspace-light-text": {
+        "role": "neutral",
+        "displayName": "Workspace light text",
+        "tonalRamp": [
+          "oklch(15.00% 0.0332 168.84)",
+          "oklch(26.43% 0.0332 168.84)",
+          "oklch(37.86% 0.0332 168.84)",
+          "oklch(49.29% 0.0332 168.84)",
+          "oklch(60.71% 0.0332 168.84)",
+          "oklch(72.14% 0.0332 168.84)",
+          "oklch(83.57% 0.0332 168.84)",
+          "oklch(95.00% 0.0332 168.84)"
+        ]
+      },
+      "workspace-light-text2": {
+        "role": "neutral",
+        "displayName": "Workspace light text2",
+        "tonalRamp": [
+          "oklch(15.00% 0.0397 164.14)",
+          "oklch(26.43% 0.0397 164.14)",
+          "oklch(37.86% 0.0397 164.14)",
+          "oklch(49.29% 0.0397 164.14)",
+          "oklch(60.71% 0.0397 164.14)",
+          "oklch(72.14% 0.0397 164.14)",
+          "oklch(83.57% 0.0397 164.14)",
+          "oklch(95.00% 0.0397 164.14)"
+        ]
+      },
+      "workspace-light-muted": {
+        "role": "neutral",
+        "displayName": "Workspace light muted",
+        "tonalRamp": [
+          "oklch(15.00% 0.0360 153.55)",
+          "oklch(26.43% 0.0360 153.55)",
+          "oklch(37.86% 0.0360 153.55)",
+          "oklch(49.29% 0.0360 153.55)",
+          "oklch(60.71% 0.0360 153.55)",
+          "oklch(72.14% 0.0360 153.55)",
+          "oklch(83.57% 0.0360 153.55)",
+          "oklch(95.00% 0.0360 153.55)"
+        ]
+      },
+      "workspace-light-faint": {
+        "role": "neutral",
+        "displayName": "Workspace light faint",
+        "tonalRamp": [
+          "oklch(15.00% 0.0342 146.55)",
+          "oklch(26.43% 0.0342 146.55)",
+          "oklch(37.86% 0.0342 146.55)",
+          "oklch(49.29% 0.0342 146.55)",
+          "oklch(60.71% 0.0342 146.55)",
+          "oklch(72.14% 0.0342 146.55)",
+          "oklch(83.57% 0.0342 146.55)",
+          "oklch(95.00% 0.0342 146.55)"
+        ]
+      },
+      "workspace-light-green": {
+        "role": "secondary",
+        "displayName": "Workspace light green",
+        "tonalRamp": [
+          "oklch(15.00% 0.0840 154.48)",
+          "oklch(26.43% 0.0840 154.48)",
+          "oklch(37.86% 0.0840 154.48)",
+          "oklch(49.29% 0.0840 154.48)",
+          "oklch(60.71% 0.0840 154.48)",
+          "oklch(72.14% 0.0840 154.48)",
+          "oklch(83.57% 0.0840 154.48)",
+          "oklch(95.00% 0.0840 154.48)"
+        ]
+      },
+      "workspace-light-green-wash": {
+        "role": "secondary",
+        "displayName": "Workspace light green wash",
+        "tonalRamp": [
+          "oklch(15.00% 0.0169 137.02)",
+          "oklch(26.43% 0.0169 137.02)",
+          "oklch(37.86% 0.0169 137.02)",
+          "oklch(49.29% 0.0169 137.02)",
+          "oklch(60.71% 0.0169 137.02)",
+          "oklch(72.14% 0.0169 137.02)",
+          "oklch(83.57% 0.0169 137.02)",
+          "oklch(95.00% 0.0169 137.02)"
+        ]
+      },
+      "workspace-light-green-border": {
+        "role": "neutral",
+        "displayName": "Workspace light green border",
+        "tonalRamp": [
+          "oklch(15.00% 0.0514 137.88)",
+          "oklch(26.43% 0.0514 137.88)",
+          "oklch(37.86% 0.0514 137.88)",
+          "oklch(49.29% 0.0514 137.88)",
+          "oklch(60.71% 0.0514 137.88)",
+          "oklch(72.14% 0.0514 137.88)",
+          "oklch(83.57% 0.0514 137.88)",
+          "oklch(95.00% 0.0514 137.88)"
+        ]
+      },
+      "workspace-light-amber": {
+        "role": "secondary",
+        "displayName": "Workspace light amber",
+        "tonalRamp": [
+          "oklch(15.00% 0.0952 79.27)",
+          "oklch(26.43% 0.0952 79.27)",
+          "oklch(37.86% 0.0952 79.27)",
+          "oklch(49.29% 0.0952 79.27)",
+          "oklch(60.71% 0.0952 79.27)",
+          "oklch(72.14% 0.0952 79.27)",
+          "oklch(83.57% 0.0952 79.27)",
+          "oklch(95.00% 0.0952 79.27)"
+        ]
+      },
+      "workspace-light-orange": {
+        "role": "secondary",
+        "displayName": "Workspace light orange",
+        "tonalRamp": [
+          "oklch(15.00% 0.1234 42.81)",
+          "oklch(26.43% 0.1234 42.81)",
+          "oklch(37.86% 0.1234 42.81)",
+          "oklch(49.29% 0.1234 42.81)",
+          "oklch(60.71% 0.1234 42.81)",
+          "oklch(72.14% 0.1234 42.81)",
+          "oklch(83.57% 0.1234 42.81)",
+          "oklch(95.00% 0.1234 42.81)"
+        ]
+      },
+      "workspace-light-red": {
+        "role": "secondary",
+        "displayName": "Workspace light red",
+        "tonalRamp": [
+          "oklch(15.00% 0.1427 26.41)",
+          "oklch(26.43% 0.1427 26.41)",
+          "oklch(37.86% 0.1427 26.41)",
+          "oklch(49.29% 0.1427 26.41)",
+          "oklch(60.71% 0.1427 26.41)",
+          "oklch(72.14% 0.1427 26.41)",
+          "oklch(83.57% 0.1427 26.41)",
+          "oklch(95.00% 0.1427 26.41)"
+        ]
+      },
+      "workspace-light-red-wash": {
+        "role": "secondary",
+        "displayName": "Workspace light red wash",
+        "tonalRamp": [
+          "oklch(15.00% 0.0151 37.88)",
+          "oklch(26.43% 0.0151 37.88)",
+          "oklch(37.86% 0.0151 37.88)",
+          "oklch(49.29% 0.0151 37.88)",
+          "oklch(60.71% 0.0151 37.88)",
+          "oklch(72.14% 0.0151 37.88)",
+          "oklch(83.57% 0.0151 37.88)",
+          "oklch(95.00% 0.0151 37.88)"
+        ]
+      },
+      "workspace-light-red-border": {
+        "role": "neutral",
+        "displayName": "Workspace light red border",
+        "tonalRamp": [
+          "oklch(15.00% 0.0536 31.62)",
+          "oklch(26.43% 0.0536 31.62)",
+          "oklch(37.86% 0.0536 31.62)",
+          "oklch(49.29% 0.0536 31.62)",
+          "oklch(60.71% 0.0536 31.62)",
+          "oklch(72.14% 0.0536 31.62)",
+          "oklch(83.57% 0.0536 31.62)",
+          "oklch(95.00% 0.0536 31.62)"
+        ]
+      },
+      "workspace-light-blue": {
+        "role": "secondary",
+        "displayName": "Workspace light blue",
+        "tonalRamp": [
+          "oklch(15.00% 0.0738 241.86)",
+          "oklch(26.43% 0.0738 241.86)",
+          "oklch(37.86% 0.0738 241.86)",
+          "oklch(49.29% 0.0738 241.86)",
+          "oklch(60.71% 0.0738 241.86)",
+          "oklch(72.14% 0.0738 241.86)",
+          "oklch(83.57% 0.0738 241.86)",
+          "oklch(95.00% 0.0738 241.86)"
+        ]
+      },
+      "workspace-light-nav-selected": {
+        "role": "secondary",
+        "displayName": "Workspace light nav selected",
+        "tonalRamp": [
+          "oklch(15.00% 0.0238 125.20)",
+          "oklch(26.43% 0.0238 125.20)",
+          "oklch(37.86% 0.0238 125.20)",
+          "oklch(49.29% 0.0238 125.20)",
+          "oklch(60.71% 0.0238 125.20)",
+          "oklch(72.14% 0.0238 125.20)",
+          "oklch(83.57% 0.0238 125.20)",
+          "oklch(95.00% 0.0238 125.20)"
+        ]
+      },
+      "workspace-dark-bg": {
+        "role": "neutral",
+        "displayName": "Workspace dark bg",
+        "tonalRamp": [
+          "oklch(15.00% 0.0198 166.68)",
+          "oklch(26.43% 0.0198 166.68)",
+          "oklch(37.86% 0.0198 166.68)",
+          "oklch(49.29% 0.0198 166.68)",
+          "oklch(60.71% 0.0198 166.68)",
+          "oklch(72.14% 0.0198 166.68)",
+          "oklch(83.57% 0.0198 166.68)",
+          "oklch(95.00% 0.0198 166.68)"
+        ]
+      },
+      "workspace-dark-panel": {
+        "role": "neutral",
+        "displayName": "Workspace dark panel",
+        "tonalRamp": [
+          "oklch(15.00% 0.0236 162.23)",
+          "oklch(26.43% 0.0236 162.23)",
+          "oklch(37.86% 0.0236 162.23)",
+          "oklch(49.29% 0.0236 162.23)",
+          "oklch(60.71% 0.0236 162.23)",
+          "oklch(72.14% 0.0236 162.23)",
+          "oklch(83.57% 0.0236 162.23)",
+          "oklch(95.00% 0.0236 162.23)"
+        ]
+      },
+      "workspace-dark-panel-deep": {
+        "role": "neutral",
+        "displayName": "Workspace dark panel deep",
+        "tonalRamp": [
+          "oklch(15.00% 0.0263 157.78)",
+          "oklch(26.43% 0.0263 157.78)",
+          "oklch(37.86% 0.0263 157.78)",
+          "oklch(49.29% 0.0263 157.78)",
+          "oklch(60.71% 0.0263 157.78)",
+          "oklch(72.14% 0.0263 157.78)",
+          "oklch(83.57% 0.0263 157.78)",
+          "oklch(95.00% 0.0263 157.78)"
+        ]
+      },
+      "workspace-dark-hover": {
+        "role": "secondary",
+        "displayName": "Workspace dark hover",
+        "tonalRamp": [
+          "oklch(15.00% 0.0249 156.33)",
+          "oklch(26.43% 0.0249 156.33)",
+          "oklch(37.86% 0.0249 156.33)",
+          "oklch(49.29% 0.0249 156.33)",
+          "oklch(60.71% 0.0249 156.33)",
+          "oklch(72.14% 0.0249 156.33)",
+          "oklch(83.57% 0.0249 156.33)",
+          "oklch(95.00% 0.0249 156.33)"
+        ]
+      },
+      "workspace-dark-line": {
+        "role": "neutral",
+        "displayName": "Workspace dark line",
+        "tonalRamp": [
+          "oklch(15.00% 0.0298 154.03)",
+          "oklch(26.43% 0.0298 154.03)",
+          "oklch(37.86% 0.0298 154.03)",
+          "oklch(49.29% 0.0298 154.03)",
+          "oklch(60.71% 0.0298 154.03)",
+          "oklch(72.14% 0.0298 154.03)",
+          "oklch(83.57% 0.0298 154.03)",
+          "oklch(95.00% 0.0298 154.03)"
+        ]
+      },
+      "workspace-dark-line-soft": {
+        "role": "neutral",
+        "displayName": "Workspace dark line soft",
+        "tonalRamp": [
+          "oklch(15.00% 0.0294 156.09)",
+          "oklch(26.43% 0.0294 156.09)",
+          "oklch(37.86% 0.0294 156.09)",
+          "oklch(49.29% 0.0294 156.09)",
+          "oklch(60.71% 0.0294 156.09)",
+          "oklch(72.14% 0.0294 156.09)",
+          "oklch(83.57% 0.0294 156.09)",
+          "oklch(95.00% 0.0294 156.09)"
+        ]
+      },
+      "workspace-dark-border": {
+        "role": "neutral",
+        "displayName": "Workspace dark border",
+        "tonalRamp": [
+          "oklch(15.00% 0.0296 152.21)",
+          "oklch(26.43% 0.0296 152.21)",
+          "oklch(37.86% 0.0296 152.21)",
+          "oklch(49.29% 0.0296 152.21)",
+          "oklch(60.71% 0.0296 152.21)",
+          "oklch(72.14% 0.0296 152.21)",
+          "oklch(83.57% 0.0296 152.21)",
+          "oklch(95.00% 0.0296 152.21)"
+        ]
+      },
+      "workspace-dark-border-field": {
+        "role": "neutral",
+        "displayName": "Workspace dark border field",
+        "tonalRamp": [
+          "oklch(15.00% 0.0459 135.58)",
+          "oklch(26.43% 0.0459 135.58)",
+          "oklch(37.86% 0.0459 135.58)",
+          "oklch(49.29% 0.0459 135.58)",
+          "oklch(60.71% 0.0459 135.58)",
+          "oklch(72.14% 0.0459 135.58)",
+          "oklch(83.57% 0.0459 135.58)",
+          "oklch(95.00% 0.0459 135.58)"
+        ]
+      },
+      "workspace-dark-lime": {
+        "role": "primary",
+        "displayName": "Workspace dark lime",
+        "tonalRamp": [
+          "oklch(15.00% 0.0878 120.86)",
+          "oklch(26.43% 0.0878 120.86)",
+          "oklch(37.86% 0.0878 120.86)",
+          "oklch(49.29% 0.0878 120.86)",
+          "oklch(60.71% 0.0878 120.86)",
+          "oklch(72.14% 0.0878 120.86)",
+          "oklch(83.57% 0.0878 120.86)",
+          "oklch(95.00% 0.0878 120.86)"
+        ]
+      },
+      "workspace-dark-lime-hover": {
+        "role": "primary",
+        "displayName": "Workspace dark lime hover",
+        "tonalRamp": [
+          "oklch(15.00% 0.0679 121.34)",
+          "oklch(26.43% 0.0679 121.34)",
+          "oklch(37.86% 0.0679 121.34)",
+          "oklch(49.29% 0.0679 121.34)",
+          "oklch(60.71% 0.0679 121.34)",
+          "oklch(72.14% 0.0679 121.34)",
+          "oklch(83.57% 0.0679 121.34)",
+          "oklch(95.00% 0.0679 121.34)"
+        ]
+      },
+      "workspace-dark-lime-wash": {
+        "role": "secondary",
+        "displayName": "Workspace dark lime wash",
+        "tonalRamp": [
+          "oklch(15.00% 0.0322 137.97)",
+          "oklch(26.43% 0.0322 137.97)",
+          "oklch(37.86% 0.0322 137.97)",
+          "oklch(49.29% 0.0322 137.97)",
+          "oklch(60.71% 0.0322 137.97)",
+          "oklch(72.14% 0.0322 137.97)",
+          "oklch(83.57% 0.0322 137.97)",
+          "oklch(95.00% 0.0322 137.97)"
+        ]
+      },
+      "workspace-dark-lime-wash2": {
+        "role": "secondary",
+        "displayName": "Workspace dark lime wash2",
+        "tonalRamp": [
+          "oklch(15.00% 0.0365 135.97)",
+          "oklch(26.43% 0.0365 135.97)",
+          "oklch(37.86% 0.0365 135.97)",
+          "oklch(49.29% 0.0365 135.97)",
+          "oklch(60.71% 0.0365 135.97)",
+          "oklch(72.14% 0.0365 135.97)",
+          "oklch(83.57% 0.0365 135.97)",
+          "oklch(95.00% 0.0365 135.97)"
+        ]
+      },
+      "workspace-dark-lime-border": {
+        "role": "neutral",
+        "displayName": "Workspace dark lime border",
+        "tonalRamp": [
+          "oklch(15.00% 0.0697 129.25)",
+          "oklch(26.43% 0.0697 129.25)",
+          "oklch(37.86% 0.0697 129.25)",
+          "oklch(49.29% 0.0697 129.25)",
+          "oklch(60.71% 0.0697 129.25)",
+          "oklch(72.14% 0.0697 129.25)",
+          "oklch(83.57% 0.0697 129.25)",
+          "oklch(95.00% 0.0697 129.25)"
+        ]
+      },
+      "workspace-dark-ink": {
+        "role": "secondary",
+        "displayName": "Workspace dark ink",
+        "tonalRamp": [
+          "oklch(15.00% 0.0332 168.84)",
+          "oklch(26.43% 0.0332 168.84)",
+          "oklch(37.86% 0.0332 168.84)",
+          "oklch(49.29% 0.0332 168.84)",
+          "oklch(60.71% 0.0332 168.84)",
+          "oklch(72.14% 0.0332 168.84)",
+          "oklch(83.57% 0.0332 168.84)",
+          "oklch(95.00% 0.0332 168.84)"
+        ]
+      },
+      "workspace-dark-text": {
+        "role": "neutral",
+        "displayName": "Workspace dark text",
+        "tonalRamp": [
+          "oklch(15.00% 0.0079 106.54)",
+          "oklch(26.43% 0.0079 106.54)",
+          "oklch(37.86% 0.0079 106.54)",
+          "oklch(49.29% 0.0079 106.54)",
+          "oklch(60.71% 0.0079 106.54)",
+          "oklch(72.14% 0.0079 106.54)",
+          "oklch(83.57% 0.0079 106.54)",
+          "oklch(95.00% 0.0079 106.54)"
+        ]
+      },
+      "workspace-dark-text2": {
+        "role": "neutral",
+        "displayName": "Workspace dark text2",
+        "tonalRamp": [
+          "oklch(15.00% 0.0205 131.46)",
+          "oklch(26.43% 0.0205 131.46)",
+          "oklch(37.86% 0.0205 131.46)",
+          "oklch(49.29% 0.0205 131.46)",
+          "oklch(60.71% 0.0205 131.46)",
+          "oklch(72.14% 0.0205 131.46)",
+          "oklch(83.57% 0.0205 131.46)",
+          "oklch(95.00% 0.0205 131.46)"
+        ]
+      },
+      "workspace-dark-muted": {
+        "role": "neutral",
+        "displayName": "Workspace dark muted",
+        "tonalRamp": [
+          "oklch(15.00% 0.0337 133.97)",
+          "oklch(26.43% 0.0337 133.97)",
+          "oklch(37.86% 0.0337 133.97)",
+          "oklch(49.29% 0.0337 133.97)",
+          "oklch(60.71% 0.0337 133.97)",
+          "oklch(72.14% 0.0337 133.97)",
+          "oklch(83.57% 0.0337 133.97)",
+          "oklch(95.00% 0.0337 133.97)"
+        ]
+      },
+      "workspace-dark-faint": {
+        "role": "neutral",
+        "displayName": "Workspace dark faint",
+        "tonalRamp": [
+          "oklch(15.00% 0.0412 134.68)",
+          "oklch(26.43% 0.0412 134.68)",
+          "oklch(37.86% 0.0412 134.68)",
+          "oklch(49.29% 0.0412 134.68)",
+          "oklch(60.71% 0.0412 134.68)",
+          "oklch(72.14% 0.0412 134.68)",
+          "oklch(83.57% 0.0412 134.68)",
+          "oklch(95.00% 0.0412 134.68)"
+        ]
+      },
+      "workspace-dark-green": {
+        "role": "secondary",
+        "displayName": "Workspace dark green",
+        "tonalRamp": [
+          "oklch(15.00% 0.1006 140.51)",
+          "oklch(26.43% 0.1006 140.51)",
+          "oklch(37.86% 0.1006 140.51)",
+          "oklch(49.29% 0.1006 140.51)",
+          "oklch(60.71% 0.1006 140.51)",
+          "oklch(72.14% 0.1006 140.51)",
+          "oklch(83.57% 0.1006 140.51)",
+          "oklch(95.00% 0.1006 140.51)"
+        ]
+      },
+      "workspace-dark-green-wash": {
+        "role": "secondary",
+        "displayName": "Workspace dark green wash",
+        "tonalRamp": [
+          "oklch(15.00% 0.0461 142.25)",
+          "oklch(26.43% 0.0461 142.25)",
+          "oklch(37.86% 0.0461 142.25)",
+          "oklch(49.29% 0.0461 142.25)",
+          "oklch(60.71% 0.0461 142.25)",
+          "oklch(72.14% 0.0461 142.25)",
+          "oklch(83.57% 0.0461 142.25)",
+          "oklch(95.00% 0.0461 142.25)"
+        ]
+      },
+      "workspace-dark-green-border": {
+        "role": "neutral",
+        "displayName": "Workspace dark green border",
+        "tonalRamp": [
+          "oklch(15.00% 0.0639 138.04)",
+          "oklch(26.43% 0.0639 138.04)",
+          "oklch(37.86% 0.0639 138.04)",
+          "oklch(49.29% 0.0639 138.04)",
+          "oklch(60.71% 0.0639 138.04)",
+          "oklch(72.14% 0.0639 138.04)",
+          "oklch(83.57% 0.0639 138.04)",
+          "oklch(95.00% 0.0639 138.04)"
+        ]
+      },
+      "workspace-dark-amber": {
+        "role": "secondary",
+        "displayName": "Workspace dark amber",
+        "tonalRamp": [
+          "oklch(15.00% 0.0998 83.21)",
+          "oklch(26.43% 0.0998 83.21)",
+          "oklch(37.86% 0.0998 83.21)",
+          "oklch(49.29% 0.0998 83.21)",
+          "oklch(60.71% 0.0998 83.21)",
+          "oklch(72.14% 0.0998 83.21)",
+          "oklch(83.57% 0.0998 83.21)",
+          "oklch(95.00% 0.0998 83.21)"
+        ]
+      },
+      "workspace-dark-orange": {
+        "role": "secondary",
+        "displayName": "Workspace dark orange",
+        "tonalRamp": [
+          "oklch(15.00% 0.0854 56.23)",
+          "oklch(26.43% 0.0854 56.23)",
+          "oklch(37.86% 0.0854 56.23)",
+          "oklch(49.29% 0.0854 56.23)",
+          "oklch(60.71% 0.0854 56.23)",
+          "oklch(72.14% 0.0854 56.23)",
+          "oklch(83.57% 0.0854 56.23)",
+          "oklch(95.00% 0.0854 56.23)"
+        ]
+      },
+      "workspace-dark-red": {
+        "role": "secondary",
+        "displayName": "Workspace dark red",
+        "tonalRamp": [
+          "oklch(15.00% 0.0841 28.14)",
+          "oklch(26.43% 0.0841 28.14)",
+          "oklch(37.86% 0.0841 28.14)",
+          "oklch(49.29% 0.0841 28.14)",
+          "oklch(60.71% 0.0841 28.14)",
+          "oklch(72.14% 0.0841 28.14)",
+          "oklch(83.57% 0.0841 28.14)",
+          "oklch(95.00% 0.0841 28.14)"
+        ]
+      },
+      "workspace-dark-red-wash": {
+        "role": "secondary",
+        "displayName": "Workspace dark red wash",
+        "tonalRamp": [
+          "oklch(15.00% 0.0311 31.60)",
+          "oklch(26.43% 0.0311 31.60)",
+          "oklch(37.86% 0.0311 31.60)",
+          "oklch(49.29% 0.0311 31.60)",
+          "oklch(60.71% 0.0311 31.60)",
+          "oklch(72.14% 0.0311 31.60)",
+          "oklch(83.57% 0.0311 31.60)",
+          "oklch(95.00% 0.0311 31.60)"
+        ]
+      },
+      "workspace-dark-red-border": {
+        "role": "neutral",
+        "displayName": "Workspace dark red border",
+        "tonalRamp": [
+          "oklch(15.00% 0.0601 33.65)",
+          "oklch(26.43% 0.0601 33.65)",
+          "oklch(37.86% 0.0601 33.65)",
+          "oklch(49.29% 0.0601 33.65)",
+          "oklch(60.71% 0.0601 33.65)",
+          "oklch(72.14% 0.0601 33.65)",
+          "oklch(83.57% 0.0601 33.65)",
+          "oklch(95.00% 0.0601 33.65)"
+        ]
+      },
+      "workspace-dark-blue": {
+        "role": "secondary",
+        "displayName": "Workspace dark blue",
+        "tonalRamp": [
+          "oklch(15.00% 0.0418 233.47)",
+          "oklch(26.43% 0.0418 233.47)",
+          "oklch(37.86% 0.0418 233.47)",
+          "oklch(49.29% 0.0418 233.47)",
+          "oklch(60.71% 0.0418 233.47)",
+          "oklch(72.14% 0.0418 233.47)",
+          "oklch(83.57% 0.0418 233.47)",
+          "oklch(95.00% 0.0418 233.47)"
+        ]
+      },
+      "workspace-dark-nav-selected": {
+        "role": "secondary",
+        "displayName": "Workspace dark nav selected",
+        "tonalRamp": [
+          "oklch(15.00% 0.0475 133.95)",
+          "oklch(26.43% 0.0475 133.95)",
+          "oklch(37.86% 0.0475 133.95)",
+          "oklch(49.29% 0.0475 133.95)",
+          "oklch(60.71% 0.0475 133.95)",
+          "oklch(72.14% 0.0475 133.95)",
+          "oklch(83.57% 0.0475 133.95)",
+          "oklch(95.00% 0.0475 133.95)"
+        ]
       }
     },
     "typographyMeta": {
@@ -29,6 +853,14 @@
       "annotation": {
         "displayName": "Caveat annotation",
         "purpose": "Handwritten illustration note only."
+      },
+      "workspace-heading": {
+        "displayName": "Workspace heading",
+        "purpose": "Compact operational page identity; Geom in Team Directory."
+      },
+      "auth-title": {
+        "displayName": "Authentication title",
+        "purpose": "Form heading in the split authentication composition."
       }
     },
     "shadows": [
@@ -36,6 +868,11 @@
         "name": "mobile-navigation",
         "value": "0 12px 28px #15362d15",
         "purpose": "Mobile navigation overlay; content remains flat."
+      },
+      {
+        "name": "workspace-drawer",
+        "value": "0 24px 64px var(--c-shadow)",
+        "purpose": "Mobile workspace navigation overlay."
       }
     ],
     "motion": [
@@ -63,6 +900,16 @@
         "name": "hiring-reduced-motion",
         "value": "transition: none !important; spinner animation-duration: 2s",
         "purpose": "Hiring reduced-motion behavior; spinner normally rotates over 1s."
+      },
+      {
+        "name": "workspace-feedback",
+        "value": "background .15s ease, border-color .15s ease, color .15s ease, box-shadow .15s ease, opacity .15s ease",
+        "purpose": "Shared interactive hover and pointer press."
+      },
+      {
+        "name": "workspace-drawer",
+        "value": "transform .22s ease",
+        "purpose": "Mobile drawer entry and exit."
       }
     ],
     "breakpoints": [
@@ -85,6 +932,18 @@
       {
         "name": "hiring-stack",
         "value": "700px"
+      },
+      {
+        "name": "workspace-tablet",
+        "value": "1024px"
+      },
+      {
+        "name": "workspace-mobile",
+        "value": "640px"
+      },
+      {
+        "name": "auth-stack",
+        "value": "900px"
       }
     ]
   },
@@ -106,30 +965,6 @@
       "css": ".ds-hire{display:inline-flex;align-items:center;justify-content:center;min-height:48px;padding:12px 26px;background:#15362d;color:#fff;border:1px solid #15362d;border-radius:100px;font-size:15px;font-weight:600;cursor:pointer;transition:background-color .15s ease,color .15s ease,border-color .15s ease;font-family:var(--font-sans, \"Instrument Sans\"),sans-serif;}.ds-hire:hover:not(:disabled){background:#264d3d;border-color:#264d3d}.ds-hire:focus-visible{outline:3px solid #49683b;outline-offset:4px;}.ds-hire:disabled{color:#5b695c;background:#e0e5da;border-color:#e0e5da;cursor:not-allowed}@media(prefers-reduced-motion:reduce){.ds-hire{transition:none}}"
     },
     {
-      "name": "Hiring secondary action",
-      "kind": "button",
-      "refersTo": "button-secondary",
-      "description": "Outlined pill for a supporting operation.",
-      "html": "<button class=\"ds-secondary\">Add task</button>",
-      "css": ".ds-secondary{display:inline-flex;align-items:center;justify-content:center;min-height:48px;padding:9px 17px;border:1px solid #829084;border-radius:100px;background:transparent;color:#15362d;font-size:14px;font-weight:600;cursor:pointer;transition:background-color .15s ease,color .15s ease,border-color .15s ease;font-family:var(--font-sans, \"Instrument Sans\"),sans-serif;}.ds-secondary:hover:not(:disabled){background:#f0f3eb;border-color:#15362d}.ds-secondary:focus-visible{outline:3px solid #49683b;outline-offset:4px;}.ds-secondary:disabled{color:#536456;border-color:#d9dfd9;background:#f0f2ed;cursor:not-allowed}@media(prefers-reduced-motion:reduce){.ds-secondary{transition:none}}"
-    },
-    {
-      "name": "Hiring back action",
-      "kind": "button",
-      "refersTo": "button-back",
-      "description": "Quiet backwards navigation.",
-      "html": "<button class=\"ds-back\">Back</button>",
-      "css": ".ds-back{display:inline-flex;align-items:center;justify-content:center;min-height:48px;padding:10px 4px;background:transparent;border:0;border-radius:100px;color:#536456;font-size:15px;font-weight:600;cursor:pointer;transition:color .15s ease;font-family:var(--font-sans, \"Instrument Sans\"),sans-serif;}.ds-back:hover{color:#15362d;text-decoration:underline;text-underline-offset:4px}.ds-back:focus-visible{outline:3px solid #49683b;outline-offset:4px;}@media(prefers-reduced-motion:reduce){.ds-back{transition:none}}"
-    },
-    {
-      "name": "Brief text field",
-      "kind": "input",
-      "refersTo": "input",
-      "description": "Visible label and strong field boundary for editable agent configuration.",
-      "html": "<label class=\"ds-field\">Agent name<input placeholder=\"Name your agent\" /></label>",
-      "css": ".ds-field{display:grid;gap:10px;color:#15362d;font-size:15px;font-weight:650;font-family:var(--font-sans, \"Instrument Sans\"),sans-serif;}.ds-field input{min-width:0;background:#fff;color:#15362d;border:1px solid #829084;border-radius:7px;padding:13px 15px;font-size:16px;line-height:1.65;font-family:var(--font-sans, \"Instrument Sans\"),sans-serif;}.ds-field input::placeholder{color:#607063;opacity:1}.ds-field input:focus-visible{outline:3px solid #49683b;outline-offset:4px;}"
-    },
-    {
       "name": "Role option",
       "kind": "card",
       "refersTo": "role-option",
@@ -146,35 +981,67 @@
       "css": ".ds-recommended{display:inline-block;font-size:12px;background:#dce8c3;color:#15362d;padding:4px 10px;border-radius:20px;font-family:var(--font-sans, \"Instrument Sans\"),sans-serif;}"
     },
     {
-      "name": "Marketing navigation",
-      "kind": "nav",
-      "refersTo": "navigation",
-      "description": "Text navigation with persistent labels and hover underlines.",
-      "html": "<nav class=\"ds-nav\" aria-label=\"Main\"><a href=\"#agents\">Agents</a><a href=\"#how\">How it works</a><a href=\"#pricing\">Pricing</a></nav>",
-      "css": ".ds-nav{display:flex;align-items:center;gap:34px;font-size:16px;color:#15362d;font-family:var(--font-sans, \"Instrument Sans\"),sans-serif;}.ds-nav a{color:inherit;text-decoration:none;min-height:44px;display:inline-flex;align-items:center}.ds-nav a:hover{text-decoration:underline;text-underline-offset:5px}.ds-nav a:focus-visible{outline:2px solid #35674b;outline-offset:5px}"
-    },
-    {
       "name": "Sample sheet",
       "kind": "card",
       "refersTo": "sample-sheet",
       "description": "Flat example deliverable panel from an agent profile.",
       "html": "<article class=\"ds-sheet\"><h3>Example handoff</h3><ul><li>Messages grouped for review</li><li>Draft replies ready to edit</li></ul></article>",
       "css": ".ds-sheet{border:1px solid #c8d3c9;padding:28px;background:#fff;color:#15362d;font-family:var(--font-sans, \"Instrument Sans\"),sans-serif;}.ds-sheet h3{margin:0;padding-bottom:20px;border-bottom:1px solid #d6dfd7;font-family:var(--font-team,Geom),sans-serif;font-size:19px;line-height:1.4;letter-spacing:-.02em;font-weight:600}.ds-sheet ul{margin:20px 0 0;padding:0;list-style:none;display:grid;gap:18px;font-size:16px;line-height:1.55}"
+    },
+    {
+      "name": "Functional primary action",
+      "kind": "button",
+      "refersTo": "workspace-primary",
+      "description": "Themed auth progression action.",
+      "html": "<button class=\"ds-functional-primary\">Continue</button>",
+      "css": ".ds-functional-primary{font-family:var(--font-sans,\"Instrument Sans\"),sans-serif;background:var(--c-lime);color:var(--c-ink);border:0;border-radius:100px;padding:14px 24px;min-height:50px;font-size:16px;font-weight:600;cursor:pointer}.ds-functional-primary:hover{background:var(--c-lime-hover)}.ds-functional-primary:focus-visible{outline:2px solid var(--c-accent);outline-offset:4px;}.ds-functional-primary:disabled{opacity:.6;cursor:wait}"
+    },
+    {
+      "name": "Functional secondary action",
+      "kind": "button",
+      "refersTo": "workspace-secondary",
+      "description": "Outlined secondary authentication action.",
+      "html": "<button class=\"ds-functional-secondary\">Continue with Google</button>",
+      "css": ".ds-functional-secondary{font-family:var(--font-sans,\"Instrument Sans\"),sans-serif;border:1px solid var(--c-border-field);border-radius:100px;padding:12px 18px;min-height:48px;background:transparent;color:var(--c-text);font-size:15px;cursor:pointer}.ds-functional-secondary:hover:enabled{background:var(--c-hover)}.ds-functional-secondary:focus-visible{outline:2px solid var(--c-accent);outline-offset:4px;}.ds-functional-secondary:disabled{cursor:not-allowed}"
+    },
+    {
+      "name": "Functional field",
+      "kind": "input",
+      "refersTo": "workspace-field",
+      "description": "Explicit label and themed field boundary.",
+      "html": "<label class=\"ds-functional-field\">Email<input type=\"email\" placeholder=\"you@example.com\" /></label>",
+      "css": ".ds-functional-field{font-family:var(--font-sans,\"Instrument Sans\"),sans-serif;display:grid;gap:8px;font-size:13px;font-weight:600;color:var(--c-text2)}.ds-functional-field input{font-family:var(--font-sans,\"Instrument Sans\"),sans-serif;border:1px solid var(--c-border-field);border-radius:7px;background:var(--c-panel);color:var(--c-text);padding:13px 15px;font-size:16px;caret-color:var(--c-accent)}.ds-functional-field input::placeholder{color:var(--c-muted)}.ds-functional-field input:focus-visible{outline:2px solid var(--c-accent);outline-offset:4px;}"
+    },
+    {
+      "name": "Workspace navigation",
+      "kind": "nav",
+      "refersTo": "workspace-navigation-selected",
+      "description": "Selected sidebar row with a persistent text label and shared stroke icon.",
+      "html": "<nav aria-label=\"Workspace\"><button class=\"ds-workspace-nav\" aria-current=\"page\"><svg width=\"19\" height=\"19\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.6\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><rect x=\"3\" y=\"3\" width=\"7\" height=\"7\" rx=\"1.5\"/><rect x=\"14\" y=\"3\" width=\"7\" height=\"7\" rx=\"1.5\"/><rect x=\"3\" y=\"14\" width=\"7\" height=\"7\" rx=\"1.5\"/><rect x=\"14\" y=\"14\" width=\"7\" height=\"7\" rx=\"1.5\"/></svg>Overview</button></nav>",
+      "css": ".ds-workspace-nav{font-family:var(--font-sans,\"Instrument Sans\"),sans-serif;display:flex;align-items:center;gap:10px;background:var(--c-nav-selected);color:var(--c-text);border:none;padding:10px 12px;font-size:14px;cursor:pointer;text-align:left;width:100%;border-radius:var(--r-radius-sm)}.ds-workspace-nav:focus-visible{outline:2px solid var(--c-accent);outline-offset:3px}@media(max-width:640px){.ds-workspace-nav{min-height:44px}}"
+    },
+    {
+      "name": "Custom agent avatar",
+      "kind": "custom",
+      "refersTo": "workspace-avatar",
+      "description": "Initials preserve custom-agent identity; portraits are reserved for exact catalog roles.",
+      "html": "<span class=\"ds-agent-avatar\" aria-hidden=\"true\">AL</span>",
+      "css": ".ds-agent-avatar{width:44px;height:44px;flex-shrink:0;display:inline-grid;place-items:center;overflow:hidden;border-radius:8px;background:var(--c-lime-wash2);color:var(--c-accent);font-family:var(--f-display),sans-serif;font-weight:600;font-size:16px;border:1px solid var(--c-line)}"
     }
   ],
   "narrative": {
     "northStar": "Illustrated Team Directory",
-    "overview": "**Creative North Star: \"Illustrated Team Directory\"**\n\nPainted fictional coworkers give each AI role a recognizable face. Near-white space, forest lettering, leaf-green image fields, and substantial rounded type make the experience approachable while keeping responsibilities and controls readable. The approved reference is `.impeccable/mocks/decision/team-directory.png`; the surface composition contract remains in `.impeccable/surfaces/app-page-tsx.md`.\n\nThis system covers the landing page, public agent profiles, and hiring flow only. It is extracted from `components/marketing/*.module.css`, their TSX components, `app/hire/hire.module.css`, and font declarations in `app/layout.tsx`. The dashboard, authentication, and other existing surfaces retain the separate themes in `app/globals.css`; these tokens do not replace those themes. Marketing and hiring explicitly establish a light local scope.",
+    "overview": "**Creative North Star: \"Illustrated Team Directory\"**\n\nPainted fictional coworkers give each AI role a recognizable face. Near-white space, forest lettering, leaf-green image fields, and substantial rounded type make the experience approachable while keeping responsibilities and controls readable. The approved reference is `.impeccable/mocks/decision/team-directory.png`; the surface composition contract remains in `.impeccable/surfaces/app-page-tsx.md`.\n\nThis system covers the landing page, public agent profiles, hiring, authentication, payment and its return state, and the functional workspace. The approved extension is recorded in `.impeccable/surfaces/app-dashboard-layout-tsx.md`. Marketing and the original hiring flow retain their local light scope. Functional surfaces use the Team Directory global light default and its dark counterpart; previously selected Terminal, Ivory, and Midnight appearances remain supported.\n\nSource evidence includes `app/globals.css`, `lib/theme.ts`, `components/marketing/*.module.css`, `app/hire/hire.module.css`, `app/auth/auth.module.css`, dashboard and payment routes, generated hiring, and the shared Brand, WorkspaceIcon, AgentAvatar, and interaction primitives. Operational pages express the same world with compact headings, explicit labels, restrained dividers, and data-led density.",
     "keyCharacteristics": [
-      "Original painted portraits with sharp rectangular edges.",
+      "Original painted portraits with sharp rectangular edges on public and auth surfaces; small rounded role avatars in the workspace.",
       "Heavy Geom headings, readable Instrument Sans copy, and a sparing Caveat annotation.",
       "Rounded primary actions, flat content, fine dividers, and visible native controls.",
       "Real links and editable briefs; illustrations and sample work remain identified as such."
     ],
     "rules": [
       {
-        "name": "The Local Palette Rule",
-        "body": "Keep these colors scoped to the team-directory surfaces; the root theme variables belong to the incumbent application themes.",
+        "name": "The Theme Boundary Rule",
+        "body": "Use global semantic variables on functional pages so both mode and saved appearance remain effective. Preserve the local light palette on marketing and the original hiring flow.",
         "section": "colors"
       },
       {
@@ -184,7 +1051,7 @@
       },
       {
         "name": "The Flat Content Rule",
-        "body": "Keep content on the page plane; reserve the observed soft shadow for the navigation overlay.",
+        "body": "Keep ordinary content on the page plane; reserve overlay depth for navigation and dialogs. Do not generalize overlay shadows into elevated cards.",
         "section": "elevation"
       }
     ],
@@ -192,13 +1059,15 @@
       "Do preserve the original painted portrait material and sharp image edges.",
       "Do keep labels readable without hover and retain visible keyboard focus.",
       "Do retain real native inputs, explicit selected states, and distinct error messages.",
-      "Do preserve the light local scope inside the existing themed app."
+      "Do preserve the marketing and original hiring light scopes while using semantic theme variables for functional pages.",
+      "Do keep custom-agent initials distinct from exact catalog-role portraits."
     ],
     "donts": [
-      "Don't present fictional role illustrations as real employees or verified customer outcomes.",
+      "Don't replace fictional role illustrations with claims of real employees or verified customer outcomes.",
       "Don't spread the handwritten annotation face into controls or long copy.",
-      "Don't turn the five-person landing arrangement into a universal layout requirement.",
-      "Don't import dashboard neon or dark-theme colors without an approved system change."
+      "Don't turn the five-person landing arrangement into a layout requirement for other surfaces.",
+      "Don't hardcode light workspace colors into controls that must support dark mode and saved appearances.",
+      "Don't use technical typography as decoration for ordinary labels or prose."
     ]
   }
 }

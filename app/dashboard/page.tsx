@@ -2,16 +2,14 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { c, font, r } from "@/lib/theme";
 import { useApp } from "@/lib/store";
 import { api, ApiError, type DashboardDTO } from "@/lib/client-api";
 import { statusDisplay, clock } from "@/lib/agent-display";
 import { dashboard } from "@/lib/i18n/dashboard";
-import { HoverDiv } from "@/components/ui";
+import { AgentAvatar } from "@/components/AgentAvatar";
 
 export default function OverviewPage() {
-  const router = useRouter();
   const { user, lang } = useApp();
   const t = dashboard[lang];
 
@@ -38,8 +36,7 @@ export default function OverviewPage() {
 
   const firstName = user?.name?.trim().split(/\s+/)[0] ?? "there";
   const todayLabel = new Date()
-    .toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })
-    .toUpperCase();
+    .toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
 
   return (
     <div style={{ padding: `${r.contentPy} ${r.pagePx}` }}>
@@ -48,63 +45,65 @@ export default function OverviewPage() {
           display: "flex",
           alignItems: "baseline",
           justifyContent: "space-between",
-          marginBottom: 28,
+          flexWrap: "wrap",
+          gap: 12,
+          marginBottom: 32,
         }}
       >
-        <h2
+        <h1
           style={{
             fontFamily: font.space,
-            fontWeight: 700,
-            fontSize: "clamp(20px, 4.5vw, 26px)",
-            letterSpacing: "-.01em",
+            fontWeight: 650,
+            fontSize: 32,
+            letterSpacing: "-.025em",
+            lineHeight: 1.15,
             margin: 0,
           }}
         >
           {t.greeting(firstName)}
-        </h2>
-        <span style={{ fontFamily: font.mono, fontSize: 12, color: c.faint }}>
-          {todayLabel} · {t.systemsNominal}
+        </h1>
+        <span style={{ fontFamily: font.sans, fontSize: 13, color: c.muted }}>
+          {todayLabel}
         </span>
       </div>
 
       <div
         style={{
           display: "grid",
-          gridTemplateColumns: r.col4,
-          gap: 1,
-          background: c.line,
-          border: `1px solid ${c.line}`,
-          marginBottom: 32,
-          borderRadius: r.radiusMd,
-          overflow: "hidden",
+          gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))",
+          gap: 16,
+          borderTop: `1px solid ${c.line}`,
+          borderBottom: `1px solid ${c.line}`,
+          marginBottom: 36,
+          padding: "24px 0",
         }}
       >
-        <div style={{ background: c.panel, padding: 20 }}>
-          <div style={{ fontFamily: font.mono, fontSize: 11, color: c.faint, marginBottom: 8 }}>
+        <div>
+          <div style={{ fontFamily: font.sans, fontSize: 12, color: c.faint, marginBottom: 8 }}>
             {t.statActiveAgents}
           </div>
           <div style={{ fontFamily: font.space, fontWeight: 700, fontSize: 30 }}>
             {data ? data.stats.activeAgents : "—"}
           </div>
         </div>
-        <div style={{ background: c.panel, padding: 20 }}>
-          <div style={{ fontFamily: font.mono, fontSize: 11, color: c.faint, marginBottom: 8 }}>
+        <div>
+          <div style={{ fontFamily: font.sans, fontSize: 12, color: c.faint, marginBottom: 8 }}>
             {t.statTasksThisWeek}
           </div>
           <div style={{ fontFamily: font.space, fontWeight: 700, fontSize: 30 }}>
             {data ? data.stats.tasksThisWeek : "—"}
           </div>
         </div>
-        <div style={{ background: c.panel, padding: 20 }}>
-          <div style={{ fontFamily: font.mono, fontSize: 11, color: c.faint, marginBottom: 8 }}>
+        <div>
+          <div style={{ fontFamily: font.sans, fontSize: 12, color: c.faint, marginBottom: 8 }}>
             {t.statCreditsUsed}
           </div>
           <div style={{ fontFamily: font.space, fontWeight: 700, fontSize: 30 }}>
             {data ? data.stats.creditsUsed.toLocaleString() : "—"}
           </div>
         </div>
-        <div style={{ background: c.panel, padding: 20 }}>
-          <div style={{ fontFamily: font.mono, fontSize: 11, color: c.faint, marginBottom: 8 }}>
+        <div>
+          <div style={{ fontFamily: font.sans, fontSize: 12, color: c.faint, marginBottom: 8 }}>
             {t.statNeedsReview}
           </div>
           <div style={{ fontFamily: font.space, fontWeight: 700, fontSize: 30, color: c.amber }}>
@@ -137,25 +136,26 @@ export default function OverviewPage() {
         }}
       >
         <div>
-          <div
+          <h2
             style={{
-              fontFamily: font.mono,
-              fontSize: 11,
-              letterSpacing: ".12em",
-              color: c.faint,
-              marginBottom: 14,
+              fontFamily: font.space,
+              fontSize: 21,
+              fontWeight: 600,
+              letterSpacing: "-.015em",
+              color: c.text,
+              margin: "0 0 16px",
             }}
           >
             {t.rosterHeading}
-          </div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          </h2>
+          <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
             {loading && (
               <div
                 style={{
                   border: `1px solid ${c.border}`,
                   background: c.panel,
                   padding: "18px",
-                  fontFamily: font.mono,
+                  fontFamily: font.sans,
                   fontSize: 12,
                   color: c.faint,
                 }}
@@ -183,12 +183,12 @@ export default function OverviewPage() {
                     display: "inline-block",
                     background: c.lime,
                     color: c.ink,
-                    fontFamily: font.space,
-                    fontWeight: 700,
-                    fontSize: 13.5,
-                    padding: "10px 18px",
+                    fontFamily: font.sans,
+                    fontWeight: 600,
+                    fontSize: 14,
+                    padding: "12px 22px",
                     textDecoration: "none",
-                    borderRadius: r.radiusSm,
+                    borderRadius: 999,
                   }}
                 >
                   {t.hireFirstAgent}
@@ -201,47 +201,26 @@ export default function OverviewPage() {
               data.agents.map((a) => {
                 const sd = statusDisplay(a.status);
                 return (
-                  <HoverDiv
+                  <Link
                     key={a.id}
-                    onClick={() => router.push(`/dashboard/fleet/${a.id}`)}
-                    hoverStyle={{ borderColor: c.borderMute }}
+                    href={`/dashboard/fleet/${a.id}`}
                     style={{
-                      border: `1px solid ${c.border}`,
-                      background: c.panel,
-                      padding: "16px 18px",
+                      borderBottom: `1px solid ${c.line}`,
+                      padding: "18px 0",
                       display: "flex",
                       alignItems: "center",
                       gap: 14,
                       cursor: "pointer",
-                      borderRadius: r.radiusSm,
+                      color: c.text,
+                      textDecoration: "none",
+                      flexWrap: "wrap",
                     }}
                   >
-                    <div
-                      style={{
-                        width: 38,
-                        height: 38,
-                        background: a.hue ?? c.lime,
-                        // Ink follows the fill: c.onBrand is fixed dark and only
-                        // correct on a fixed role hue. The fallback is a themed
-                        // fill, so it takes the themed ink.
-                        color: a.hue ? c.onBrand : c.ink,
-                        display: "grid",
-                        placeItems: "center",
-                        fontFamily: font.space,
-                        fontWeight: 700,
-                        fontSize: 16,
-                      }}
-                    >
-                      {a.mono}
-                    </div>
+                    <AgentAvatar roleId={a.roleId} name={a.name} mono={a.mono} size={48} />
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontFamily: font.space, fontWeight: 700, fontSize: 15.5 }}>
-                        {a.name}{" "}
-                        <span style={{ fontWeight: 400, fontSize: 13, color: c.muted }}>
-                          · {a.role}
-                        </span>
-                      </div>
-                      <div style={{ fontSize: 12.5, color: c.faint, marginTop: 2 }}>
+                      <div style={{ fontFamily: font.space, fontWeight: 600, fontSize: 18 }}>{a.name}</div>
+                      <div style={{ fontSize: 13, color: c.muted, marginTop: 2 }}>{a.role}</div>
+                      <div style={{ fontSize: 13, color: c.muted, marginTop: 5, lineHeight: 1.5 }}>
                         {a.line ?? "—"}
                       </div>
                     </div>
@@ -256,39 +235,40 @@ export default function OverviewPage() {
                       />
                       <span
                         style={{
-                          fontFamily: font.mono,
-                          fontSize: 11,
+                          fontFamily: font.sans,
+                          fontSize: 12,
                           color: sd.color,
-                          letterSpacing: ".06em",
+                          letterSpacing: "normal",
                         }}
                       >
                         {sd.label}
                       </span>
                     </div>
-                  </HoverDiv>
+                  </Link>
                 );
               })}
           </div>
         </div>
 
         <div>
-          <div
+          <h2
             style={{
-              fontFamily: font.mono,
-              fontSize: 11,
-              letterSpacing: ".12em",
-              color: c.faint,
-              marginBottom: 14,
+              fontFamily: font.space,
+              fontSize: 21,
+              fontWeight: 600,
+              letterSpacing: "-.015em",
+              color: c.text,
+              margin: "0 0 16px",
             }}
           >
             {t.activityHeading}
-          </div>
-          <div style={{ border: `1px solid ${c.border}`, background: c.panel, padding: "6px 0", borderRadius: r.radiusMd, overflow: "hidden" }}>
+          </h2>
+          <div style={{ borderTop: `1px solid ${c.line}`, padding: "6px 0" }}>
             {loading && (
               <div
                 style={{
                   padding: "11px 18px",
-                  fontFamily: font.mono,
+                  fontFamily: font.sans,
                   fontSize: 12,
                   color: c.faint,
                 }}
@@ -324,8 +304,8 @@ export default function OverviewPage() {
                 >
                   <span
                     style={{
-                      fontFamily: font.mono,
-                      fontSize: 11,
+                      fontFamily: font.sans,
+                      fontSize: 12,
                       color: c.faint,
                       flexShrink: 0,
                     }}

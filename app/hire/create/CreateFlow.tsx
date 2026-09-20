@@ -23,7 +23,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useHarnessOptions } from "@/lib/harness/client";
-import { c, font, r } from "@/lib/theme";
+import { Brand } from "@/components/Brand";
+import styles from "./create.module.css";
 import { Btn } from "@/components/ui";
 import { resolveLocalTimeZone } from "@/components/create/shared";
 import { useApp } from "@/lib/store";
@@ -336,57 +337,14 @@ export default function CreateFlow() {
   const rows = stageRows(stages, seen, active);
 
   return (
-    <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column" }}>
-      <div
-        style={{
-          height: 60,
-          borderBottom: `1px solid ${c.line}`,
-          display: "flex",
-          alignItems: "center",
-          padding: `0 ${r.pagePx}`,
-          gap: 24,
-        }}
-      >
-        <Btn
-          onClick={() => router.push("/hire")}
-          style={{
-            background: "none",
-            border: "none",
-            color: c.muted,
-            fontSize: 14,
-            cursor: "pointer",
-            fontFamily: font.sans,
-            padding: 0,
-          }}
-          hoverStyle={{ color: c.text }}
-        >
-          ← {t.common.back}
+    <main className={styles.page}>
+      <header className={styles.header}>
+        <Brand />
+        <Btn onClick={() => router.push("/hire")} className={styles.back}>
+          {t.common.back}
         </Btn>
-        <span
-          style={{
-            fontFamily: font.mono,
-            fontSize: 12,
-            letterSpacing: ".14em",
-            color: c.accent,
-          }}
-        >
-          {phase === "review"
-            ? t.review.title
-            : phase === "generating"
-              ? t.generating.title
-              : t.describe.textareaLabel}
-        </span>
-      </div>
-
-      <div
-        style={{
-          flex: 1,
-          width: "100%",
-          maxWidth: 1240,
-          margin: "0 auto",
-          padding: `40px ${r.pagePx} 96px`,
-        }}
-      >
+      </header>
+      <div className={styles.content}>
         {phase === "describe" && (
           <DescribeStep
             lang={lang}
@@ -439,7 +397,7 @@ export default function CreateFlow() {
           />
         )}
       </div>
-    </div>
+    </main>
   );
 }
 

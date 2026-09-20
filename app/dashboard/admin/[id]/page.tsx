@@ -26,10 +26,10 @@ import { Btn } from "@/components/ui";
 const ROLE_OPTIONS: PlatformRole[] = ["user", "support", "admin"];
 
 const panelStyle: CSSProperties = {
-  border: `1px solid ${c.border}`,
-  background: c.panel,
-  padding: "clamp(18px, 3vw, 24px)",
-  borderRadius: r.radiusMd,
+  minWidth: 0,
+  borderTop: `1px solid ${c.line}`,
+  background: "transparent",
+  padding: "26px 0",
 };
 
 const panelTitleStyle: CSSProperties = {
@@ -44,17 +44,16 @@ const labelStyle: CSSProperties = {
   display: "block",
   marginBottom: 7,
   color: c.muted,
-  fontFamily: font.mono,
-  fontSize: 11,
-  letterSpacing: ".08em",
+  fontFamily: font.sans,
+  fontSize: 13,
 };
 
 const inputStyle: CSSProperties = {
   width: "100%",
   minWidth: 0,
   boxSizing: "border-box",
-  border: `1px solid ${c.border}`,
-  background: c.panelDeep,
+  border: `1px solid ${c.borderField}`,
+  background: c.panel,
   color: c.text,
   padding: "11px 12px",
   fontFamily: font.sans,
@@ -136,9 +135,9 @@ function Pill({ text, color }: { text: string; color: string }) {
   return (
     <span
       style={{
-        fontFamily: font.mono,
-        fontSize: 10.5,
-        letterSpacing: ".05em",
+        fontFamily: font.sans,
+        fontSize: 12,
+        letterSpacing: "normal",
         color,
         border: `1px solid ${color}`,
         padding: "2px 8px",
@@ -205,7 +204,7 @@ function MiniTable({
 }) {
   const at = (i: number) => align?.[i] ?? "left";
   return (
-    <div className="ark-scroll" style={{ overflowX: "auto" }}>
+    <div className="ark-scroll" style={{ minWidth: 0, maxWidth: "100%", overflowX: "auto" }}>
       <div style={{ minWidth }}>
         <div
           style={{
@@ -214,9 +213,9 @@ function MiniTable({
             gap: 12,
             paddingBottom: 10,
             borderBottom: `1px solid ${c.line}`,
-            fontFamily: font.mono,
-            fontSize: 10.5,
-            letterSpacing: ".08em",
+            fontFamily: font.sans,
+            fontSize: 12,
+            letterSpacing: "normal",
             color: c.faint,
           }}
         >
@@ -231,7 +230,7 @@ function MiniTable({
             style={{
               padding: "22px 0",
               textAlign: "center",
-              fontFamily: font.mono,
+              fontFamily: font.sans,
               fontSize: 12,
               color: c.faint,
             }}
@@ -276,9 +275,9 @@ function NotAuthorized({ t }: { t: AdminDict }) {
           borderRadius: r.radiusMd,
         }}
       >
-        <div style={{ fontFamily: font.space, fontWeight: 700, fontSize: 18, marginBottom: 8 }}>
+        <h1 style={{ margin: 0,  fontFamily: font.space, fontWeight: 700, fontSize: 18, marginBottom: 8 }}>
           {t.notAuthorizedTitle}
-        </div>
+        </h1>
         <div style={{ fontSize: 13.5, color: c.muted, maxWidth: 460, margin: "0 auto" }}>
           {t.notAuthorizedBody}
         </div>
@@ -290,7 +289,7 @@ function NotAuthorized({ t }: { t: AdminDict }) {
             border: `1px solid ${c.borderStrong}`,
             color: c.text,
             padding: "9px 16px",
-            fontFamily: font.space,
+            fontFamily: font.sans,
             fontSize: 13,
             textDecoration: "none",
             borderRadius: r.radiusSm,
@@ -398,9 +397,9 @@ export default function AdminUserDetailPage({ params }: { params: Promise<{ id: 
             background: c.panel,
             padding: 40,
             textAlign: "center",
-            fontFamily: font.mono,
+            fontFamily: font.sans,
             fontSize: 12,
-            letterSpacing: ".06em",
+            letterSpacing: "normal",
             color: c.faint,
             borderRadius: r.radiusMd,
           }}
@@ -417,7 +416,7 @@ export default function AdminUserDetailPage({ params }: { params: Promise<{ id: 
         <Link
           href="/dashboard/admin"
           style={{
-            fontFamily: font.mono,
+            fontFamily: font.sans,
             fontSize: 12,
             color: c.muted,
             textDecoration: "none",
@@ -456,26 +455,26 @@ export default function AdminUserDetailPage({ params }: { params: Promise<{ id: 
     !!target?.email && confirmEmail.trim().toLowerCase() === target.email.toLowerCase();
 
   return (
-    <div data-screen-label="Admin user" style={{ padding: `${r.contentPy} ${r.pagePx}` }}>
+    <div data-screen-label="Admin user" style={{ minWidth: 0, padding: `${r.contentPy} ${r.pagePx}` }}>
       <Link
         href="/dashboard/admin"
-        style={{ fontFamily: font.mono, fontSize: 12, color: c.muted, textDecoration: "none" }}
+        style={{ fontFamily: font.sans, fontSize: 12, color: c.muted, textDecoration: "none" }}
       >
         ← {t.backToUsers}
       </Link>
 
       <div style={{ margin: "16px 0 26px" }}>
-        <h2
+        <h1
           style={{
             margin: 0,
             color: c.text,
             fontFamily: font.space,
-            fontSize: "clamp(21px, 4vw, 27px)",
-            fontWeight: 700,
+            fontSize: 32,
+            fontWeight: 650,
           }}
         >
           {target?.name || target?.email || "—"}
-        </h2>
+        </h1>
         <div
           style={{
             display: "flex",
@@ -485,7 +484,7 @@ export default function AdminUserDetailPage({ params }: { params: Promise<{ id: 
             flexWrap: "wrap",
           }}
         >
-          <span style={{ fontFamily: font.mono, fontSize: 12.5, color: c.muted }}>
+          <span style={{ fontFamily: font.sans, fontSize: 12.5, color: c.muted }}>
             {target?.email || "—"}
           </span>
           <Pill
@@ -518,7 +517,7 @@ export default function AdminUserDetailPage({ params }: { params: Promise<{ id: 
             background: c.redWash,
             padding: "12px 16px",
             marginBottom: 20,
-            fontFamily: font.mono,
+            fontFamily: font.sans,
             fontSize: 12.5,
             color: c.red,
             borderRadius: r.radiusSm,
@@ -528,16 +527,16 @@ export default function AdminUserDetailPage({ params }: { params: Promise<{ id: 
         </div>
       )}
 
-      <div style={{ display: "grid", gridTemplateColumns: r.col2, gap: r.gapMd, alignItems: "start" }}>
+      <div style={{ minWidth: 0, display: "grid", gridTemplateColumns: r.col2, gap: r.gapMd, alignItems: "start" }}>
         <div style={panelStyle}>
-          <h3 style={panelTitleStyle}>{t.profileTitle}</h3>
+          <h2 style={panelTitleStyle}>{t.profileTitle}</h2>
           <Field label={t.fieldName}>{target?.name || "—"}</Field>
           <Field label={t.fieldEmail}>{target?.email || "—"}</Field>
           <Field label={t.fieldId}>
             <span style={{ fontFamily: font.mono, fontSize: 12 }}>{target?.id ?? id}</span>
           </Field>
           <Field label={t.fieldLocale}>
-            <span style={{ fontFamily: font.mono, fontSize: 12.5 }}>{target?.locale ?? "—"}</span>
+            <span style={{ fontFamily: font.sans, fontSize: 12.5 }}>{target?.locale ?? "—"}</span>
           </Field>
           <Field label={t.fieldJoined}>{fmtDate(target?.createdAt, locale)}</Field>
           <div>
@@ -553,13 +552,13 @@ export default function AdminUserDetailPage({ params }: { params: Promise<{ id: 
         </div>
 
         <div style={panelStyle}>
-          <h3 style={panelTitleStyle}>{t.accessTitle}</h3>
+          <h2 style={panelTitleStyle}>{t.accessTitle}</h2>
 
           <div style={{ marginBottom: 20 }}>
             <label htmlFor="admin-role" style={labelStyle}>
               {t.roleLabel}
             </label>
-            <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+            <div style={{ minWidth: 0, display: "flex", gap: 10, flexWrap: "wrap", alignItems: "start" }}>
               <select
                 id="admin-role"
                 value={roleDraft}
@@ -569,6 +568,7 @@ export default function AdminUserDetailPage({ params }: { params: Promise<{ id: 
                   ...inputStyle,
                   flex: "1 1 160px",
                   width: "auto",
+                  maxWidth: "100%",
                   cursor: canEdit ? "pointer" : "not-allowed",
                   opacity: canEdit ? 1 : 0.6,
                 }}
@@ -587,16 +587,18 @@ export default function AdminUserDetailPage({ params }: { params: Promise<{ id: 
                 }
                 hoverStyle={{ background: c.limeHover }}
                 style={{
+                  flex: "0 0 auto",
+                  maxWidth: "100%",
                   border: "none",
                   background: c.lime,
                   color: c.ink,
                   padding: "11px 17px",
-                  fontFamily: font.space,
+                  fontFamily: font.sans,
                   fontWeight: 600,
                   fontSize: 13.5,
                   cursor: canEdit && roleDraft !== target?.platformRole ? "pointer" : "default",
                   opacity: !canEdit || busy || roleDraft === target?.platformRole ? 0.55 : 1,
-                  borderRadius: r.radiusSm,
+                  borderRadius: 999,
                 }}
               >
                 {busy ? t.working : t.applyRole}
@@ -624,12 +626,12 @@ export default function AdminUserDetailPage({ params }: { params: Promise<{ id: 
                 background: "transparent",
                 color: suspended ? c.green : c.text,
                 padding: "10px 16px",
-                fontFamily: font.space,
+                fontFamily: font.sans,
                 fontWeight: 500,
                 fontSize: 13,
                 cursor: canEdit ? "pointer" : "default",
                 opacity: canEdit ? 1 : 0.55,
-                borderRadius: r.radiusSm,
+                borderRadius: 999,
               }}
             >
               {suspended ? t.activate : t.suspend}
@@ -648,12 +650,12 @@ export default function AdminUserDetailPage({ params }: { params: Promise<{ id: 
                 background: "transparent",
                 color: c.text,
                 padding: "10px 16px",
-                fontFamily: font.space,
+                fontFamily: font.sans,
                 fontWeight: 500,
                 fontSize: 13,
                 cursor: canEdit ? "pointer" : "default",
                 opacity: canEdit ? 1 : 0.55,
-                borderRadius: r.radiusSm,
+                borderRadius: 999,
               }}
             >
               {t.revokeSessions}
@@ -667,7 +669,7 @@ export default function AdminUserDetailPage({ params }: { params: Promise<{ id: 
         </div>
 
         <div style={panelStyle}>
-          <h3 style={panelTitleStyle}>{t.identitiesTitle}</h3>
+          <h2 style={panelTitleStyle}>{t.identitiesTitle}</h2>
           <MiniTable
             cols="90px minmax(140px,1.6fr) 96px 110px"
             head={[t.colProvider, t.colProviderAccount, t.colLinked, t.colLastLogin]}
@@ -684,7 +686,7 @@ export default function AdminUserDetailPage({ params }: { params: Promise<{ id: 
                       style={{
                         marginLeft: 6,
                         color: idn.emailVerified ? c.green : c.faint,
-                        fontSize: 10.5,
+                        fontSize: 12,
                       }}
                     >
                       {idn.emailVerified ? t.verified : t.unverified}
@@ -699,7 +701,7 @@ export default function AdminUserDetailPage({ params }: { params: Promise<{ id: 
         </div>
 
         <div style={panelStyle}>
-          <h3 style={panelTitleStyle}>{t.workspacesTitle}</h3>
+          <h2 style={panelTitleStyle}>{t.workspacesTitle}</h2>
           <MiniTable
             cols="minmax(140px,1.8fr) 100px 120px"
             head={[t.colWorkspace, t.colRole, t.colCredits]}
@@ -718,7 +720,7 @@ export default function AdminUserDetailPage({ params }: { params: Promise<{ id: 
         </div>
 
         <div style={panelStyle}>
-          <h3 style={panelTitleStyle}>{t.agentsTitle}</h3>
+          <h2 style={panelTitleStyle}>{t.agentsTitle}</h2>
           <MiniTable
             cols="minmax(120px,1.6fr) minmax(90px,1fr) 92px 84px 96px"
             head={[t.colAgent, t.colAgentRole, t.colAgentStatus, t.colAgentCredits, t.colCreated]}
@@ -739,7 +741,7 @@ export default function AdminUserDetailPage({ params }: { params: Promise<{ id: 
         </div>
 
         <div style={panelStyle}>
-          <h3 style={panelTitleStyle}>{t.sessionsTitle}</h3>
+          <h2 style={panelTitleStyle}>{t.sessionsTitle}</h2>
           <MiniTable
             cols="118px 118px 110px minmax(120px,1.4fr)"
             head={[t.colSessionStarted, t.colSessionExpires, t.colSessionIp, t.colSessionDevice]}
@@ -770,8 +772,8 @@ export default function AdminUserDetailPage({ params }: { params: Promise<{ id: 
             flexWrap: "wrap",
           }}
         >
-          <h3 style={{ ...panelTitleStyle, margin: 0 }}>{t.usageTitle}</h3>
-          <span style={{ fontFamily: font.mono, fontSize: 11, color: c.faint }}>
+          <h2 style={{ ...panelTitleStyle, margin: 0 }}>{t.usageTitle}</h2>
+          <span style={{ fontFamily: font.sans, fontSize: 12, color: c.faint }}>
             {t.usageWindow}
           </span>
         </div>
@@ -797,9 +799,9 @@ export default function AdminUserDetailPage({ params }: { params: Promise<{ id: 
             <div key={tile.label} style={{ background: c.panel, padding: 18 }}>
               <div
                 style={{
-                  fontFamily: font.mono,
-                  fontSize: 10.5,
-                  letterSpacing: ".08em",
+                  fontFamily: font.sans,
+                  fontSize: 12,
+                  letterSpacing: "normal",
                   color: c.faint,
                 }}
               >
@@ -814,9 +816,9 @@ export default function AdminUserDetailPage({ params }: { params: Promise<{ id: 
           ))}
         </div>
 
-        <div style={{ display: "grid", gridTemplateColumns: r.col2, gap: r.gapMd, alignItems: "start" }}>
+        <div style={{ minWidth: 0, display: "grid", gridTemplateColumns: r.col2, gap: r.gapMd, alignItems: "start" }}>
           <div style={panelStyle}>
-            <h3 style={{ ...panelTitleStyle, fontSize: 15 }}>{t.byModelTitle}</h3>
+            <h3 style={{ ...panelTitleStyle, fontSize: 20 }}>{t.byModelTitle}</h3>
             <MiniTable
               cols="minmax(150px,2fr) 78px 100px 96px"
               head={[t.colModel, t.usageCalls, t.usageTokens, t.usageCost]}
@@ -838,13 +840,13 @@ export default function AdminUserDetailPage({ params }: { params: Promise<{ id: 
           </div>
 
           <div style={panelStyle}>
-            <h3 style={{ ...panelTitleStyle, fontSize: 15 }}>{t.byDayTitle}</h3>
+            <h3 style={{ ...panelTitleStyle, fontSize: 20 }}>{t.byDayTitle}</h3>
             {byDay.length === 0 ? (
               <div
                 style={{
                   padding: "22px 0",
                   textAlign: "center",
-                  fontFamily: font.mono,
+                  fontFamily: font.sans,
                   fontSize: 12,
                   color: c.faint,
                 }}
@@ -862,7 +864,7 @@ export default function AdminUserDetailPage({ params }: { params: Promise<{ id: 
                         display: "flex",
                         justifyContent: "space-between",
                         fontFamily: font.mono,
-                        fontSize: 11.5,
+                        fontSize: 12,
                         color: c.faint,
                         marginBottom: 5,
                       }}
@@ -892,7 +894,7 @@ export default function AdminUserDetailPage({ params }: { params: Promise<{ id: 
             background: c.redWash,
           }}
         >
-          <h3 style={{ ...panelTitleStyle, color: c.red }}>{t.dangerTitle}</h3>
+          <h2 style={{ ...panelTitleStyle, color: c.red }}>{t.dangerTitle}</h2>
           <div style={{ fontSize: 13.5, color: c.text2, marginBottom: 16, maxWidth: 640 }}>
             {t.deleteWarning}
           </div>
@@ -919,12 +921,12 @@ export default function AdminUserDetailPage({ params }: { params: Promise<{ id: 
                 background: "transparent",
                 color: c.red,
                 padding: "11px 17px",
-                fontFamily: font.space,
+                fontFamily: font.sans,
                 fontWeight: 600,
                 fontSize: 13.5,
                 cursor: deleteArmed && !busy ? "pointer" : "default",
                 opacity: deleteArmed && !busy ? 1 : 0.5,
-                borderRadius: r.radiusSm,
+                borderRadius: 999,
               }}
             >
               {busy ? t.deleting : t.deleteButton}

@@ -33,7 +33,7 @@ const ROLE_OPTIONS: PlatformRole[] = ["user", "support", "admin"];
 const STATUS_OPTIONS: UserStatus[] = ["active", "suspended"];
 
 const cellStyle = {
-  fontFamily: font.mono,
+  fontFamily: font.sans,
   fontSize: 12,
   color: c.text2,
   overflow: "hidden",
@@ -103,9 +103,9 @@ function Pill({ text, color }: { text: string; color: string }) {
   return (
     <span
       style={{
-        fontFamily: font.mono,
-        fontSize: 10.5,
-        letterSpacing: ".05em",
+        fontFamily: font.sans,
+        fontSize: 12,
+        letterSpacing: "normal",
         color,
         border: `1px solid ${color}`,
         padding: "2px 8px",
@@ -137,7 +137,7 @@ function StatTile({
 }) {
   return (
     <div style={{ background: c.panel, padding: 18 }}>
-      <div style={{ fontFamily: font.mono, fontSize: 10.5, letterSpacing: ".08em", color: c.faint }}>
+      <div style={{ fontFamily: font.sans, fontSize: 12, letterSpacing: "normal", color: c.faint }}>
         {label}
       </div>
       <div
@@ -152,7 +152,7 @@ function StatTile({
         {value}
       </div>
       {sub && (
-        <div style={{ fontFamily: font.mono, fontSize: 11, color: c.faint, marginTop: 4 }}>{sub}</div>
+        <div style={{ fontFamily: font.sans, fontSize: 12, color: c.faint, marginTop: 4 }}>{sub}</div>
       )}
     </div>
   );
@@ -171,9 +171,9 @@ function NotAuthorized({ t }: { t: AdminDict }) {
           borderRadius: r.radiusMd,
         }}
       >
-        <div style={{ fontFamily: font.space, fontWeight: 700, fontSize: 18, marginBottom: 8 }}>
+        <h1 style={{ margin: 0,  fontFamily: font.space, fontWeight: 700, fontSize: 18, marginBottom: 8 }}>
           {t.notAuthorizedTitle}
-        </div>
+        </h1>
         <div style={{ fontSize: 13.5, color: c.muted, maxWidth: 460, margin: "0 auto" }}>
           {t.notAuthorizedBody}
         </div>
@@ -185,7 +185,7 @@ function NotAuthorized({ t }: { t: AdminDict }) {
             border: `1px solid ${c.borderStrong}`,
             color: c.text,
             padding: "9px 16px",
-            fontFamily: font.space,
+            fontFamily: font.sans,
             fontSize: 13,
             textDecoration: "none",
             borderRadius: r.radiusSm,
@@ -229,13 +229,13 @@ function AuditRow({
       <span style={{ fontSize: 13, color: c.text2, flex: "1 1 240px", minWidth: 0 }}>
         {entry.summary ?? "—"}
       </span>
-      <span style={{ fontFamily: font.mono, fontSize: 11, color: c.faint }}>
+      <span style={{ fontFamily: font.sans, fontSize: 12, color: c.faint }}>
         {entry.target?.email ?? entry.target?.name ?? ""}
       </span>
-      <span style={{ fontFamily: font.mono, fontSize: 11, color: c.faint }}>
+      <span style={{ fontFamily: font.sans, fontSize: 12, color: c.faint }}>
         {entry.actor?.email ?? entry.actor?.name ?? ""}
       </span>
-      <span style={{ fontFamily: font.mono, fontSize: 11, color: c.faint }}>
+      <span style={{ fontFamily: font.sans, fontSize: 12, color: c.faint }}>
         {fmtDateTime(entry.createdAt, locale)}
       </span>
     </div>
@@ -332,28 +332,18 @@ export default function AdminUsersPage() {
   return (
     <div data-screen-label="Admin" style={{ padding: `${r.contentPy} ${r.pagePx}` }}>
       <div style={{ marginBottom: 24 }}>
-        <div
-          style={{
-            color: c.accent,
-            fontFamily: font.mono,
-            fontSize: 11,
-            letterSpacing: ".12em",
-            marginBottom: 8,
-          }}
-        >
-          {t.eyebrow}
-        </div>
-        <h2
+
+        <h1
           style={{
             margin: 0,
             color: c.text,
             fontFamily: font.space,
-            fontSize: "clamp(22px, 4vw, 28px)",
-            fontWeight: 700,
+            fontSize: 32,
+            fontWeight: 650,
           }}
         >
           {t.heading}
-        </h2>
+        </h1>
         <div style={{ marginTop: 8, fontSize: 13.5, color: c.muted }}>{t.subheading}</div>
       </div>
 
@@ -490,13 +480,13 @@ export default function AdminUsersPage() {
               fontSize: 13,
               fontFamily: font.sans,
               cursor: "pointer",
-              borderRadius: r.radiusSm,
+              borderRadius: 999,
             }}
           >
             {t.clearFilters}
           </button>
         )}
-        <span style={{ marginLeft: "auto", fontFamily: font.mono, fontSize: 11.5, color: c.faint }}>
+        <span style={{ marginLeft: "auto", fontFamily: font.sans, fontSize: 12, color: c.faint }}>
           {t.showing(firstRow, lastRow, total)}
         </span>
       </div>
@@ -508,7 +498,7 @@ export default function AdminUsersPage() {
             background: c.redWash,
             padding: 32,
             textAlign: "center",
-            fontFamily: font.mono,
+            fontFamily: font.sans,
             fontSize: 12.5,
             color: c.red,
             borderRadius: r.radiusMd,
@@ -523,10 +513,10 @@ export default function AdminUsersPage() {
               border: `1px solid ${c.redBorder}`,
               color: c.red,
               padding: "8px 16px",
-              fontFamily: font.space,
+              fontFamily: font.sans,
               fontSize: 13,
               cursor: "pointer",
-              borderRadius: r.radiusSm,
+              borderRadius: 999,
             }}
           >
             {t.retry}
@@ -550,9 +540,9 @@ export default function AdminUsersPage() {
                 gap: 12,
                 padding: "12px 18px",
                 borderBottom: `1px solid ${c.line}`,
-                fontFamily: font.mono,
-                fontSize: 10.5,
-                letterSpacing: ".08em",
+                fontFamily: font.sans,
+                fontSize: 12,
+                letterSpacing: "normal",
                 color: c.faint,
               }}
             >
@@ -571,9 +561,9 @@ export default function AdminUsersPage() {
                 style={{
                   padding: 40,
                   textAlign: "center",
-                  fontFamily: font.mono,
+                  fontFamily: font.sans,
                   fontSize: 12,
-                  letterSpacing: ".06em",
+                  letterSpacing: "normal",
                   color: c.faint,
                 }}
               >
@@ -584,7 +574,7 @@ export default function AdminUsersPage() {
                 style={{
                   padding: 40,
                   textAlign: "center",
-                  fontFamily: font.mono,
+                  fontFamily: font.sans,
                   fontSize: 12,
                   color: c.faint,
                 }}
@@ -627,14 +617,14 @@ export default function AdminUsersPage() {
                         >
                           {u.name || "—"}
                         </div>
-                        <div style={{ ...cellStyle, fontSize: 11.5, color: c.faint }}>
+                        <div style={{ ...cellStyle, fontSize: 12, color: c.faint }}>
                           {u.email || "—"}
                         </div>
                       </div>
                       <span
                         style={{
-                          fontFamily: font.mono,
-                          fontSize: 11.5,
+                          fontFamily: font.sans,
+                          fontSize: 12,
                           color: roleColor(u.platformRole),
                         }}
                       >
@@ -688,12 +678,12 @@ export default function AdminUsersPage() {
             fontSize: 13,
             cursor: currentPage <= 1 ? "default" : "pointer",
             opacity: currentPage <= 1 ? 0.5 : 1,
-            borderRadius: r.radiusSm,
+            borderRadius: 999,
           }}
         >
           {t.prevPage}
         </button>
-        <span style={{ fontFamily: font.mono, fontSize: 11.5, color: c.faint }}>
+        <span style={{ fontFamily: font.sans, fontSize: 12, color: c.faint }}>
           {t.pageOf(currentPage, pages)}
         </span>
         <button
@@ -708,7 +698,7 @@ export default function AdminUsersPage() {
             fontSize: 13,
             cursor: currentPage >= pages ? "default" : "pointer",
             opacity: currentPage >= pages ? 0.5 : 1,
-            borderRadius: r.radiusSm,
+            borderRadius: 999,
           }}
         >
           {t.nextPage}
@@ -716,17 +706,17 @@ export default function AdminUsersPage() {
       </div>
 
       <div style={{ marginTop: 32 }}>
-        <div
-          style={{
-            fontFamily: font.mono,
-            fontSize: 11,
-            letterSpacing: ".12em",
+        <h2
+          style={{ margin: 0,
+            fontFamily: font.sans,
+            fontSize: 12,
+            letterSpacing: "normal",
             color: c.faint,
             marginBottom: 12,
           }}
         >
           {t.auditTitle}
-        </div>
+        </h2>
         <div
           style={{
             border: `1px solid ${c.border}`,
@@ -740,7 +730,7 @@ export default function AdminUsersPage() {
               style={{
                 padding: "26px 18px",
                 textAlign: "center",
-                fontFamily: font.mono,
+                fontFamily: font.sans,
                 fontSize: 12,
                 color: c.faint,
               }}

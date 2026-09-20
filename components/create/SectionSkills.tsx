@@ -23,6 +23,7 @@
 import { useState } from "react";
 import { c, font } from "@/lib/theme";
 import { Btn } from "@/components/ui";
+import { Glyph } from "./Glyph";
 import { harnessLabel, type Harness } from "@/lib/harness";
 import type { Lang } from "@/lib/types";
 import type { TemplateSkill } from "@/lib/atg/types";
@@ -97,7 +98,7 @@ export default function SectionSkills({
               <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
                 <span
                   style={{
-                    fontFamily: font.mono,
+                    fontFamily: font.sans,
                     fontSize: 13,
                     color: c.text,
                     fontWeight: 500,
@@ -209,7 +210,7 @@ export default function SectionSkills({
                   setRemoved((prev) => prev.filter((x) => x.key !== skill.key));
                   onChange({ ...draft, skills: [...draft.skills, skill] });
                 }}
-                style={{ ...ghostBtn, borderStyle: "dashed", fontFamily: font.mono, fontSize: 12 }}
+                style={{ ...ghostBtn, borderStyle: "dashed", fontFamily: font.sans, fontSize: 12 }}
                 hoverStyle={ghostBtnHover}
               >
                 + {sanitizeUntrusted(skill.displayName || skill.slug, 40)}
@@ -233,9 +234,7 @@ function RiskPill({ lang, level }: { lang: Lang; level: TemplateSkill["riskLevel
         aria-hidden
         style={{ width: 7, height: 7, borderRadius: "50%", background: color, flexShrink: 0 }}
       />
-      <Mono color={c.muted} size={10}>
-        {t.riskLabel}: {t.risk[level]}
-      </Mono>
+      <span style={{ fontSize: 12, color: c.muted }}>{t.riskLabel}: {t.risk[level]}</span>
     </span>
   );
 }
@@ -255,23 +254,21 @@ function CompatBadge({
   const t = create[lang].skills;
   if (compat === "ok") {
     return (
-      <Mono color={c.green} size={10.5}>
-        ✓ {t.compatOk} · {t.compatOkHint(harnessLabel(harness))}
-      </Mono>
+      <span style={{ color: c.green, fontSize: 12.5 }}>
+        <Glyph symbol="✓" /> {t.compatOk} · {t.compatOkHint(harnessLabel(harness))}
+      </span>
     );
   }
   if (compat === "no") {
     return (
-      <Mono color={c.red} size={10.5}>
-        ✕ {t.compatNo} · {t.compatNoHint(missing.join(" · ") || t.noRequirements)}
-      </Mono>
+      <span style={{ color: c.red, fontSize: 12.5 }}>
+        <Glyph symbol="✕" /> {t.compatNo} · {t.compatNoHint(missing.join(" · ") || t.noRequirements)}
+      </span>
     );
   }
   return (
     <span title={t.compatUnknownHint}>
-      <Mono color={c.muted} size={10.5}>
-        ⚠ {t.compatUnknown}
-      </Mono>
+      <span style={{ color: c.muted, fontSize: 12.5 }}><Glyph symbol="⚠" /> {t.compatUnknown}</span>
     </span>
   );
 }

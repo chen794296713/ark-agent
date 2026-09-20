@@ -268,8 +268,7 @@ export function DirtyBar({
             bottom: 0,
             zIndex: 40,
             marginTop: 18,
-            background: c.glass,
-            backdropFilter: "blur(10px)",
+            background: c.panel,
             border: `1px solid ${errorCount > 0 ? c.redBorder : dirty ? c.amber : c.border}`,
             borderRadius: r.radiusMd,
             padding: "13px 16px",
@@ -277,7 +276,6 @@ export function DirtyBar({
             alignItems: "center",
             gap: 14,
             flexWrap: "wrap",
-            boxShadow: `0 8px 26px ${c.shadow}`,
           }}
         >
           <div style={{ flex: "1 1 260px", minWidth: 0 }}>
@@ -305,9 +303,9 @@ export function DirtyBar({
                 {errorCount > 0 && (
                   <span
                     style={{
-                      fontFamily: font.mono,
-                      fontSize: 10.5,
-                      letterSpacing: ".08em",
+                      fontFamily: font.sans,
+                      fontSize: 12,
+                      letterSpacing: "normal",
                       color: c.red,
                       border: `1px solid ${c.redBorder}`,
                       padding: "2px 6px",
@@ -353,7 +351,7 @@ export function DirtyBar({
                   background: "transparent",
                   color: busy ? c.faint : c.muted,
                   padding: "9px 16px",
-                  fontFamily: font.mono,
+                  fontFamily: font.sans,
                   fontSize: 12,
                   borderRadius: r.radiusSm,
                   cursor: busy ? "not-allowed" : "pointer",
@@ -373,9 +371,9 @@ export function DirtyBar({
                   background: busy || errorCount > 0 ? "transparent" : c.lime,
                   color: busy || errorCount > 0 ? c.faint : c.ink,
                   padding: "9px 18px",
-                  fontFamily: font.mono,
+                  fontFamily: font.sans,
                   fontSize: 12,
-                  borderRadius: r.radiusSm,
+                  borderRadius: 999,
                   cursor: busy || errorCount > 0 ? "not-allowed" : "pointer",
                 }}
               >

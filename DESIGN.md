@@ -22,6 +22,62 @@ colors:
   error: "#8e322f"
   error-wash: "#fcf0ed"
   error-border: "#b58179"
+  workspace-light-bg: "#FEFEFD"
+  workspace-light-panel: "#FEFEFD"
+  workspace-light-panel-deep: "#F4F6EF"
+  workspace-light-hover: "#EEF2E7"
+  workspace-light-line: "#DAE1D6"
+  workspace-light-line-soft: "#E6EBE1"
+  workspace-light-border: "#CDD6C7"
+  workspace-light-border-field: "#73836D"
+  workspace-light-lime: "#15362D"
+  workspace-light-lime-hover: "#2A5142"
+  workspace-light-lime-wash: "#EEF2E7"
+  workspace-light-lime-wash2: "#E6EDDC"
+  workspace-light-lime-border: "#A9BA93"
+  workspace-light-ink: "#FEFEFD"
+  workspace-light-text: "#10271F"
+  workspace-light-text2: "#213C30"
+  workspace-light-muted: "#3C5142"
+  workspace-light-faint: "#5A6C5B"
+  workspace-light-green: "#28623F"
+  workspace-light-green-wash: "#EAF2E7"
+  workspace-light-green-border: "#ADC5A5"
+  workspace-light-amber: "#805C15"
+  workspace-light-orange: "#99451F"
+  workspace-light-red: "#A23732"
+  workspace-light-red-wash: "#F9ECE8"
+  workspace-light-red-border: "#D6AAA1"
+  workspace-light-blue: "#315F80"
+  workspace-light-nav-selected: "#E6EDDC"
+  workspace-dark-bg: "#101C17"
+  workspace-dark-panel: "#15231C"
+  workspace-dark-panel-deep: "#1C2B22"
+  workspace-dark-hover: "#223027"
+  workspace-dark-line: "#35463A"
+  workspace-dark-line-soft: "#2A3B30"
+  workspace-dark-border: "#4C5D50"
+  workspace-dark-border-field: "#879A7E"
+  workspace-dark-lime: "#C6D897"
+  workspace-dark-lime-hover: "#D6E5B3"
+  workspace-dark-lime-wash: "#293525"
+  workspace-dark-lime-wash2: "#303D2A"
+  workspace-dark-lime-border: "#61764A"
+  workspace-dark-ink: "#10271F"
+  workspace-dark-text: "#FEFEF8"
+  workspace-dark-text2: "#E3EBDD"
+  workspace-dark-muted: "#C0CEB8"
+  workspace-dark-faint: "#A0B197"
+  workspace-dark-green: "#A2D698"
+  workspace-dark-green-wash: "#243822"
+  workspace-dark-green-border: "#526D49"
+  workspace-dark-amber: "#EAC57D"
+  workspace-dark-orange: "#EBB28A"
+  workspace-dark-red: "#F3ADA3"
+  workspace-dark-red-wash: "#3D2925"
+  workspace-dark-red-border: "#80554B"
+  workspace-dark-blue: "#ACCBDD"
+  workspace-dark-nav-selected: "#35452B"
 typography:
   display:
     fontFamily: "Geom, sans-serif"
@@ -52,7 +108,29 @@ typography:
     fontSize: "36px"
     fontWeight: 600
     lineHeight: 0.95
+  workspace-heading:
+    fontFamily: "Geom, sans-serif"
+    fontSize: "32px"
+    fontWeight: 650
+    lineHeight: 1.15
+    letterSpacing: "-0.025em"
+  workspace-title:
+    fontFamily: "Geom, sans-serif"
+    fontSize: "18px"
+    fontWeight: 600
+  workspace-label:
+    fontFamily: "Instrument Sans, sans-serif"
+    fontSize: "13px"
+  auth-title:
+    fontFamily: "Geom, sans-serif"
+    fontSize: "clamp(30px, 3vw, 42px)"
+    fontWeight: 650
+    lineHeight: 1.1
+    letterSpacing: "-0.025em"
 rounded:
+  workspace-small: "6px"
+  workspace-medium: "8px"
+  workspace-large: "12px"
   select: "4px"
   field: "7px"
   option: "8px"
@@ -66,6 +144,31 @@ spacing:
   block: "32px"
   wide: "48px"
 components:
+  workspace-primary:
+    backgroundColor: "{colors.workspace-light-lime}"
+    textColor: "{colors.workspace-light-ink}"
+    rounded: "{rounded.action}"
+    padding: "14px 24px"
+    height: "50px"
+  workspace-secondary:
+    textColor: "{colors.workspace-light-text}"
+    rounded: "{rounded.action}"
+    padding: "12px 18px"
+  workspace-field:
+    backgroundColor: "{colors.workspace-light-panel}"
+    textColor: "{colors.workspace-light-text}"
+    rounded: "{rounded.field}"
+    padding: "13px 15px"
+  workspace-navigation-selected:
+    backgroundColor: "{colors.workspace-light-nav-selected}"
+    textColor: "{colors.workspace-light-text}"
+    rounded: "{rounded.workspace-small}"
+    padding: "10px 12px"
+  workspace-avatar:
+    backgroundColor: "{colors.workspace-light-lime-wash2}"
+    textColor: "{colors.workspace-light-lime}"
+    rounded: "{rounded.workspace-medium}"
+    size: "44px"
   button-primary:
     backgroundColor: "{colors.forest}"
     textColor: "{colors.on-forest}"
@@ -119,11 +222,13 @@ components:
 
 Painted fictional coworkers give each AI role a recognizable face. Near-white space, forest lettering, leaf-green image fields, and substantial rounded type make the experience approachable while keeping responsibilities and controls readable. The approved reference is `.impeccable/mocks/decision/team-directory.png`; the surface composition contract remains in `.impeccable/surfaces/app-page-tsx.md`.
 
-This system covers the landing page, public agent profiles, and hiring flow only. It is extracted from `components/marketing/*.module.css`, their TSX components, `app/hire/hire.module.css`, and font declarations in `app/layout.tsx`. The dashboard, authentication, and other existing surfaces retain the separate themes in `app/globals.css`; these tokens do not replace those themes. Marketing and hiring explicitly establish a light local scope.
+This system covers the landing page, public agent profiles, hiring, authentication, payment and its return state, and the functional workspace. The approved extension is recorded in `.impeccable/surfaces/app-dashboard-layout-tsx.md`. Marketing and the original hiring flow retain their local light scope. Functional surfaces use the Team Directory global light default and its dark counterpart; previously selected Terminal, Ivory, and Midnight appearances remain supported.
+
+Source evidence includes `app/globals.css`, `lib/theme.ts`, `components/marketing/*.module.css`, `app/hire/hire.module.css`, `app/auth/auth.module.css`, dashboard and payment routes, generated hiring, and the shared Brand, WorkspaceIcon, AgentAvatar, and interaction primitives. Operational pages express the same world with compact headings, explicit labels, restrained dividers, and data-led density.
 
 **Key Characteristics:**
 
-- Original painted portraits with sharp rectangular edges.
+- Original painted portraits with sharp rectangular edges on public and auth surfaces; small rounded role avatars in the workspace.
 - Heavy Geom headings, readable Instrument Sans copy, and a sparing Caveat annotation.
 - Rounded primary actions, flat content, fine dividers, and visible native controls.
 - Real links and editable briefs; illustrations and sample work remain identified as such.
@@ -144,7 +249,9 @@ A restrained green palette leaves the portraits as the richest visual material. 
 - **Divider / Profile divider / Hiring line:** lightweight rules that separate content without enclosing every block.
 - **Selection wash / Selection border:** selected radio options and channels. Error colors apply to failure messages, never decoration.
 
-**The Local Palette Rule.** Keep these colors scoped to the team-directory surfaces; the root theme variables belong to the incumbent application themes.
+Functional frontmatter colors are named `workspace-light-*` and `workspace-dark-*` after the actual `--c-*` roles. `lime` is a retained API name: it resolves to forest in Team Directory light and leaf in dark. Primary controls pair it with `ink`; ordinary copy uses text, text2, muted, and faint. Status colors identify real success, warning, error, and informational states. Field boundaries use border-field, distinct from decorative lines. Functional component primitives show the default light mode; their sidecar previews bind to live theme variables.
+
+**The Theme Boundary Rule.** Use global semantic variables on functional pages so both mode and saved appearance remain effective. Preserve the local light palette on marketing and the original hiring flow.
 
 ## Typography
 
@@ -163,6 +270,8 @@ The rounded geometric display face carries recognition; the quieter body face ca
 - **Body:** base copy uses the recorded body role; introductions and descriptive blocks expand to 17–20px. Long explanations commonly stop at 55–65ch. Hiring base line-height is 1.55.
 - **Label:** sentence-case body typography; fine-print notes use 12–14px. Numeric prices and step numbers use tabular numerals.
 - **Annotation:** handwritten explanation accompanies the landing portraits; it is not a navigation or form-label face.
+- **Workspace:** page headings use the recorded workspace-heading role, with related functional headings generally 28–36px. Card titles use 18–20px; controls and copy use 13–16px, secondary labels commonly 12px. Auth is an intentional larger composition: its form heading uses auth-title and its illustrated introduction uses `clamp(40px, 4.5vw, 64px)`.
+- **Technical values:** IBM Plex Mono remains for actual identifiers, timestamps, and cron expressions; rendered chat code uses Geist Mono. Ordinary labels and prose use Instrument Sans. Saved legacy appearances may switch the display face through `--f-display`.
 
 **The Readable Roles Rule.** Use display type for role identity and headings; use the body face for tasks, costs, labels, and boundaries.
 
@@ -174,15 +283,21 @@ At 1100px the lower landing gutters narrow and role rows lose the separate trail
 
 The landing's five staggered portrait positions are a surface-specific composition, not a universal grid for every page. Profile heroes instead use a portrait/text split; sample content uses paired columns and readable measures.
 
+The workspace desktop grid is a 236px sidebar plus flexible content. Page padding is 36px vertically and 40px horizontally. At 1024px, dense three/four-column grids reduce to two and overview/billing splits stack. At 640px, content padding becomes 20px by 16px and navigation becomes a mobile header plus a 280px drawer capped at 86vw. Dense tables and technical content use contained scrolling; flexible columns must be allowed to shrink. Auth uses a 1220px split layout with a 440px form, becoming a single form column below 900px.
+
 ## Elevation & Depth
 
-The world is predominantly flat. Portraits, tinted sections, paper panels, and fine borders establish hierarchy; sample sheets do not cast shadows. The one overlay shadow belongs to the mobile navigation (`0 12px 28px #15362d15`). The landing sample handoff rotates by -1 degree on desktop and returns upright on mobile.
+The world is predominantly flat. Portraits, tinted sections, paper panels, and fine borders establish hierarchy; sample sheets do not cast shadows. The marketing overlay shadow belongs to the mobile navigation (`0 12px 28px #15362d15`). The landing sample handoff rotates by -1 degree on desktop and returns upright on mobile.
 
-**The Flat Content Rule.** Keep content on the page plane; reserve the observed soft shadow for the navigation overlay. Do not generalize that exception into elevated cards.
+The functional mobile drawer uses `0 24px 64px var(--c-shadow)` above a themed scrim. Its transform transition is .22s ease; the scrim fades in over .18s. Shared interactive primitives transition background, border, color, shadow, and opacity over .15s ease and apply the same feedback on pointer press. Auth removes transitions for reduced-motion preferences.
+
+**The Flat Content Rule.** Keep ordinary content on the page plane; reserve overlay depth for navigation and dialogs. Do not generalize overlay shadows into elevated cards.
 
 ## Shapes
 
 Portraits and sample sheets have sharp rectangular edges. Profile and hiring portraits use 4:5 containers; mobile profile heroes switch to a square crop with object-position center 24%, while the mobile directory uses 2:3 image boxes. Main actions are pills, form fields and options are gently rounded, and step markers are circles. SVG line arrows and CSS-drawn disclosure marks provide direction. These shapes coexist intentionally: rounded actions do not imply rounded imagery.
+
+Functional surface radii use responsive small/medium/large steps: 6/8/12px on desktop and 4/6/8px on mobile. The shared avatar is a distinct 8px rounded image or monogram container. WorkspaceIcon uses 1.6px SVG strokes, rounded caps and joins, and a 19px default size beside persistent text labels. The Brand wordmark uses Geom at 31px or compact 25px, weight 700 and -.04em tracking.
 
 ## Components
 
@@ -191,6 +306,8 @@ Portraits and sample sheets have sharp rectangular edges. Profile and hiring por
 Primary actions are forest pills with light labels. Landing actions use the primary token; profile actions use 14px 24px padding and a 54px minimum height. Hiring uses the hire token with a 48px minimum height. Secondary hiring actions are transparent, outlined pills; back actions are transparent and underline on hover. Disabled hiring actions use muted green-gray fills or borders and a not-allowed cursor.
 
 Marketing primary hover and pressed colors are tokenized. Landing color changes take .18s ease; hiring button colors and borders take .15s ease. Profile actions change immediately. Marketing keyboard focus uses a 2px ring with 5px offset; profile links use forest with 6px offset. Hiring uses a 3px ring in `#49683b`, offset 4px. Footer focus changes to leaf for contrast.
+
+Functional primary actions bind forest/leaf fill to the matching on-accent ink and use lime-hover for pointer feedback. Auth primary and secondary actions are represented by workspace-primary and workspace-secondary; their respective minimum heights are 50px and 48px. Dashboard actions use compact context-specific sizing, including a pill-shaped hire action. Functional keyboard focus is a 2px accent outline at 3px offset; auth uses 4px offset. Mobile buttons have a 44px minimum target height.
 
 ### Chips
 
@@ -204,9 +321,17 @@ Role selection options are white, outlined, rounded rows with native radio contr
 
 Inputs and textareas use white fill, forest text, field-border, the field radius, and recorded padding. Textareas have a 132px minimum height and vertical resize. Search wraps the input in an 8px container and uses a 3px focus-within ring with 3px offset. Field labels remain visible; placeholder copy is muted. Errors use the red wash, red border, and red text together.
 
+Functional form fields use themed panel fill, text, and border-field boundaries. Auth uses the recorded workspace-field geometry, visible 13px labels, and a separate password visibility control. Success and error panels combine the corresponding text, wash, and border tokens with a written message.
+
 ### Navigation
 
 The marketing header uses a text wordmark, ordinary text links with a 44px minimum target height, and hover underlines. Below 900px a native details/summary menu exposes links and language selection. The footer repeats navigation on forest and has a native language select. Hiring uses a wordmark and directory return link, then a numbered step rail; current steps fill forest, completed steps fill pale green.
+
+Workspace navigation uses 14px Instrument Sans, SVG icons, 10px 12px padding, and the responsive small radius. Selected rows use nav-selected with primary text and `aria-current`; unselected rows use muted text. The sidebar closes when navigation changes, and the mobile drawer sits above its scrim.
+
+### Agent identity
+
+AgentAvatar uses painted portraits only for exact catalog role identifiers: recruiting, job-applicant, video-creator, sales-outreach, and email-assistant. Custom agents retain their own initials. The default 44px avatar uses a themed pale backing and fine border; its portrait crop is centered at 50% 20%. Never infer a catalog portrait from an unrelated custom name.
 
 ### Portrait links and motion
 
@@ -221,13 +346,15 @@ Marketing reduced-motion rules set animation and transition durations to .01ms a
 - **Do** preserve the original painted portrait material and sharp image edges.
 - **Do** keep labels readable without hover and retain visible keyboard focus.
 - **Do** retain real native inputs, explicit selected states, and distinct error messages.
-- **Do** preserve the light local scope when these surfaces sit inside the existing themed app.
+- **Do** preserve the marketing and original hiring light scopes while using semantic theme variables for functional pages.
+- **Do** keep custom-agent initials distinct from exact catalog-role portraits.
 
 ### Don't:
 
 - **Don't** replace fictional role illustrations with claims of real employees or verified customer outcomes.
 - **Don't** spread the handwritten annotation face into controls or long copy.
 - **Don't** turn the five-person landing arrangement into a layout requirement for other surfaces.
-- **Don't** import dashboard neon or dark-theme colors into this scoped world without an approved system change.
+- **Don't** hardcode light workspace colors into controls that must support dark mode and saved appearances.
+- **Don't** use technical typography as decoration for ordinary labels or prose.
 
-Not canonized: the unchanged dashboard themes are outside this scope, not drift to repair. No craft-floor defect is promoted into a reusable rule by this source-based documentation pass; visual finish findings remain owned by the finish review.
+Not canonized: legacy theme/source comments still describe the former three-direction system; they are historical implementation drift, not authority for new surfaces. Tiny residual utility text is not added to the functional type ramp. This documentation pass records the approved extension and does not repair source or reopen the finish review.

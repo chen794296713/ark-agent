@@ -20,6 +20,7 @@ export interface CommonDict {
   themeLight: string;
   /** Accessible label for the brand-direction picker. */
   direction: string;
+  dirTeam: string;
   dirTerminal: string;
   dirIvory: string;
   dirMidnight: string;
@@ -55,6 +56,7 @@ export const common: Record<Lang, CommonDict> = {
     themeDark: "Dark mode",
     themeLight: "Light mode",
     direction: "Direction",
+    dirTeam: "Team Directory",
     dirTerminal: "Terminal Lime",
     dirIvory: "Ivory Studio",
     dirMidnight: "Midnight Console",
@@ -78,6 +80,7 @@ export const common: Record<Lang, CommonDict> = {
     themeDark: "深色模式",
     themeLight: "浅色模式",
     direction: "风格",
+    dirTeam: "团队工作室",
     dirTerminal: "终端青柠",
     dirIvory: "象牙工作室",
     dirMidnight: "午夜控制台",
@@ -101,6 +104,7 @@ export const common: Record<Lang, CommonDict> = {
     themeDark: "深色模式",
     themeLight: "淺色模式",
     direction: "風格",
+    dirTeam: "團隊工作室",
     dirTerminal: "終端青檸",
     dirIvory: "象牙工作室",
     dirMidnight: "午夜控制台",
@@ -124,6 +128,7 @@ export const common: Record<Lang, CommonDict> = {
     themeDark: "ダークモード",
     themeLight: "ライトモード",
     direction: "スタイル",
+    dirTeam: "チーム・スタジオ",
     dirTerminal: "ターミナル・ライム",
     dirIvory: "アイボリー・スタジオ",
     dirMidnight: "ミッドナイト・コンソール",

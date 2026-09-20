@@ -76,7 +76,7 @@ function updatedWord(iso: string | null, t: Dict, lang: keyof typeof dict): stri
 // Small shared pieces
 // ---------------------------------------------------------------------------
 
-const labelStyle = { fontFamily: font.mono, fontSize: 10.5, color: c.muted, letterSpacing: "0.06em" } as const;
+const labelStyle = { fontFamily: font.sans, fontSize: 12, color: c.muted, letterSpacing: "normal" } as const;
 
 const controlStyle = {
   background: c.panel,
@@ -93,8 +93,8 @@ function RiskPill({ level, t }: { level: SkillRisk; t: Dict }) {
   return (
     <span
       style={{
-        fontFamily: font.mono,
-        fontSize: 10.5,
+        fontFamily: font.sans,
+        fontSize: 12,
         color: RISK_COLOR[level],
         border: `1px solid ${RISK_COLOR[level]}`,
         borderRadius: r.radiusSm,
@@ -109,8 +109,8 @@ function RiskPill({ level, t }: { level: SkillRisk; t: Dict }) {
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <section style={{ marginTop: 22 }}>
-      <div style={{ ...labelStyle, marginBottom: 8 }}>{title.toUpperCase()}</div>
+    <section style={{ marginTop: 28 }}>
+      <h3 style={{ fontFamily: font.space, fontSize: 18, fontWeight: 600, margin: "0 0 12px", color: c.text }}>{title}</h3>
       {children}
     </section>
   );
@@ -125,8 +125,8 @@ function Chips({ values, empty }: { values: string[]; empty: string }) {
         <span
           key={v}
           style={{
-            fontFamily: font.mono,
-            fontSize: 11,
+            fontFamily: font.sans,
+            fontSize: 12,
             color: c.text2,
             background: c.panelDeep,
             border: `1px solid ${c.line}`,
@@ -159,11 +159,10 @@ function SkillCard({ s, t, lang, onOpen }: { s: SkillCardDTO; t: Dict; lang: key
       }}
       hoverStyle={{ borderColor: c.borderMute }}
       style={{
-        border: `1px solid ${c.border}`,
-        background: c.panel,
-        padding: 18,
+        borderTop: `1px solid ${c.line}`,
+        background: "transparent",
+        padding: "24px 0",
         cursor: "pointer",
-        borderRadius: r.radiusMd,
         display: "flex",
         flexDirection: "column",
         gap: 10,
@@ -171,12 +170,12 @@ function SkillCard({ s, t, lang, onOpen }: { s: SkillCardDTO; t: Dict; lang: key
     >
       <div style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontFamily: font.space, fontWeight: 700, fontSize: 16, wordBreak: "break-word" }}>
+          <h2 style={{ margin: 0,  fontFamily: font.space, fontWeight: 650, fontSize: 20, wordBreak: "break-word" }}>
             {s.name}
-          </div>
+          </h2>
           {/* The raw handle, always — `mukul975/Anthropic-Cybersecurity-Skills`
               is exactly the name-vs-authority incoherence ClawHavoc exploited. */}
-          <div style={{ fontFamily: font.mono, fontSize: 11, color: c.muted, marginTop: 2 }}>
+          <div style={{ fontFamily: font.mono, fontSize: 12, color: c.muted, marginTop: 2 }}>
             {s.ownerHandle ? `${s.ownerHandle}/` : ""}
             {s.slug}
           </div>
@@ -187,21 +186,21 @@ function SkillCard({ s, t, lang, onOpen }: { s: SkillCardDTO; t: Dict; lang: key
       <div style={{ fontSize: 13, color: c.text2, lineHeight: 1.5 }}>{s.summary}</div>
 
       <div style={{ display: "flex", flexWrap: "wrap", gap: 6, alignItems: "center" }}>
-        <span style={{ fontFamily: font.mono, fontSize: 10.5, color: c.muted }}>
+        <span style={{ fontFamily: font.sans, fontSize: 12, color: c.muted }}>
           {categoryLabel(s.category, lang)}
         </span>
         <span style={{ color: c.line }}>·</span>
-        <span style={{ fontFamily: font.mono, fontSize: 10.5, color: c.muted }}>{formatWord(t, s.format)}</span>
+        <span style={{ fontFamily: font.sans, fontSize: 12, color: c.muted }}>{formatWord(t, s.format)}</span>
         {s.verified ? (
           <>
             <span style={{ color: c.line }}>·</span>
-            <span style={{ fontFamily: font.mono, fontSize: 10.5, color: c.accent }}>{t.verifiedBadge}</span>
+            <span style={{ fontFamily: font.sans, fontSize: 12, color: c.accent }}>{t.verifiedBadge}</span>
           </>
         ) : null}
         {s.attachment ? (
           <>
             <span style={{ color: c.line }}>·</span>
-            <span style={{ fontFamily: font.mono, fontSize: 10.5, color: c.green }}>{t.addedBadge}</span>
+            <span style={{ fontFamily: font.sans, fontSize: 12, color: c.green }}>{t.addedBadge}</span>
           </>
         ) : null}
       </div>
@@ -209,25 +208,26 @@ function SkillCard({ s, t, lang, onOpen }: { s: SkillCardDTO; t: Dict; lang: key
       <div
         style={{
           display: "flex",
-          border: `1px solid ${c.line}`,
-          fontFamily: font.mono,
-          fontSize: 10.5,
+          borderTop: `1px solid ${c.lineSoft}`,
+          paddingTop: 12,
+          fontFamily: font.sans,
+          fontSize: 12,
           color: c.muted,
           borderRadius: r.radiusSm,
         }}
       >
-        <div style={{ padding: "8px 10px", borderRight: `1px solid ${c.line}`, flex: 1, minWidth: 0 }}>
+        <div style={{ padding: "4px 10px 4px 0", flex: 1, minWidth: 0 }}>
           {t.licenseLabel}
           <div style={{ color: c.text2, fontSize: 12, marginTop: 2, overflow: "hidden", textOverflow: "ellipsis" }}>
             {s.license}
             {s.licenseVerified ? "" : ` · ${t.licenseUnverified}`}
           </div>
         </div>
-        <div style={{ padding: "8px 10px", borderRight: `1px solid ${c.line}`, flex: 1, minWidth: 0 }}>
+        <div style={{ padding: "4px 10px 4px 0", flex: 1, minWidth: 0 }}>
           {t.downloadsLabel}
           <div style={{ color: c.text2, fontSize: 12, marginTop: 2 }}>{num(s.downloads, lang)}</div>
         </div>
-        <div style={{ padding: "8px 10px", flex: 1, minWidth: 0 }}>
+        <div style={{ padding: "4px 0", flex: 1, minWidth: 0 }}>
           {t.updatedLabel}
           <div style={{ color: c.text2, fontSize: 12, marginTop: 2 }}>{updatedWord(s.upstreamUpdatedAt, t, lang)}</div>
         </div>
@@ -241,8 +241,8 @@ function SkillCard({ s, t, lang, onOpen }: { s: SkillCardDTO; t: Dict; lang: key
               key={h}
               title={on ? t.compatSupported : t.compatUnsupported}
               style={{
-                fontFamily: font.mono,
-                fontSize: 10,
+                fontFamily: font.sans,
+                fontSize: 12,
                 padding: "2px 6px",
                 borderRadius: r.radiusSm,
                 border: `1px solid ${on ? c.greenBorder : c.line}`,
@@ -338,10 +338,10 @@ function Drawer({
               border: `1px solid ${c.borderStrong}`,
               color: c.muted,
               padding: "6px 12px",
-              fontFamily: font.space,
+              fontFamily: font.sans,
               fontSize: 12.5,
               cursor: "pointer",
-              borderRadius: r.radiusSm,
+              borderRadius: 999,
             }}
           >
             {t.close}
@@ -355,20 +355,20 @@ function Drawer({
 
         {skill ? (
           <>
-            <h3 style={{ fontFamily: font.space, fontSize: 22, margin: "12px 0 4px", wordBreak: "break-word" }}>
+            <h2 style={{ fontFamily: font.space, fontSize: 22, margin: "12px 0 4px", wordBreak: "break-word" }}>
               {skill.name}
-            </h3>
-            <div style={{ fontFamily: font.mono, fontSize: 11.5, color: c.muted }}>
+            </h2>
+            <div style={{ fontFamily: font.mono, fontSize: 12, color: c.muted }}>
               {skill.ownerHandle ? `${skill.ownerHandle}/` : ""}
               {skill.slug} · {t.versionLabel} {skill.latestVersion}
             </div>
 
             <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", marginTop: 12 }}>
               <RiskPill level={skill.riskLevel} t={t} />
-              <span style={{ fontFamily: font.mono, fontSize: 10.5, color: c.muted }}>
+              <span style={{ fontFamily: font.sans, fontSize: 12, color: c.muted }}>
                 {categoryLabel(skill.category, lang)}
               </span>
-              <span style={{ fontFamily: font.mono, fontSize: 10.5, color: c.muted }}>
+              <span style={{ fontFamily: font.sans, fontSize: 12, color: c.muted }}>
                 {formatWord(t, skill.format)}
               </span>
             </div>
@@ -423,7 +423,7 @@ function Drawer({
                           : t.basisUnknown;
                   return (
                     <div key={h} style={{ display: "flex", gap: 10, alignItems: "baseline", fontSize: 12.5 }}>
-                      <span style={{ fontFamily: font.mono, minWidth: 90, color: c.text2 }}>{harnessLabel(h)}</span>
+                      <span style={{ fontFamily: font.sans, minWidth: 90, color: c.text2 }}>{harnessLabel(h)}</span>
                       <span style={{ color: cell.supported ? c.green : c.muted }}>
                         {cell.supported ? t.compatSupported : t.compatUnsupported}
                       </span>
@@ -447,7 +447,7 @@ function Drawer({
                     <li key={`${sig.code}-${i}`} style={{ fontSize: 13, color: c.text2, lineHeight: 1.5 }}>
                       {riskSignalText(sig.code, lang)}
                       {sig.delta !== 0 ? (
-                        <span style={{ fontFamily: font.mono, fontSize: 11, color: c.muted }}>
+                        <span style={{ fontFamily: font.mono, fontSize: 12, color: c.muted }}>
                           {" "}
                           ({sig.delta > 0 ? "+" : ""}
                           {sig.delta})
@@ -455,7 +455,7 @@ function Drawer({
                       ) : null}
                       {/* `detail` is publisher-adjacent text. Text node only. */}
                       {sig.detail ? (
-                        <div style={{ fontFamily: font.mono, fontSize: 11, color: c.muted }}>{sig.detail}</div>
+                        <div style={{ fontFamily: font.sans, fontSize: 12, color: c.muted }}>{sig.detail}</div>
                       ) : null}
                     </li>
                   ))}
@@ -556,7 +556,7 @@ function Drawer({
                   href={skill.sourceUrl}
                   target="_blank"
                   rel="noreferrer noopener nofollow"
-                  style={{ fontFamily: font.space, fontSize: 13, color: c.accent }}
+                  style={{ fontFamily: font.sans, fontSize: 13, color: c.accent }}
                 >
                   {t.viewSource}
                 </a>
@@ -693,10 +693,10 @@ export default function SkillsPage() {
   const catalogueEmpty = data !== null && data.total === 0 && !hasFilters;
 
   return (
-    <div style={{ padding: `${r.contentPy} ${r.pagePx}` }}>
+    <div data-screen-label="Skills" style={{ padding: `${r.contentPy} ${r.pagePx}` }}>
       <div style={{ marginBottom: 22 }}>
-        <h2 style={{ fontFamily: font.space, fontWeight: 700, fontSize: 26, margin: 0 }}>{t.heading}</h2>
-        <p style={{ fontSize: 13.5, color: c.muted, margin: "6px 0 0", maxWidth: 640, lineHeight: 1.55 }}>
+        <h1 style={{ fontFamily: font.space, fontWeight: 650, fontSize: 32, margin: 0 }}>{t.heading}</h1>
+        <p style={{ fontSize: 15, color: c.muted, margin: "8px 0 0", maxWidth: 640, lineHeight: 1.55 }}>
           {t.subheading}
         </p>
       </div>
@@ -813,10 +813,10 @@ export default function SkillsPage() {
               border: `1px solid ${c.borderStrong}`,
               color: c.muted,
               padding: "7px 13px",
-              fontFamily: font.space,
+              fontFamily: font.sans,
               fontSize: 12.5,
               cursor: "pointer",
-              borderRadius: r.radiusSm,
+              borderRadius: 999,
             }}
           >
             {t.clearFilters}
@@ -856,10 +856,10 @@ export default function SkillsPage() {
               border: `1px solid ${c.borderStrong}`,
               color: c.text,
               padding: "7px 13px",
-              fontFamily: font.space,
+              fontFamily: font.sans,
               fontSize: 12.5,
               cursor: "pointer",
-              borderRadius: r.radiusSm,
+              borderRadius: 999,
             }}
           >
             {t.retry}
@@ -869,20 +869,20 @@ export default function SkillsPage() {
         <div style={{ ...labelStyle, padding: "40px 0" }}>{t.loading}</div>
       ) : catalogueEmpty ? (
         <div style={{ border: `1px solid ${c.border}`, background: c.panel, padding: 28, borderRadius: r.radiusMd }}>
-          <div style={{ fontFamily: font.space, fontSize: 17, fontWeight: 700 }}>{t.emptyCatalogTitle}</div>
+          <h2 style={{ margin: 0,  fontFamily: font.space, fontSize: 17, fontWeight: 700 }}>{t.emptyCatalogTitle}</h2>
           <div style={{ fontSize: 13.5, color: c.muted, marginTop: 8, lineHeight: 1.6, maxWidth: 520 }}>
             {t.emptyCatalogBody}
           </div>
         </div>
       ) : data && data.items.length === 0 ? (
         <div style={{ border: `1px solid ${c.border}`, background: c.panel, padding: 28, borderRadius: r.radiusMd }}>
-          <div style={{ fontFamily: font.space, fontSize: 17, fontWeight: 700 }}>{t.noResultsTitle}</div>
+          <h2 style={{ margin: 0,  fontFamily: font.space, fontSize: 17, fontWeight: 700 }}>{t.noResultsTitle}</h2>
           <div style={{ fontSize: 13.5, color: c.muted, marginTop: 8, lineHeight: 1.6 }}>{t.noResultsBody}</div>
         </div>
       ) : data ? (
         <>
           <div style={{ ...labelStyle, marginBottom: 12 }}>{fill(t.resultCount, { n: num(data.total, lang) })}</div>
-          <div style={{ display: "grid", gridTemplateColumns: r.col3, gap: r.gapMd, opacity: loading ? 0.6 : 1 }}>
+          <div style={{ display: "grid", gridTemplateColumns: r.col3, gap: "12px 30px", opacity: loading ? 0.6 : 1 }}>
             {data.items.map((s) => (
               <SkillCard key={s.publicId} s={s} t={t} lang={lang} onOpen={() => setOpen(s.publicId)} />
             ))}
@@ -899,15 +899,15 @@ export default function SkillsPage() {
                   border: `1px solid ${c.borderStrong}`,
                   color: data.page <= 1 ? c.faint : c.text,
                   padding: "7px 14px",
-                  fontFamily: font.space,
+                  fontFamily: font.sans,
                   fontSize: 12.5,
                   cursor: data.page <= 1 ? "default" : "pointer",
-                  borderRadius: r.radiusSm,
+                  borderRadius: 999,
                 }}
               >
                 {t.prevPage}
               </Btn>
-              <span style={{ fontFamily: font.mono, fontSize: 11.5, color: c.muted }}>
+              <span style={{ fontFamily: font.sans, fontSize: 12, color: c.muted }}>
                 {fill(t.pageOf, { page: data.page, pages })}
               </span>
               <Btn
@@ -919,10 +919,10 @@ export default function SkillsPage() {
                   border: `1px solid ${c.borderStrong}`,
                   color: data.page >= pages ? c.faint : c.text,
                   padding: "7px 14px",
-                  fontFamily: font.space,
+                  fontFamily: font.sans,
                   fontSize: 12.5,
                   cursor: data.page >= pages ? "default" : "pointer",
-                  borderRadius: r.radiusSm,
+                  borderRadius: 999,
                 }}
               >
                 {t.nextPage}

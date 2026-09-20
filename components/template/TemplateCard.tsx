@@ -13,7 +13,7 @@
  *
  * Every human-visible string on a template the viewer's workspace does not own
  * is third-party text. It is rendered as a text node and nothing else: no
- * markdown, no dangerouslySetInnerHTML, and the ⬦ PUBLIC badge says so out loud.
+ * markdown, no dangerouslySetInnerHTML, and the Public badge identifies that ownership.
  */
 import { c, font, r } from "@/lib/theme";
 import { Btn, HoverDiv } from "@/components/ui";
@@ -76,14 +76,13 @@ export function TemplateCard({
   return (
     <HoverDiv
       onClick={() => onPreview(t)}
-      hoverStyle={{ borderColor: c.borderMute, background: c.hover }}
+      hoverStyle={{ borderColor: c.borderMute }}
       style={{
         display: "flex",
         flexDirection: "column",
-        border: `1px solid ${c.border}`,
-        background: c.panel,
-        borderRadius: r.radiusMd,
-        padding: 18,
+        borderTop: `1px solid ${c.line}`,
+        background: "transparent",
+        padding: "24px 0",
         cursor: "pointer",
       }}
     >
@@ -91,18 +90,18 @@ export function TemplateCard({
       <div style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
         <Glyph mono={t.mono} hue={t.hue} />
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div
-            style={{
+          <h2
+            style={{ margin: 0,
               fontFamily: font.space,
               fontWeight: 700,
-              fontSize: 16,
+              fontSize: 20,
               color: c.text,
               lineHeight: 1.3,
               overflowWrap: "anywhere",
             }}
           >
             {t.name}
-          </div>
+          </h2>
           <div style={{ fontSize: 12.5, color: c.muted, marginTop: 3 }}>
             {dict.categories[t.category] ?? t.category}
             {t.locale !== lang ? ` · ${dict.writtenIn(dict.langNames[t.locale] ?? t.locale)}` : ""}
@@ -123,9 +122,9 @@ export function TemplateCard({
             <span
               title={dict.needsReviewHint}
               style={{
-                fontFamily: font.mono,
-                fontSize: 10,
-                letterSpacing: ".08em",
+                fontFamily: font.sans,
+                fontSize: 12,
+                letterSpacing: "normal",
                 color: c.red,
                 border: `1px solid ${c.redBorder}`,
                 borderRadius: r.radiusSm,
@@ -144,8 +143,8 @@ export function TemplateCard({
         style={{
           ...clamp2,
           margin: "14px 0 0",
-          fontSize: 13.5,
-          lineHeight: 1.5,
+          fontSize: 14,
+          lineHeight: 1.6,
           color: c.text2,
           minHeight: 40,
         }}
@@ -166,16 +165,16 @@ export function TemplateCard({
       >
         <span
           style={{
-            fontFamily: font.mono,
-            fontSize: 10,
-            letterSpacing: ".08em",
+            fontFamily: font.sans,
+            fontSize: 12,
+            letterSpacing: "normal",
             color: c.muted,
           }}
         >
           {dict.labelTags}
         </span>
         {tags.length === 0 ? (
-          <span style={{ fontFamily: font.mono, fontSize: 10.5, color: c.faint }}>
+          <span style={{ fontFamily: font.sans, fontSize: 12, color: c.faint }}>
             {dict.noTags}
           </span>
         ) : (
@@ -195,9 +194,9 @@ export function TemplateCard({
         title={estimated ? dict.estimateHint : undefined}
         style={{
           display: "flex",
-          border: `1px solid ${c.line}`,
-          borderRadius: r.radiusSm,
-          marginTop: 14,
+          borderTop: `1px solid ${c.lineSoft}`,
+          paddingTop: 14,
+          marginTop: 18,
         }}
       >
         <Metric label={dict.labelLevel} value={dict.levels[level]} />
@@ -210,17 +209,17 @@ export function TemplateCard({
 
       <div
         style={{
-          fontFamily: font.mono,
-          fontSize: 11,
+          fontFamily: font.sans,
+          fontSize: 12,
           color: c.muted,
           marginTop: 12,
           lineHeight: 1.5,
         }}
       >
-        ◷ {dict.buildsOut(t.agentCount, t.skillCount, t.scheduleCount)}
+        {dict.buildsOut(t.agentCount, t.skillCount, t.scheduleCount)}
       </div>
 
-      <div style={{ display: "flex", gap: 8, marginTop: 14 }}>
+      <div style={{ display: "flex", gap: 8, marginTop: "auto", paddingTop: 18 }}>
         <Btn
           onClick={(e) => {
             e.stopPropagation();
@@ -239,12 +238,12 @@ export function TemplateCard({
             background: cta === "start" ? c.lime : "transparent",
             color: cta === "start" ? c.ink : c.text,
             padding: "10px 8px",
-            fontFamily: font.space,
+            fontFamily: font.sans,
             fontWeight: 700,
             fontSize: 13,
             cursor: cta === "blocked" ? "not-allowed" : "pointer",
             opacity: cta === "blocked" ? 0.6 : 1,
-            borderRadius: r.radiusSm,
+            borderRadius: 999,
             overflow: "hidden",
             textOverflow: "ellipsis",
             whiteSpace: "nowrap",
@@ -265,10 +264,10 @@ export function TemplateCard({
             background: "transparent",
             color: c.muted,
             padding: "10px 8px",
-            fontFamily: font.space,
+            fontFamily: font.sans,
             fontSize: 13,
             cursor: "pointer",
-            borderRadius: r.radiusSm,
+            borderRadius: 999,
           }}
         >
           {dict.preview}
@@ -276,7 +275,7 @@ export function TemplateCard({
       </div>
 
       {!affordable && (
-        <div style={{ fontFamily: font.mono, fontSize: 10.5, color: c.muted, marginTop: 8 }}>
+        <div style={{ fontFamily: font.sans, fontSize: 12, color: c.muted, marginTop: 8 }}>
           {dict.requiresPlan(dict.plans[t.minPlan] ?? t.minPlan)}
         </div>
       )}

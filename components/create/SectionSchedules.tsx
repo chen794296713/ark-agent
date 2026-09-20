@@ -472,7 +472,7 @@ function ScheduleRow({
               type="button"
               aria-expanded={advanced}
               onClick={() => setAdvanced((v) => !v)}
-              style={{ ...ghostBtn, fontFamily: font.mono, fontSize: 11 }}
+              style={{ ...ghostBtn, fontFamily: font.sans, fontSize: 13 }}
               hoverStyle={ghostBtnHover}
             >
               {advanced ? "▾ " : "▸ "}

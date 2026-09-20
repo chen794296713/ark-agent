@@ -45,7 +45,7 @@ const cell: React.CSSProperties = {
   overflow: "hidden",
   textOverflow: "ellipsis",
   whiteSpace: "nowrap",
-  fontFamily: font.mono,
+  fontFamily: font.sans,
   fontSize: 12,
   color: c.text2,
 };
@@ -77,11 +77,11 @@ function HeaderCell({
   const key = SORTABLE[id];
   const activeSort = key !== undefined && key === sort;
   const base: React.CSSProperties = {
-    fontFamily: font.mono,
-    fontSize: 11,
-    letterSpacing: ".08em",
+    fontFamily: font.sans,
+    fontSize: 12,
+    letterSpacing: "normal",
     color: activeSort ? c.text : c.muted,
-    textTransform: "uppercase",
+    textTransform: "none",
     textAlign: align,
     minWidth: 0,
     overflow: "hidden",
@@ -121,8 +121,7 @@ function HeaderCell({
           display: "inline-flex",
           alignItems: "center",
           gap: 4,
-          minHeight: 0,
-        }}
+          minHeight: 0, borderRadius: 999 }}
       >
         {label}
         <span aria-hidden="true" style={{ color: activeSort ? c.accent : "transparent" }}>

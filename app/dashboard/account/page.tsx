@@ -21,27 +21,25 @@ import type { IdentityProvider } from "@/lib/types-compat";
 import { c, font, r } from "@/lib/theme";
 
 const panelStyle: CSSProperties = {
-  border: `1px solid ${c.border}`,
-  background: c.panel,
-  padding: "clamp(20px, 4vw, 28px)",
-  borderRadius: r.radiusMd,
+  borderTop: `1px solid ${c.line}`,
+  background: "transparent",
+  padding: "26px 0",
 };
 
 const labelStyle: CSSProperties = {
   display: "block",
   marginBottom: 7,
   color: c.muted,
-  fontFamily: font.mono,
-  fontSize: 11,
-  letterSpacing: ".08em",
+  fontFamily: font.sans,
+  fontSize: 13,
 };
 
 const inputStyle: CSSProperties = {
   width: "100%",
   minWidth: 0,
   boxSizing: "border-box",
-  border: `1px solid ${c.border}`,
-  background: c.panelDeep,
+  border: `1px solid ${c.borderField}`,
+  background: c.panel,
   color: c.text,
   padding: "11px 12px",
   fontFamily: font.sans,
@@ -460,49 +458,39 @@ function AccountInner() {
   return (
     <div data-screen-label="Account" style={{ padding: `${r.contentPy} ${r.pagePx}` }}>
       <div style={{ marginBottom: 28 }}>
-        <div
-          style={{
-            color: c.accent,
-            fontFamily: font.mono,
-            fontSize: 11,
-            letterSpacing: ".12em",
-            marginBottom: 8,
-          }}
-        >
-          {t.eyebrow}
-        </div>
-        <h2
+
+        <h1
           style={{
             margin: 0,
             color: c.text,
             fontFamily: font.space,
-            fontSize: "clamp(22px, 4vw, 28px)",
-            fontWeight: 700,
+            fontSize: 32,
+            fontWeight: 650,
           }}
         >
           {t.heading}
-        </h2>
+        </h1>
       </div>
 
       <div
         style={{
           display: "grid",
           gridTemplateColumns: r.col2,
-          gap: r.gapMd,
+          gap: "40px",
           alignItems: "start",
         }}
       >
         <form onSubmit={saveProfile} style={panelStyle}>
-          <h3
+          <h2
             style={{
               margin: "0 0 22px",
               color: c.text,
               fontFamily: font.space,
-              fontSize: 18,
+              fontSize: 20,
             }}
           >
             {t.profileTitle}
-          </h3>
+          </h2>
 
           <div style={{ marginBottom: 18 }}>
             <label htmlFor="account-name" style={labelStyle}>
@@ -548,9 +536,9 @@ function AccountInner() {
               padding: "11px 17px",
               cursor: profileBusy ? "wait" : "pointer",
               opacity: profileBusy || !name.trim() || name.trim() === user.name ? 0.55 : 1,
-              fontFamily: font.space,
+              fontFamily: font.sans,
               fontWeight: 600,
-              borderRadius: r.radiusSm,
+              borderRadius: 999,
             }}
           >
             {profileBusy ? t.saving : t.saveProfile}
@@ -559,17 +547,17 @@ function AccountInner() {
         </form>
 
         <form onSubmit={changePassword} style={panelStyle}>
-          <h3
+          <h2
             style={{
               // The hint below carries the rest of the gap when it is shown.
               margin: hasPassword ? "0 0 22px" : "0 0 8px",
               color: c.text,
               fontFamily: font.space,
-              fontSize: 18,
+              fontSize: 20,
             }}
           >
             {hasPassword ? t.passwordTitle : t.setPasswordTitle}
-          </h3>
+          </h2>
 
           {hasPassword ? null : (
             <div style={{ marginBottom: 20, color: c.faint, fontSize: 12, lineHeight: 1.5 }}>
@@ -642,9 +630,9 @@ function AccountInner() {
               padding: "10px 17px",
               cursor: passwordBusy ? "wait" : "pointer",
               opacity: passwordBusy ? 0.55 : 1,
-              fontFamily: font.space,
+              fontFamily: font.sans,
               fontWeight: 600,
-              borderRadius: r.radiusSm,
+              borderRadius: 999,
             }}
           >
             {passwordBusy ? t.saving : hasPassword ? t.changePassword : t.setPassword}
@@ -654,9 +642,9 @@ function AccountInner() {
       </div>
 
       <section style={{ ...panelStyle, marginTop: r.gapMd }}>
-        <h3 style={{ margin: "0 0 8px", color: c.text, fontFamily: font.space, fontSize: 18 }}>
+        <h2 style={{ margin: "0 0 8px", color: c.text, fontFamily: font.space, fontSize: 20 }}>
           {t.connectionsTitle}
-        </h3>
+        </h2>
         <div style={{ marginBottom: 20, color: c.faint, fontSize: 12, lineHeight: 1.5 }}>
           {t.connectionsHint}
         </div>
@@ -740,10 +728,10 @@ function AccountInner() {
                         padding: "8px 14px",
                         cursor: blocked ? "not-allowed" : busy ? "wait" : "pointer",
                         opacity: busy || blocked ? 0.55 : 1,
-                        fontFamily: font.space,
+                        fontFamily: font.sans,
                         fontSize: 13,
                         fontWeight: 600,
-                        borderRadius: r.radiusSm,
+                        borderRadius: 999,
                       }}
                     >
                       {busy ? t.disconnecting : t.disconnect}
@@ -761,10 +749,10 @@ function AccountInner() {
                         padding: "8px 14px",
                         cursor: busy ? "wait" : "pointer",
                         opacity: busy ? 0.55 : 1,
-                        fontFamily: font.space,
+                        fontFamily: font.sans,
                         fontSize: 13,
                         fontWeight: 600,
-                        borderRadius: r.radiusSm,
+                        borderRadius: 999,
                       }}
                     >
                       {busy ? t.connecting : t.connect}
@@ -787,9 +775,9 @@ function AccountInner() {
           flexWrap: "wrap",
         }}
       >
-        {/* <h3 style={{ margin: 0, color: c.muted, fontFamily: font.space, fontSize: 15 }}>
+        {/* <h2 style={{ margin: 0, color: c.muted, fontFamily: font.space, fontSize: 15 }}>
           {t.signOutTitle}
-        </h3> */}
+        </h2> */}
         <button
           type="button"
           onClick={signOut}
@@ -801,10 +789,10 @@ function AccountInner() {
             padding: "7px 12px",
             cursor: logoutBusy ? "wait" : "pointer",
             opacity: logoutBusy ? 0.55 : 1,
-            fontFamily: font.space,
+            fontFamily: font.sans,
             fontSize: 13,
             fontWeight: 500,
-            borderRadius: r.radiusSm,
+            borderRadius: 999,
           }}
         >
           {logoutBusy ? t.signingOut : t.signOut}

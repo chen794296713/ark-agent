@@ -266,9 +266,9 @@ export function RulesPanel({
                     <span
                       aria-hidden="true"
                       style={{
-                        fontFamily: font.mono,
-                        fontSize: 10,
-                        letterSpacing: ".08em",
+                        fontFamily: font.sans,
+                        fontSize: 12,
+                        letterSpacing: "normal",
                         color: KIND_COLOR[rule.kind],
                       }}
                     >
@@ -318,12 +318,13 @@ export function RulesPanel({
       >
         <h4
           style={{
-            fontFamily: font.mono,
-            fontSize: 11,
-            letterSpacing: ".12em",
-            color: c.text2,
+            marginTop: 0,
+            fontFamily: font.space,
+            fontSize: 16,
+            letterSpacing: "-.01em",
+            color: c.text,
             margin: 0,
-            fontWeight: 400,
+            fontWeight: 600,
           }}
         >
           {t.boundariesTitle}
@@ -422,7 +423,7 @@ function AddButton({
         background: "transparent",
         color: disabled ? c.faint : c.muted,
         padding: "8px 14px",
-        fontFamily: font.mono,
+        fontFamily: font.sans,
         fontSize: 12,
         borderRadius: r.radiusSm,
         cursor: disabled ? "not-allowed" : "pointer",

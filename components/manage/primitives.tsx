@@ -3,10 +3,9 @@
 /**
  * The management surface's shared primitives.
  *
- * `SettingCard`, `Field`, `Toggle`, `Seg`, `SelectField` and `Chip` are ported
- * VERBATIM in look and behaviour from `app/dashboard/fleet/[id]/page.tsx:1440-1640`
- * — same paddings, same 40×22 switch, same mono label tracking — so the new panels
- * sit inside the existing Settings tab without a seam. They are copied rather than
+ * `SettingCard`, `Field`, `Toggle`, `Seg`, `SelectField` and `Chip` share the
+ * compact team-directory typography and controls used by the Settings tab.
+ * They are copied rather than
  * imported because that file does not export them and this vertical does not own
  * it; §G.1 promotes them to `components/` in a later pass, at which point these
  * definitions are deleted and the imports re-pointed. The only additions are the
@@ -28,9 +27,10 @@ import { c, font, r } from "@/lib/theme";
 import { Btn } from "@/components/ui";
 
 export const sLabel: CSSProperties = {
-  fontFamily: font.mono,
-  fontSize: 11,
-  letterSpacing: ".1em",
+  fontFamily: font.sans,
+  fontSize: 13,
+  fontWeight: 500,
+  letterSpacing: "normal",
   color: c.muted,
   marginBottom: 7,
   display: "block",
@@ -42,7 +42,7 @@ export const sLabel: CSSProperties = {
  */
 export const sInput: CSSProperties = {
   width: "100%",
-  background: c.bg,
+  background: c.panel,
   border: `1px solid ${c.borderField}`,
   borderRadius: r.radiusSm,
   color: c.text,
@@ -53,9 +53,9 @@ export const sInput: CSSProperties = {
 };
 
 export const sMonoLabel: CSSProperties = {
-  fontFamily: font.mono,
-  fontSize: 11,
-  letterSpacing: ".08em",
+  fontFamily: font.sans,
+  fontSize: 12,
+  letterSpacing: "normal",
   color: c.muted,
 };
 
@@ -95,7 +95,7 @@ export function SettingCard({
       style={{
         border: `1px solid ${invalid ? c.redBorder : c.border}`,
         background: c.panel,
-        padding: 22,
+        padding: 24,
         borderRadius: r.radiusMd,
         display: "flex",
         flexDirection: "column",
@@ -108,12 +108,12 @@ export function SettingCard({
           <h3
             id={sectionId ? `${sectionId}-h` : undefined}
             style={{
-              fontFamily: font.mono,
-              fontSize: 11,
-              letterSpacing: ".12em",
-              color: c.text2,
+              fontFamily: font.space,
+              fontSize: 19,
+              letterSpacing: "-.01em",
+              color: c.text,
               margin: 0,
-              fontWeight: 400,
+              fontWeight: 600,
             }}
           >
             {title}
@@ -121,9 +121,9 @@ export function SettingCard({
           {badge && (
             <span
               style={{
-                fontFamily: font.mono,
-                fontSize: 10.5,
-                letterSpacing: ".08em",
+                fontFamily: font.sans,
+                fontSize: 12,
+                letterSpacing: "normal",
                 color: badgeColor ?? c.muted,
                 border: `1px solid ${badgeColor ?? c.border}`,
                 padding: "2px 6px",
@@ -138,9 +138,9 @@ export function SettingCard({
           {invalid && problemLabel && (
             <span
               style={{
-                fontFamily: font.mono,
-                fontSize: 10.5,
-                letterSpacing: ".08em",
+                fontFamily: font.sans,
+                fontSize: 12,
+                letterSpacing: "normal",
                 color: c.red,
                 border: `1px solid ${c.redBorder}`,
                 padding: "2px 6px",
@@ -153,9 +153,9 @@ export function SettingCard({
           {dirty && editedLabel && (
             <span
               style={{
-                fontFamily: font.mono,
-                fontSize: 10.5,
-                letterSpacing: ".08em",
+                fontFamily: font.sans,
+                fontSize: 12,
+                letterSpacing: "normal",
                 color: c.amber,
                 border: `1px solid ${c.amber}`,
                 padding: "2px 6px",
@@ -321,7 +321,7 @@ export function Toggle({
         style={{
           width: 40,
           height: 22,
-          borderRadius: 11,
+          borderRadius: 999,
           border: `1px solid ${on ? c.limeBorder : c.borderField}`,
           background: on ? c.lime : "transparent",
           position: "relative",
@@ -413,9 +413,9 @@ export function Seg<T extends string>({
               color: on ? c.ink : c.muted,
               border: "none",
               padding: "7px 14px",
-              fontFamily: font.mono,
-              fontSize: 11.5,
-              letterSpacing: ".03em",
+              fontFamily: font.sans,
+              fontSize: 12,
+              letterSpacing: "normal",
               cursor: "pointer",
             }}
           >
@@ -454,7 +454,7 @@ export function SelectField({
       onChange={(e) => onChange(e.target.value)}
       style={{
         ...sInput,
-        fontFamily: font.mono,
+        fontFamily: font.sans,
         fontSize: 13,
         cursor: "pointer",
         borderColor: invalid ? c.red : c.borderField,
@@ -492,7 +492,7 @@ export function Chip({
         background: on ? c.limeWash : "transparent",
         color: on ? c.accent : c.muted,
         padding: "7px 13px",
-        fontFamily: font.space,
+        fontFamily: font.sans,
         fontSize: 12.5,
         fontWeight: 500,
         cursor: "pointer",
@@ -519,9 +519,9 @@ export function Badge({
     <span
       title={title}
       style={{
-        fontFamily: font.mono,
-        fontSize: 10.5,
-        letterSpacing: ".08em",
+        fontFamily: font.sans,
+        fontSize: 12,
+        letterSpacing: "normal",
         color: color ?? c.muted,
         border: `1px solid ${color ?? c.border}`,
         padding: "2px 6px",
@@ -565,9 +565,9 @@ export function LinkBtn({
         background: "transparent",
         border: "none",
         padding: "4px 2px",
-        fontFamily: font.mono,
-        fontSize: 11.5,
-        letterSpacing: ".04em",
+        fontFamily: font.sans,
+        fontSize: 12,
+        letterSpacing: "normal",
         color: disabled ? c.faint : danger ? c.red : c.muted,
         cursor: disabled ? "not-allowed" : "pointer",
       }}
@@ -815,7 +815,7 @@ export function ConfirmDialog({
               background: "transparent",
               color: c.muted,
               padding: "9px 16px",
-              fontFamily: font.mono,
+              fontFamily: font.sans,
               fontSize: 12,
               cursor: "pointer",
               borderRadius: r.radiusSm,
@@ -832,10 +832,10 @@ export function ConfirmDialog({
               background: confirmDisabled ? "transparent" : danger ? c.redWash : c.lime,
               color: confirmDisabled ? c.faint : danger ? c.red : c.ink,
               padding: "9px 16px",
-              fontFamily: font.mono,
+              fontFamily: font.sans,
               fontSize: 12,
               cursor: confirmDisabled ? "not-allowed" : "pointer",
-              borderRadius: r.radiusSm,
+              borderRadius: 999,
             }}
           >
             {confirmLabel}

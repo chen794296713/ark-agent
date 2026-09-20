@@ -95,8 +95,10 @@ export function CostPanel({
       <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
         <h2
           style={{
+            letterSpacing: "-.01em",
+            marginTop: 0,
             fontFamily: font.space,
-            fontSize: 15,
+            fontSize: 19,
             fontWeight: 600,
             color: c.text,
             margin: 0,
@@ -116,8 +118,8 @@ export function CostPanel({
                   aria-pressed={on}
                   hoverStyle={on ? undefined : { color: c.text, borderColor: c.borderMute }}
                   style={{
-                    fontFamily: font.mono,
-                    fontSize: 11,
+                    fontFamily: font.sans,
+                    fontSize: 12,
                     padding: "5px 10px",
                     cursor: "pointer",
                     background: on ? c.limeWash : "transparent",
@@ -438,8 +440,8 @@ function RuntimeLedger({
                         style={{
                           display: "flex",
                           gap: 10,
-                          fontFamily: font.mono,
-                          fontSize: 10.5,
+                          fontFamily: font.sans,
+                          fontSize: 12,
                           color: c.muted,
                           marginTop: 2,
                         }}
@@ -485,11 +487,13 @@ function Card({ title, children }: { title: string; children: React.ReactNode })
     >
       <div
         style={{
-          fontFamily: font.mono,
-          fontSize: 10.5,
-          letterSpacing: ".08em",
-          textTransform: "uppercase",
-          color: c.muted,
+          fontWeight: 600,
+          marginTop: 0,
+          fontFamily: font.space,
+          fontSize: 17,
+          letterSpacing: "-.01em",
+          textTransform: "none",
+          color: c.text,
         }}
       >
         {title}
@@ -575,7 +579,7 @@ function Bars({ title, rows, locale }: { title: string; rows: BarRow[]; locale: 
                   {row.label}
                 </span>
                 {row.sub && (
-                  <span style={{ fontFamily: font.mono, fontSize: 10.5, color: c.muted }}>
+                  <span style={{ fontFamily: font.sans, fontSize: 12, color: c.muted }}>
                     {row.sub}
                   </span>
                 )}
@@ -616,10 +620,10 @@ function Cap({ children }: { children: React.ReactNode }) {
   return (
     <div
       style={{
-        fontFamily: font.mono,
-        fontSize: 10,
-        letterSpacing: ".07em",
-        textTransform: "uppercase",
+        fontFamily: font.sans,
+        fontSize: 12,
+        letterSpacing: "normal",
+        textTransform: "none",
         color: c.muted,
       }}
     >

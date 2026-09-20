@@ -27,7 +27,7 @@ export interface ChannelsDict {
 const en: ChannelsDict = {
   heading: "Channels",
   intro: "Where you — and your customers — talk to your agents. Connect once; every agent can use it.",
-  loading: "LOADING CHANNELS…",
+  loading: "Loading channels…",
   loadError: "Could not load channels.",
   retry: "Retry",
   saveError: "Could not save.",
@@ -38,11 +38,11 @@ const en: ChannelsDict = {
   connect: "Connect",
   disconnect: "Disconnect",
   footnote: "Credentials are encrypted and scoped to this workspace. Agents request channel access per role — you approve once.",
-  usedBy: (agents) => `USED BY ${agents.toUpperCase()}`,
-  statusConnected: "CONNECTED",
-  statusPending: "PENDING",
-  statusError: "ERROR",
-  statusNotConnected: "NOT CONNECTED",
+  usedBy: (agents) => `Used by ${agents}`,
+  statusConnected: "Connected",
+  statusPending: "Pending",
+  statusError: "Error",
+  statusNotConnected: "Not connected",
 };
 
 const zh: ChannelsDict = {

@@ -99,11 +99,11 @@ const TEXT_FLOORS: Record<string, number> = {
 
 // ---------------------------------------------------------------------------
 
-test("all six palettes plus the :root fallback are present", () => {
+test("all eight palettes plus the :root fallback are present", () => {
   const names = [...PALETTES.keys()].sort();
   assert.deepEqual(names, [
     "ivory-dark", "ivory-light", "midnight-dark", "midnight-light",
-    "root-fallback", "terminal-dark", "terminal-light",
+    "root-fallback", "team-dark", "team-light", "terminal-dark", "terminal-light",
   ]);
 });
 

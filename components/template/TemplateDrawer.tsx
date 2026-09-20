@@ -59,19 +59,16 @@ function SectionHead({ title, count }: { title: string; count: string }) {
     >
       <span
         style={{
-          fontFamily: font.mono,
-          fontSize: 11,
+          fontFamily: font.space,
+          fontSize: 18,
           fontWeight: 600,
-          letterSpacing: ".1em",
-          color: c.muted,
-          textTransform: "uppercase",
+          color: c.text,
         }}
       >
         {title}
       </span>
-      {/* A section count is a mono label, and the ramp's contract puts every
-          mono label on c.muted — c.faint is for timestamps and placeholders. */}
-      <span style={{ fontFamily: font.mono, fontSize: 11, color: c.muted }}>{count}</span>
+      {/* Counts stay secondary to the section title. */}
+      <span style={{ fontFamily: font.sans, fontSize: 12, color: c.muted }}>{count}</span>
     </summary>
   );
 }
@@ -127,7 +124,7 @@ function RoleBlock({ role, dict }: { role: TemplateRole; dict: TemplateGalleryDi
         </ul>
       )}
       {role.responsibilities.length > MAX_LISTED && (
-        <div style={{ fontFamily: font.mono, fontSize: 11, color: c.muted, marginTop: 6 }}>
+        <div style={{ fontFamily: font.sans, fontSize: 12, color: c.muted, marginTop: 6 }}>
           {dict.moreItems(role.responsibilities.length - MAX_LISTED)}
         </div>
       )}
@@ -163,8 +160,8 @@ function AgentBlock({
           is server-side and this row may be another tenant's. Wrap, don't push. */}
       <div
         style={{
-          fontFamily: font.mono,
-          fontSize: 11,
+          fontFamily: font.sans,
+          fontSize: 12,
           color: c.muted,
           marginTop: 6,
           overflowWrap: "anywhere",
@@ -188,10 +185,10 @@ function SkillRow({ skill, dict }: { skill: TemplateSkill; dict: TemplateGallery
       </span>
       <div style={{ minWidth: 0 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-          <span style={{ fontFamily: font.mono, fontSize: 12, color: c.text2 }}>
+          <span style={{ fontFamily: font.sans, fontSize: 12, color: c.text2 }}>
             {skill.displayName}
           </span>
-          <span style={{ fontFamily: font.mono, fontSize: 10.5, color: c.muted }}>
+          <span style={{ fontFamily: font.sans, fontSize: 12, color: c.muted }}>
             {dict.risk[skill.riskLevel]}
           </span>
           {skill.required && <Chip>{dict.requiredMark}</Chip>}
@@ -213,12 +210,12 @@ function ContextRow({
 }) {
   return (
     <div style={{ display: "flex", alignItems: "flex-start", gap: 8 }}>
-      <span aria-hidden="true" style={{ color: c.muted, fontFamily: font.mono, fontSize: 12 }}>
+      <span aria-hidden="true" style={{ color: c.muted, fontFamily: font.sans, fontSize: 12 }}>
         ▤
       </span>
       <div style={{ minWidth: 0 }}>
         <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
-          <span style={{ fontFamily: font.mono, fontSize: 12, color: c.text2 }}>{item.title}</span>
+          <span style={{ fontFamily: font.sans, fontSize: 12, color: c.text2 }}>{item.title}</span>
           <Chip>{dict.contextKind[item.kind]}</Chip>
           {item.required && <Chip>{dict.requiredMark}</Chip>}
         </div>
@@ -230,8 +227,8 @@ function ContextRow({
         {item.url && (
           <div
             style={{
-              fontFamily: font.mono,
-              fontSize: 11,
+              fontFamily: font.sans,
+              fontSize: 12,
               color: c.muted,
               marginTop: 2,
               overflowWrap: "anywhere",
@@ -257,15 +254,13 @@ function ScheduleRow({
   const readable = describeSchedule(schedule.cron, schedule.timezone, lang);
   return (
     <div style={{ display: "flex", alignItems: "flex-start", gap: 8 }}>
-      <span aria-hidden="true" style={{ color: c.accent, fontFamily: font.mono, fontSize: 12 }}>
-        ◷
-      </span>
+      <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" style={{ color: c.muted, flexShrink: 0, marginTop: 2 }}><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></svg>
       <div style={{ minWidth: 0 }}>
         {/* describeSchedule concatenates the stored timezone verbatim; it is
             third-party text, so it wraps rather than widening the drawer. */}
         <div
           style={{
-            fontFamily: font.mono,
+            fontFamily: font.sans,
             fontSize: 12,
             color: c.text2,
             lineHeight: 1.5,
@@ -430,8 +425,8 @@ export function TemplateDrawer({
         >
           <Glyph mono={template.mono} hue={template.hue} />
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div
-              style={{
+            <h2
+              style={{ margin: 0,
                 fontFamily: font.space,
                 fontWeight: 700,
                 fontSize: 18,
@@ -440,7 +435,7 @@ export function TemplateDrawer({
               }}
             >
               {template.name}
-            </div>
+            </h2>
             <div style={{ fontSize: 13, color: c.muted, marginTop: 4 }}>
               {dict.categories[template.category] ?? template.category} ·{" "}
               {dict.writtenIn(dict.langNames[template.locale] ?? template.locale)} ·{" "}
@@ -448,8 +443,8 @@ export function TemplateDrawer({
             </div>
             <div
               style={{
-                fontFamily: font.mono,
-                fontSize: 11,
+                fontFamily: font.sans,
+                fontSize: 12,
                 color: c.muted,
                 marginTop: 6,
                 lineHeight: 1.6,
@@ -475,13 +470,13 @@ export function TemplateDrawer({
                 height: 32,
                 display: "grid",
                 placeItems: "center",
-                fontFamily: font.mono,
+                fontFamily: font.sans,
                 fontSize: 13,
                 cursor: "pointer",
-                borderRadius: r.radiusSm,
+                borderRadius: 999,
               }}
             >
-              ✕
+              <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="m6 6 12 12M18 6 6 18" /></svg>
             </Btn>
           </div>
         </div>
@@ -521,9 +516,9 @@ export function TemplateDrawer({
             <div
               role="status"
               style={{
-                fontFamily: font.mono,
+                fontFamily: font.sans,
                 fontSize: 12,
-                letterSpacing: ".06em",
+                letterSpacing: "normal",
                 color: c.muted,
                 padding: "24px 0",
               }}
@@ -602,7 +597,7 @@ export function TemplateDrawer({
                 count={dict.countRules(rules.length)}
                 open={openByDefault}
               >
-                <div style={{ fontFamily: font.mono, fontSize: 11, color: c.muted }}>
+                <div style={{ fontFamily: font.mono, fontSize: 12, color: c.muted }}>
                   {dict.autonomy[draft.boundaries.autonomy] ?? draft.boundaries.autonomy} ·{" "}
                   {/* `$` was hardcoded here. `approvalAmountUsd` is WHOLE USD
                       in APPROVAL_CURRENCY (deliberately not the viewer's display
@@ -625,7 +620,7 @@ export function TemplateDrawer({
                         ·
                       </span>
                       <div style={{ fontSize: 13, lineHeight: 1.55, color: c.text2 }}>
-                        <span style={{ fontFamily: font.mono, fontSize: 10.5, color: c.muted }}>
+                        <span style={{ fontFamily: font.sans, fontSize: 12, color: c.muted }}>
                           {dict.ruleSeverity[rule.severity]}
                         </span>{" "}
                         {rule.text}
@@ -675,10 +670,10 @@ export function TemplateDrawer({
               <div style={{ borderTop: `1px solid ${c.line}`, paddingTop: 14, marginTop: 6 }}>
                 <div
                   style={{
-                    fontFamily: font.mono,
-                    fontSize: 11,
+                    fontFamily: font.sans,
+                    fontSize: 12,
                     fontWeight: 600,
-                    letterSpacing: ".1em",
+                    letterSpacing: "normal",
                     color: c.muted,
                   }}
                 >
@@ -687,7 +682,7 @@ export function TemplateDrawer({
                 <div
                   style={{
                     fontFamily: font.mono,
-                    fontSize: 11,
+                    fontSize: 12,
                     // Origin, slug and the monthly credit estimate are three
                     // facts the reader is meant to read before committing —
                     // c.faint is tertiary only, so this block is c.muted.
@@ -709,8 +704,8 @@ export function TemplateDrawer({
                 {warnings.length > 0 && (
                   <div
                     style={{
-                      fontFamily: font.mono,
-                      fontSize: 11,
+                      fontFamily: font.sans,
+                      fontSize: 12,
                       color: c.amber,
                       marginTop: 8,
                     }}
@@ -749,12 +744,12 @@ export function TemplateDrawer({
                 affordable && template.materializable ? "none" : `1px solid ${c.borderStrong}`,
               background: affordable && template.materializable ? c.lime : "transparent",
               color: affordable && template.materializable ? c.ink : c.text,
-              fontFamily: font.space,
+              fontFamily: font.sans,
               fontWeight: 700,
               fontSize: 14,
               cursor: affordable && !template.materializable ? "not-allowed" : "pointer",
               opacity: affordable && !template.materializable ? 0.6 : 1,
-              borderRadius: r.radiusSm,
+              borderRadius: 999,
             }}
           >
             {affordable ? `${dict.startFromTemplate} →` : dict.upgradeToStart}
@@ -768,10 +763,10 @@ export function TemplateDrawer({
               border: `1px solid ${c.borderStrong}`,
               background: "transparent",
               color: c.muted,
-              fontFamily: font.space,
+              fontFamily: font.sans,
               fontSize: 14,
               cursor: "pointer",
-              borderRadius: r.radiusSm,
+              borderRadius: 999,
             }}
           >
             {dict.duplicateAndEdit}

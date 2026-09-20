@@ -79,7 +79,7 @@ export function RowMenu({ label, actions }: { label: string; actions: RowAction[
           background: "transparent",
           color: c.muted,
           cursor: "pointer",
-          fontFamily: font.mono,
+          fontFamily: font.sans,
           fontSize: 15,
           lineHeight: 1,
           borderRadius: r.radiusSm,

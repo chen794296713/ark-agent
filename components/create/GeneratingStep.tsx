@@ -21,6 +21,7 @@
 import type { CSSProperties } from "react";
 import { c, font, r } from "@/lib/theme";
 import { Btn } from "@/components/ui";
+import { Glyph } from "./Glyph";
 import { BCP47 } from "@/lib/i18n";
 import type { Lang } from "@/lib/types";
 import { create } from "@/lib/i18n/create";
@@ -74,13 +75,13 @@ export default function GeneratingStep({
   const active = rows.find((row) => row.status === "active");
 
   return (
-    <div style={{ maxWidth: 720, display: "flex", flexDirection: "column", gap: 22 }}>
+    <div style={{ maxWidth: 760, margin: "0 auto", display: "flex", flexDirection: "column", gap: 22 }}>
       <div>
         <h1
           style={{
             fontFamily: font.space,
-            fontWeight: 700,
-            fontSize: "clamp(20px, 4vw, 24px)",
+            fontWeight: 650,
+            fontSize: "clamp(32px, 4vw, 46px)",
             letterSpacing: "-.01em",
             margin: "0 0 8px",
             color: c.text,
@@ -99,7 +100,7 @@ export default function GeneratingStep({
           }}
           title={briefLine}
         >
-          <span style={{ fontFamily: font.mono, fontSize: 11, letterSpacing: ".08em" }}>
+          <span style={{ fontFamily: font.sans, fontSize: 13 }}>
             {t.briefLabel}
           </span>{" "}
           {briefLine ? `“${briefLine}”` : null}
@@ -176,7 +177,7 @@ export default function GeneratingStep({
             <li
               key={row.stage}
               style={{
-                minHeight: 40,
+                minHeight: 48,
                 display: "flex",
                 alignItems: "center",
                 gap: 12,
@@ -188,7 +189,7 @@ export default function GeneratingStep({
                 aria-hidden
                 style={{
                   color: glyphColor,
-                  width: 14,
+                  width: 16,
                   textAlign: "center",
                   animation:
                     row.status === "active" && !reduced
@@ -196,17 +197,16 @@ export default function GeneratingStep({
                       : "none",
                 }}
               >
-                {glyph}
+                <Glyph symbol={glyph} />
               </span>
-              <span style={{ flex: 1, fontSize: 13.5, color: labelColor, minWidth: 0 }}>
+              <span style={{ flex: 1, fontSize: 15, color: labelColor, minWidth: 0 }}>
                 {t.stages[row.stage] ?? row.stage}
               </span>
               {row.outcome && row.outcome !== "ok" && (
                 <span
                   style={{
-                    fontFamily: font.mono,
-                    fontSize: 10.5,
-                    letterSpacing: ".06em",
+                    fontFamily: font.sans,
+                    fontSize: 13,
                     color: row.outcome === "failed" ? c.red : c.muted,
                   }}
                 >
@@ -216,7 +216,7 @@ export default function GeneratingStep({
               <span
                 style={{
                   fontFamily: font.mono,
-                  fontSize: 11,
+                  fontSize: 12,
                   color: c.faint,
                   minWidth: 44,
                   textAlign: "right",
@@ -262,14 +262,13 @@ export default function GeneratingStep({
               width: `${pct}%`,
               height: "100%",
               background: c.lime,
-              transition: reduced ? "none" : "width .3s ease",
             }}
           />
         </div>
-        <span style={{ fontFamily: font.mono, fontSize: 11, color: c.muted }}>
+        <span style={{ fontFamily: font.mono, fontSize: 12, color: c.muted }}>
           {t.progress(done, total)}
         </span>
-        <span style={{ fontFamily: font.mono, fontSize: 11, color: c.faint }}>
+        <span style={{ fontFamily: font.mono, fontSize: 12, color: c.faint }}>
           {cost
             ? `${t.tokens(cost.promptTokens + cost.completionTokens)} · ${formatMicroUsd(
                 cost.costMicroUsd,

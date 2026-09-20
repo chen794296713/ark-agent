@@ -20,7 +20,9 @@
  */
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { c, font, r } from "@/lib/theme";
+import { c } from "@/lib/theme";
+import { Brand } from "@/components/Brand";
+import styles from "./payment.module.css";
 import { useApp } from "@/lib/store";
 import { api, ApiError } from "@/lib/client-api";
 import { Btn } from "@/components/ui";
@@ -42,12 +44,6 @@ type Region = "global" | "cn";
 
 /** The tier this screen sells — the plan card copy is written for it. */
 const TIER: PlanTier = "professional";
-
-/**
- * Ink on a provider's brand fill. Stripe indigo and Alipay blue are fixed in all
- * three themes, so their label cannot follow the palette the way `c.ink` does.
- */
-const BRAND_INK = "#fff";
 
 export default function PaymentPage() {
   const router = useRouter();
@@ -183,493 +179,69 @@ export default function PaymentPage() {
     }
   };
 
-  const errorNote = error && (
-    <div
-      style={{
-        marginTop: "14px",
-        fontFamily: font.mono,
-        fontSize: "12px",
-        color: c.red,
-        letterSpacing: ".02em",
-        lineHeight: 1.5,
-      }}
-    >
-      {error}
-    </div>
-  );
-
   return (
-    <div data-screen-label="Payment" style={{ minHeight: "100vh" }}>
-      {/* Top bar */}
-      <div
-        style={{
-          height: "60px",
-          borderBottom: `1px solid ${c.line}`,
-          display: "flex",
-          alignItems: "center",
-          padding: "0 32px",
-          gap: "24px",
-        }}
-      >
-        <Btn
-          onClick={backToBilling}
-          hoverStyle={{ color: c.text }}
-          style={{
-            background: "none",
-            border: "none",
-            color: c.muted,
-            fontSize: "14px",
-            cursor: "pointer",
-            fontFamily: font.sans,
-            padding: 0,
-          }}
-        >
-          {t.backBilling}
-        </Btn>
-        <span
-          style={{
-            fontFamily: font.mono,
-            fontSize: "12px",
-            letterSpacing: ".14em",
-            color: c.accent,
-          }}
-        >
-          {t.checkout}
-        </span>
-        <span
-          style={{
-            marginLeft: "auto",
-            fontFamily: font.mono,
-            fontSize: "11px",
-            color: c.faint,
-            letterSpacing: ".06em",
-          }}
-        >
-          {t.encrypted}
-        </span>
-      </div>
-
-      <div
-        style={{
-          maxWidth: "1080px",
-          margin: "0 auto",
-          padding: `${r.pagePxWide} ${r.pagePx}`,
-          display: "grid",
-          gridTemplateColumns: r.checkout,
-          gap: r.gapMd,
-          alignItems: "start",
-        }}
-      >
-        {/* Order summary */}
-        <div>
-          <div
-            style={{
-              fontFamily: font.mono,
-              fontSize: "12px",
-              letterSpacing: ".14em",
-              color: c.accent,
-              marginBottom: "14px",
-            }}
-          >
-            {t.eyebrow}
-          </div>
-          <h2
-            style={{
-              fontFamily: font.space,
-              fontWeight: 700,
-              fontSize: "30px",
-              letterSpacing: "-.02em",
-              margin: "0 0 10px",
-            }}
-          >
-            {t.title}
-          </h2>
-          <p style={{ color: c.muted, margin: "0 0 24px", fontSize: "14.5px" }}>
-            {isCN ? t.subAlipay : t.subStripe}
-          </p>
-          <div
-            style={{
-              display: "flex",
-              gap: "2px",
-              border: `1px solid ${c.border}`,
-              padding: "3px",
-              width: "fit-content",
-              maxWidth: "100%",
-              flexWrap: "wrap",
-              marginBottom: "20px",
-            }}
-          >
-            {cycleTabs.map((cy, i) => (
-              <button
-                key={i}
-                onClick={cy.fn}
-                style={{
-                  background: cy.bg,
-                  color: cy.c,
-                  border: "none",
-                  padding: "7px 14px",
-                  fontFamily: font.mono,
-                  fontSize: "11px",
-                  letterSpacing: ".04em",
-                  cursor: "pointer",
-                }}
-              >
-                {cy.label}
-              </button>
-            ))}
-          </div>
-          <div style={{ border: `1px solid ${c.border}`, background: c.panel }}>
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "14px",
-                padding: "18px 20px",
-                borderBottom: `1px solid ${c.line}`,
-              }}
-            >
-              <div
-                style={{
-                  width: "38px",
-                  height: "38px",
-                  background: c.lime,
-                  color: c.ink,
-                  display: "grid",
-                  placeItems: "center",
-                  fontFamily: font.space,
-                  fontWeight: 700,
-                  fontSize: "16px",
-                }}
-              >
-                N
-              </div>
-              <div>
-                <div style={{ fontFamily: font.space, fontWeight: 700, fontSize: "15.5px" }}>
-                  {t.planName}
-                </div>
-                <div style={{ fontSize: "12.5px", color: c.muted }}>{t.planFor}</div>
-              </div>
-            </div>
-            <div style={{ padding: "6px 0" }}>
-              {sumRows.map((sr, i) => (
-                <div
-                  key={i}
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    padding: "11px 20px",
-                    fontSize: "14px",
-                  }}
-                >
-                  <span style={{ color: c.muted }}>{sr.l}</span>
-                  <span style={{ fontFamily: font.mono, fontSize: "13px", color: sr.c }}>
-                    {sr.v}
-                  </span>
-                </div>
+    <main data-screen-label="Payment" className={styles.page}>
+      <header className={styles.header}>
+        <Brand />
+        <Btn onClick={backToBilling} className={styles.back}>{t.backBilling}</Btn>
+      </header>
+      <div className={styles.content}>
+        <h1 className={styles.title}>{t.title}</h1>
+        <div className={styles.checkoutGrid}>
+          <section aria-label={t.planName}>
+            <div className={styles.tabs}>
+              {cycleTabs.map((cy, i) => (
+                <button key={i} type="button" onClick={cy.fn} aria-pressed={yearly === (i === 1)}>
+                  {cy.label}
+                </button>
               ))}
             </div>
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "baseline",
-                padding: "16px 20px",
-                borderTop: `1px solid ${c.line}`,
-              }}
-            >
-              <span style={{ fontFamily: font.space, fontWeight: 700, fontSize: "15px" }}>
-                {t.dueToday}
-              </span>
-              <span style={{ fontFamily: font.space, fontWeight: 700, fontSize: "24px" }}>
-                {dueTotal}
-              </span>
+            <div className={styles.planHeading}><h2>{t.planName}</h2></div>
+            <dl className={styles.lineItems}>
+              {sumRows.map((sr, i) => (
+                <div key={i}><dt>{sr.l}</dt><dd style={{ color: sr.c }}>{sr.v}</dd></div>
+              ))}
+            </dl>
+            <div className={styles.total}><span>{t.dueToday}</span><strong>{dueTotal}</strong></div>
+            <p className={styles.finePrint}>{t.footnote}</p>
+          </section>
+          <section className={styles.paymentColumn} aria-label={t.checkout}>
+            <div className={styles.tabs}>
+              {regionTabs.map((rt, i) => (
+                <button key={i} type="button" onClick={rt.fn} aria-pressed={isCN === (i === 1)}>
+                  {rt.label}
+                </button>
+              ))}
             </div>
-          </div>
-          <div
-            style={{
-              marginTop: "14px",
-              fontFamily: font.mono,
-              fontSize: "11px",
-              color: c.faint,
-              letterSpacing: ".04em",
-            }}
-          >
-            {t.footnote}
-          </div>
-        </div>
-
-        {/* Payment method */}
-        <div>
-          <div
-            style={{
-              display: "flex",
-              gap: "2px",
-              border: `1px solid ${c.border}`,
-              padding: "3px",
-              width: "fit-content",
-              maxWidth: "100%",
-              flexWrap: "wrap",
-              // The note below only renders until the visitor pins a currency,
-              // so the tab strip carries the spacing once it is gone.
-              marginBottom: currencyPinned ? "18px" : "8px",
-            }}
-          >
-            {regionTabs.map((rt, i) => (
-              <button
-                key={i}
-                onClick={rt.fn}
-                style={{
-                  background: rt.bg,
-                  color: rt.c,
-                  border: "none",
-                  padding: "8px 16px",
-                  fontFamily: font.mono,
-                  fontSize: "11.5px",
-                  letterSpacing: ".04em",
-                  cursor: "pointer",
-                }}
-              >
-                {rt.label}
-              </button>
-            ))}
-          </div>
-          {!currencyPinned && (
-            <div style={{ fontSize: "12px", color: c.faint, marginBottom: "18px" }}>
-              {t.regionNote}
-            </div>
-          )}
-
-          {status === "paid" ? (
-            /* Mock mode only: the server fulfilled inline because no provider is
-               configured. Live payments confirm on /payment/return instead. */
-            <div
-              style={{
-                border: `1px solid ${c.greenBorder}`,
-                background: c.greenWash,
-                padding: "32px",
-                textAlign: "center",
-              }}
-            >
-              <div
-                style={{
-                  width: "52px",
-                  height: "52px",
-                  borderRadius: "50%",
-                  background: c.green,
-                  color: c.greenInk,
-                  display: "grid",
-                  placeItems: "center",
-                  fontSize: "26px",
-                  fontWeight: 700,
-                  margin: "0 auto 18px",
-                }}
-              >
-                ✓
-              </div>
-              <div
-                style={{
-                  fontFamily: font.space,
-                  fontWeight: 700,
-                  fontSize: "21px",
-                  color: c.green,
-                  marginBottom: "6px",
-                }}
-              >
-                {t.paymentSuccessful}
-              </div>
-              {user && paidRef && (
-                <div style={{ fontSize: "14px", color: c.muted }}>
-                  {t.chargedReceipt(
-                    formatMoney(paidRef.amountMinor, paidRef.currency) +
-                      t.perCycle(paidRef.annual),
-                    user.email,
-                  )}
+            {!currencyPinned && <p className={styles.regionNote}>{t.regionNote}</p>}
+            {status === "paid" ? (
+              <div className={styles.receipt} role="status">
+                <div className={styles.successMark} aria-hidden="true">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6"><path d="m5 12 4 4L19 6" /></svg>
                 </div>
-              )}
-              {paidRef && (
-                <div
-                  style={{
-                    fontFamily: font.mono,
-                    fontSize: "11.5px",
-                    color: c.faint,
-                    margin: "14px 0 0",
-                  }}
-                >
-                  {paidRef.invoice ? t.invoiceRef(paidRef.no) : t.orderRef(paidRef.no)}
-                </div>
-              )}
-              <div
-                style={{
-                  margin: "14px auto 22px",
-                  maxWidth: "36ch",
-                  fontSize: "12.5px",
-                  color: c.amber,
-                  lineHeight: 1.55,
-                }}
-              >
-                {t.mockNotice}
+                <h2>{t.paymentSuccessful}</h2>
+                {user && paidRef && <p>{t.chargedReceipt(formatMoney(paidRef.amountMinor, paidRef.currency) + t.perCycle(paidRef.annual), user.email)}</p>}
+                {paidRef && <p className={styles.reference}>{paidRef.invoice ? t.invoiceRef(paidRef.no) : t.orderRef(paidRef.no)}</p>}
+                <p className={styles.mockNote}>{t.mockNotice}</p>
+                <Btn onClick={backToBilling} className={styles.primary}>{t.backToBilling}</Btn>
               </div>
-              <Btn
-                onClick={backToBilling}
-                hoverStyle={{ opacity: 0.88 }}
-                style={{
-                  background: c.green,
-                  color: c.greenInk,
-                  border: "none",
-                  padding: "12px 26px",
-                  fontFamily: font.space,
-                  fontWeight: 700,
-                  fontSize: "14px",
-                  cursor: "pointer",
-                }}
-              >
-                {t.backToBilling}
-              </Btn>
-            </div>
-          ) : isCN ? (
-            /* Alipay — hand off to the gateway's own hosted page. */
-            <div style={{ border: `1px solid ${c.border}`, background: c.panel }}>
-              <div
-                style={{
-                  background: c.alipay,
-                  color: BRAND_INK,
-                  padding: "14px 20px",
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                }}
-              >
-                <span style={{ fontFamily: font.space, fontWeight: 700, fontSize: "16px" }}>
-                  {t.alipayTitle}
-                </span>
-                <span style={{ fontFamily: font.mono, fontSize: "15px", fontWeight: 500 }}>
-                  {amt}
-                </span>
-              </div>
-              <div style={{ padding: "30px 26px", textAlign: "center" }}>
-                <div
-                  style={{
-                    fontSize: "14px",
-                    color: c.muted,
-                    lineHeight: 1.6,
-                    maxWidth: "38ch",
-                    margin: "0 auto 22px",
-                  }}
-                >
-                  {t.completeOnPhone}
+            ) : (
+              <div className={styles.handoff}>
+                <div className={styles.providerHeading}>
+                  <h2>{isCN ? t.alipayTitle : "Stripe"}</h2>
+                  <span>{amt}</span>
                 </div>
-                <Btn
-                  onClick={() => void startCheckout()}
-                  disabled={busy}
-                  hoverStyle={{ opacity: 0.88 }}
-                  style={{
-                    width: "100%",
-                    background: c.alipay,
-                    color: BRAND_INK,
-                    border: "none",
-                    padding: "15px",
-                    fontFamily: font.space,
-                    fontWeight: 700,
-                    fontSize: "15.5px",
-                    cursor: busy ? "default" : "pointer",
-                    opacity: busy ? 0.75 : 1,
-                  }}
-                >
-                  {busy ? t.redirectingAlipay : t.openAlipayApp}
+                <p>{isCN ? t.completeOnPhone : t.stripeWallets}</p>
+                <Btn onClick={() => void startCheckout()} disabled={busy} className={styles.primary}>
+                  {isCN ? (busy ? t.redirectingAlipay : t.openAlipayApp) : (busy ? t.redirectingStripe : t.continueToStripe)}
                 </Btn>
-                {errorNote}
+                {error && <p role="alert" className={styles.error}>{error}</p>}
+                <p className={styles.finePrint}>{isCN ? t.alipaySecured : t.stripeFootnote}</p>
               </div>
-              <div
-                style={{
-                  borderTop: `1px solid ${c.line}`,
-                  padding: "12px",
-                  textAlign: "center",
-                  fontFamily: font.mono,
-                  fontSize: "10.5px",
-                  color: c.faint,
-                  letterSpacing: ".06em",
-                }}
-              >
-                {t.alipaySecured}
-              </div>
-            </div>
-          ) : (
-            /* Stripe — hand off to Checkout. No card fields live in this app. */
-            <div style={{ border: `1px solid ${c.border}`, background: c.panel, padding: "26px" }}>
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "baseline",
-                  gap: "14px",
-                  paddingBottom: "16px",
-                  marginBottom: "20px",
-                  borderBottom: `1px solid ${c.line}`,
-                }}
-              >
-                <div>
-                  <div style={{ fontFamily: font.space, fontWeight: 700, fontSize: "15px" }}>
-                    {t.planName}
-                  </div>
-                  <div style={{ fontSize: "12.5px", color: c.muted }}>{t.dueToday}</div>
-                </div>
-                <span
-                  style={{
-                    fontFamily: font.mono,
-                    fontSize: "16px",
-                    color: c.text,
-                    whiteSpace: "nowrap",
-                  }}
-                >
-                  {dueTotal}
-                </span>
-              </div>
-              <Btn
-                onClick={() => void startCheckout()}
-                disabled={busy}
-                hoverStyle={{ background: c.stripeHover }}
-                style={{
-                  width: "100%",
-                  background: c.stripe,
-                  color: BRAND_INK,
-                  border: "none",
-                  padding: "15px",
-                  fontFamily: font.space,
-                  fontWeight: 700,
-                  fontSize: "15.5px",
-                  cursor: busy ? "default" : "pointer",
-                  opacity: busy ? 0.75 : 1,
-                }}
-              >
-                {busy ? t.redirectingStripe : t.continueToStripe}
-              </Btn>
-              {errorNote}
-              <div
-                style={{
-                  marginTop: "16px",
-                  fontSize: "12.5px",
-                  color: c.muted,
-                  lineHeight: 1.6,
-                }}
-              >
-                {t.stripeWallets}
-              </div>
-              <div
-                style={{
-                  marginTop: "18px",
-                  textAlign: "center",
-                  fontFamily: font.mono,
-                  fontSize: "10.5px",
-                  color: c.muted,
-                  letterSpacing: ".06em",
-                }}
-              >
-                {t.stripeFootnote}
-              </div>
-            </div>
-          )}
+            )}
+          </section>
         </div>
       </div>
-    </div>
+    </main>
   );
 }

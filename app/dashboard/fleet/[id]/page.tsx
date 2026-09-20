@@ -10,6 +10,7 @@ import { c, font, r } from "@/lib/theme";
 import { isHarness, type Harness } from "@/lib/harness";
 import { selectableHarnesses, useHarnessOptions } from "@/lib/harness/client";
 import { Btn } from "@/components/ui";
+import { AgentAvatar } from "@/components/AgentAvatar";
 import { api, ApiError } from "@/lib/client-api";
 import type {
   AgentDetailDTO,
@@ -76,8 +77,8 @@ function ActivityTab({ cur }: { cur: AgentDetailDTO }) {
           key={e.id}
           style={{
             display: "flex",
-            gap: 18,
-            padding: "14px 22px",
+            gap: 12,
+            padding: "16px 18px",
             borderBottom: `1px solid ${c.lineSoft}`,
             alignItems: "baseline",
           }}
@@ -88,22 +89,17 @@ function ActivityTab({ cur }: { cur: AgentDetailDTO }) {
               fontSize: 12,
               color: c.faint,
               flexShrink: 0,
-              width: 88,
+              width: 54,
             }}
           >
             {clock(e.occurredAt)}
           </span>
-          <span style={{ fontSize: 14.5, color: c.text2 }}>{e.text}</span>
-          <span
-            style={{
-              marginLeft: "auto",
-              fontFamily: font.mono,
-              fontSize: 11,
-              color: tagColor(e.tag),
-            }}
-          >
-            {e.tag}
-          </span>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 14.5, lineHeight: 1.5, color: c.text2, overflowWrap: "anywhere" }}>{e.text}</div>
+            <div style={{ fontFamily: font.sans, fontSize: 12, color: tagColor(e.tag), marginTop: 5 }}>
+              {e.tag}
+            </div>
+          </div>
         </div>
       ))}
     </div>
@@ -153,11 +149,11 @@ function TasksTab({ cur }: { cur: AgentDetailDTO }) {
               alignItems: "center",
             }}
           >
-            <span style={{ fontFamily: font.mono, fontSize: 13, color: sym.color, width: 18 }}>
+            <span style={{ fontFamily: font.sans, fontSize: 13, color: sym.color, width: 18 }}>
               {sym.sym}
             </span>
             <span style={{ fontSize: 14.5, color: done ? c.faint : c.text2, flex: 1, whiteSpace: "pre-wrap" }}>{k.text}</span>
-            <span style={{ fontFamily: font.mono, fontSize: 10.5, color: sym.color, textTransform: "uppercase" }}>
+            <span style={{ fontFamily: font.sans, fontSize: 12, color: sym.color, textTransform: "none" }}>
               {k.status}
             </span>
             {k.result ? (
@@ -169,8 +165,8 @@ function TasksTab({ cur }: { cur: AgentDetailDTO }) {
                   background: "transparent",
                   color: c.accent,
                   padding: "6px 9px",
-                  fontFamily: font.mono,
-                  fontSize: 10.5,
+                  fontFamily: font.sans,
+                  fontSize: 12,
                   cursor: "pointer",
                   borderRadius: r.radiusSm,
                   flexShrink: 0,
@@ -198,7 +194,7 @@ function TasksTab({ cur }: { cur: AgentDetailDTO }) {
             position: "fixed",
             inset: 0,
             zIndex: 100,
-            background: "rgba(8, 10, 14, 0.62)",
+            background: c.scrim,
             display: "grid",
             placeItems: "center",
             padding: 20,
@@ -418,8 +414,8 @@ function ChatTab({ cur }: { cur: AgentDetailDTO }) {
         style={{
           padding: "12px 20px",
           borderBottom: `1px solid ${c.line}`,
-          fontFamily: font.mono,
-          fontSize: 11,
+          fontFamily: font.sans,
+          fontSize: 12,
           color: c.faint,
         }}
       >
@@ -438,8 +434,8 @@ function ChatTab({ cur }: { cur: AgentDetailDTO }) {
         <label
           htmlFor={`chat-session-${cur.id}`}
           style={{
-            fontFamily: font.mono,
-            fontSize: 10.5,
+            fontFamily: font.sans,
+            fontSize: 12,
             color: c.faint,
             flexShrink: 0,
           }}
@@ -538,8 +534,8 @@ function ChatTab({ cur }: { cur: AgentDetailDTO }) {
                 </div>
                 <div
                   style={{
-                    fontFamily: font.mono,
-                    fontSize: 10.5,
+                    fontFamily: font.sans,
+                    fontSize: 12,
                     color: c.faint,
                     marginTop: 5,
                   }}
@@ -556,8 +552,8 @@ function ChatTab({ cur }: { cur: AgentDetailDTO }) {
         <div
           style={{
             padding: "8px 20px",
-            fontFamily: font.mono,
-            fontSize: 11,
+            fontFamily: font.sans,
+            fontSize: 12,
             color: c.red,
             borderTop: `1px solid ${c.line}`,
           }}
@@ -600,12 +596,12 @@ function ChatTab({ cur }: { cur: AgentDetailDTO }) {
             color: c.ink,
             border: "none",
             padding: "0 22px",
-            fontFamily: font.space,
+            fontFamily: font.sans,
             fontWeight: 700,
             fontSize: 14,
             cursor: sending ? "default" : "pointer",
             opacity: sending ? 0.6 : 1,
-            borderRadius: r.radiusSm,
+            borderRadius: 999,
           }}
         >
           {sending ? t.chatSending : t.chatSend}
@@ -667,10 +663,12 @@ function PerformanceTab({ cur, onRefresh }: { cur: AgentDetailDTO; onRefresh: ()
       <div style={{ border: `1px solid ${c.border}`, background: c.panel, padding: 24, borderRadius: r.radiusMd }}>
         <div
           style={{
-            fontFamily: font.mono,
-            fontSize: 11,
-            letterSpacing: ".1em",
-            color: c.muted,
+            fontWeight: 600,
+            marginTop: 0,
+            fontFamily: font.space,
+            fontSize: 19,
+            letterSpacing: "-.01em",
+            color: c.text,
             marginBottom: 20,
           }}
         >
@@ -715,10 +713,12 @@ function PerformanceTab({ cur, onRefresh }: { cur: AgentDetailDTO; onRefresh: ()
         >
           <span
             style={{
-              fontFamily: font.mono,
-              fontSize: 11,
-              letterSpacing: ".1em",
-              color: c.muted,
+              fontWeight: 600,
+              marginTop: 0,
+              fontFamily: font.space,
+              fontSize: 19,
+              letterSpacing: "-.01em",
+              color: c.text,
             }}
           >
             {t.perfImprovementQueue}
@@ -730,9 +730,9 @@ function PerformanceTab({ cur, onRefresh }: { cur: AgentDetailDTO; onRefresh: ()
               background: "none",
               border: `1px solid ${c.limeBorder}`,
               color: c.accent,
-              fontFamily: font.mono,
-              fontSize: 11,
-              letterSpacing: ".06em",
+              fontFamily: font.sans,
+              fontSize: 12,
+              letterSpacing: "normal",
               padding: "5px 10px",
               cursor: reviewing ? "default" : "pointer",
               opacity: reviewing ? 0.6 : 1,
@@ -743,10 +743,10 @@ function PerformanceTab({ cur, onRefresh }: { cur: AgentDetailDTO; onRefresh: ()
           </Btn>
         </div>
         {error && (
-          <div style={{ fontFamily: font.mono, fontSize: 11, color: c.red }}>{error}</div>
+          <div style={{ fontFamily: font.sans, fontSize: 12, color: c.red }}>{error}</div>
         )}
         {notice && (
-          <div style={{ fontFamily: font.mono, fontSize: 11, color: c.muted }}>{notice}</div>
+          <div style={{ fontFamily: font.sans, fontSize: 12, color: c.muted }}>{notice}</div>
         )}
         {queue.length === 0 ? (
           <div
@@ -784,8 +784,8 @@ function PerformanceTab({ cur, onRefresh }: { cur: AgentDetailDTO; onRefresh: ()
                   {q.impact && (
                     <div
                       style={{
-                        fontFamily: font.mono,
-                        fontSize: 11,
+                        fontFamily: font.sans,
+                        fontSize: 12,
                         color: c.faint,
                         marginTop: 3,
                       }}
@@ -797,7 +797,7 @@ function PerformanceTab({ cur, onRefresh }: { cur: AgentDetailDTO; onRefresh: ()
                 {resolved ? (
                   <span
                     style={{
-                      fontFamily: font.mono,
+                      fontFamily: font.sans,
                       fontSize: 12.5,
                       color: approved ? c.accent : c.faint,
                       whiteSpace: "nowrap",
@@ -816,7 +816,7 @@ function PerformanceTab({ cur, onRefresh }: { cur: AgentDetailDTO; onRefresh: ()
                         background: "transparent",
                         color: c.accent,
                         padding: "8px 14px",
-                        fontFamily: font.space,
+                        fontFamily: font.sans,
                         fontSize: 12.5,
                         fontWeight: 500,
                         cursor: busy[q.id] ? "default" : "pointer",
@@ -836,7 +836,7 @@ function PerformanceTab({ cur, onRefresh }: { cur: AgentDetailDTO; onRefresh: ()
                         background: "transparent",
                         color: c.muted,
                         padding: "8px 14px",
-                        fontFamily: font.space,
+                        fontFamily: font.sans,
                         fontSize: 12.5,
                         fontWeight: 500,
                         cursor: busy[q.id] ? "default" : "pointer",
@@ -975,11 +975,11 @@ function UsageTab({ cur }: { cur: AgentDetailDTO }) {
                 color: on ? c.ink : c.muted,
                 border: "none",
                 padding: "7px 14px",
-                fontFamily: font.mono,
-                fontSize: 11,
-                letterSpacing: ".04em",
+                fontFamily: font.sans,
+                fontSize: 12,
+                letterSpacing: "normal",
                 cursor: "pointer",
-                borderRadius: r.radiusSm,
+                borderRadius: 999,
               }}
             >
               {t[r2.i18n]}
@@ -1011,7 +1011,7 @@ function UsageTab({ cur }: { cur: AgentDetailDTO }) {
             background: c.redWash,
             color: c.red,
             padding: "12px 16px",
-            fontFamily: font.mono,
+            fontFamily: font.sans,
             fontSize: 12.5,
             borderRadius: r.radiusMd,
           }}
@@ -1026,9 +1026,9 @@ function UsageTab({ cur }: { cur: AgentDetailDTO }) {
             border: `1px solid ${c.border}`,
             background: c.panel,
             padding: 40,
-            fontFamily: font.mono,
+            fontFamily: font.sans,
             fontSize: 12,
-            letterSpacing: ".08em",
+            letterSpacing: "normal",
             color: c.faint,
             textAlign: "center",
             borderRadius: r.radiusMd,
@@ -1044,7 +1044,7 @@ function UsageTab({ cur }: { cur: AgentDetailDTO }) {
           <div
             style={{
               display: "grid",
-              gridTemplateColumns: "repeat(5, 1fr)",
+              gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))",
               gap: 0,
               border: `1px solid ${c.border}`,
               background: c.panel,
@@ -1073,11 +1073,11 @@ function UsageTab({ cur }: { cur: AgentDetailDTO }) {
               >
                 <div
                   style={{
-                    fontFamily: font.mono,
-                    fontSize: 10.5,
-                    letterSpacing: ".1em",
+                    fontFamily: font.sans,
+                    fontSize: 12,
+                    letterSpacing: "normal",
                     color: c.faint,
-                    textTransform: "uppercase",
+                    textTransform: "none",
                   }}
                 >
                   {m.label}
@@ -1117,11 +1117,13 @@ function UsageTab({ cur }: { cur: AgentDetailDTO }) {
             >
               <div
                 style={{
-                  fontFamily: font.mono,
-                  fontSize: 11,
-                  letterSpacing: ".1em",
-                  color: c.muted,
-                  textTransform: "uppercase",
+                  fontWeight: 600,
+                  marginTop: 0,
+                  fontFamily: font.space,
+                  fontSize: 19,
+                  letterSpacing: "-.01em",
+                  color: c.text,
+                  textTransform: "none",
                 }}
               >
                 {t.usageChartTitle(rangeLabel)}
@@ -1132,7 +1134,7 @@ function UsageTab({ cur }: { cur: AgentDetailDTO }) {
               <div
                 style={{
                   padding: "32px 16px",
-                  fontFamily: font.mono,
+                  fontFamily: font.sans,
                   fontSize: 12,
                   color: c.faint,
                   textAlign: "center",
@@ -1289,7 +1291,6 @@ function UsageTab({ cur }: { cur: AgentDetailDTO }) {
                                       outH + cacheH > 0
                                         ? `1px solid ${c.border}`
                                         : "none",
-                                    transition: "height .25s ease",
                                   }}
                                 />
                               )}
@@ -1299,7 +1300,6 @@ function UsageTab({ cur }: { cur: AgentDetailDTO }) {
                                     width: "100%",
                                     height: outH,
                                     background: segColors.output,
-                                    transition: "height .25s ease",
                                   }}
                                 />
                               )}
@@ -1315,7 +1315,6 @@ function UsageTab({ cur }: { cur: AgentDetailDTO }) {
                                         : "none",
                                     borderTopLeftRadius: roundedTop,
                                     borderTopRightRadius: roundedTop,
-                                    transition: "height .25s ease",
                                   }}
                                 />
                               )}
@@ -1349,8 +1348,8 @@ function UsageTab({ cur }: { cur: AgentDetailDTO }) {
                         borderTop: `1px solid ${c.line}`,
                         paddingTop: 12,
                         marginTop: 4,
-                        fontFamily: font.mono,
-                        fontSize: 11,
+                        fontFamily: font.sans,
+                        fontSize: 12,
                         color: c.muted,
                       }}
                     >
@@ -1419,17 +1418,18 @@ function UsageTab({ cur }: { cur: AgentDetailDTO }) {
 // Settings UI primitives
 // ---------------------------------------------------------------------------
 const sLabel: CSSProperties = {
-  fontFamily: font.mono,
-  fontSize: 11,
-  letterSpacing: ".1em",
+  fontFamily: font.sans,
+  fontSize: 13,
+  fontWeight: 500,
+  letterSpacing: "normal",
   color: c.muted,
   marginBottom: 7,
   display: "block",
 };
 const sInput: CSSProperties = {
   width: "100%",
-  background: c.bg,
-  border: `1px solid ${c.border}`,
+  background: c.panel,
+  border: `1px solid ${c.borderField}`,
   borderRadius: r.radiusSm,
   color: c.text,
   padding: "10px 12px",
@@ -1465,15 +1465,15 @@ function SettingCard({
     >
       <div>
         <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-          <span style={{ fontFamily: font.mono, fontSize: 11, letterSpacing: ".12em", color: c.text2 }}>
+          <h2 style={{ fontFamily: font.space, fontSize: 19, fontWeight: 600, margin: 0, letterSpacing: "-.01em", color: c.text }}>
             {title}
-          </span>
+          </h2>
           {badge && (
             <span
               style={{
-                fontFamily: font.mono,
-                fontSize: 10.5,
-                letterSpacing: ".08em",
+                fontFamily: font.sans,
+                fontSize: 12,
+                letterSpacing: "normal",
                 color: badgeColor ?? c.faint,
                 border: `1px solid ${badgeColor ?? c.border}`,
                 padding: "2px 6px",
@@ -1520,7 +1520,7 @@ function Toggle({
         style={{
           width: 40,
           height: 22,
-          borderRadius: 11,
+          borderRadius: 999,
           border: `1px solid ${on ? c.limeBorder : c.borderStrong}`,
           background: on ? c.lime : "transparent",
           position: "relative",
@@ -1573,9 +1573,9 @@ function Seg<T extends string>({
               color: on ? c.ink : c.muted,
               border: "none",
               padding: "7px 14px",
-              fontFamily: font.mono,
-              fontSize: 11.5,
-              letterSpacing: ".03em",
+              fontFamily: font.sans,
+              fontSize: 12,
+              letterSpacing: "normal",
               cursor: "pointer",
             }}
           >
@@ -1600,7 +1600,7 @@ function SelectField({
     <select
       value={value}
       onChange={(e) => onChange(e.target.value)}
-      style={{ ...sInput, fontFamily: font.mono, fontSize: 13, cursor: "pointer" }}
+      style={{ ...sInput, fontFamily: font.sans, fontSize: 13, cursor: "pointer" }}
     >
       {options.map((o) => (
         <option key={o.id} value={o.id}>
@@ -1629,7 +1629,7 @@ function Chip({
         background: on ? c.limeWash : "transparent",
         color: on ? c.accent : c.muted,
         padding: "7px 13px",
-        fontFamily: font.space,
+        fontFamily: font.sans,
         fontSize: 12.5,
         fontWeight: 500,
         cursor: "pointer",
@@ -2227,7 +2227,7 @@ function SettingsTab({ cur, onRefresh }: { cur: AgentDetailDTO; onRefresh: () =>
                   background: "transparent",
                   color: c.muted,
                   padding: "0 16px",
-                  fontFamily: font.space,
+                  fontFamily: font.sans,
                   fontSize: 13,
                   cursor: "pointer",
                 }}
@@ -2285,7 +2285,7 @@ function SettingsTab({ cur, onRefresh }: { cur: AgentDetailDTO; onRefresh: () =>
 
         <SettingCard title={t.channelsTitle} desc={t.channelsDesc}>
           {channelLoading ? (
-            <div style={{ fontFamily: font.mono, fontSize: 12, color: c.faint, textAlign: "center", padding: 20 }}>
+            <div style={{ fontFamily: font.sans, fontSize: 12, color: c.faint, textAlign: "center", padding: 20 }}>
               Loading channels…
             </div>
           ) : (
@@ -2309,7 +2309,7 @@ function SettingsTab({ cur, onRefresh }: { cur: AgentDetailDTO; onRefresh: () =>
                     <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                         <span style={{ fontSize: 18 }}>{CHANNEL_ICONS[type]}</span>
-                        <span style={{ fontFamily: font.mono, fontSize: 11.5, letterSpacing: ".08em", color: c.text2 }}>
+                        <span style={{ fontFamily: font.sans, fontSize: 12, letterSpacing: "normal", color: c.text2 }}>
                           {CHANNEL_LABELS[type]}
                         </span>
                       </div>
@@ -2319,7 +2319,7 @@ function SettingsTab({ cur, onRefresh }: { cur: AgentDetailDTO; onRefresh: () =>
                         disabled={channelBusyToggle[type]}
                         aria-pressed={channelState[type].enabled}
                         style={{
-                          width: 40, height: 22, borderRadius: 11,
+                          width: 40, height: 22, borderRadius: 999,
                           border: `1px solid ${channelState[type].enabled ? c.limeBorder : c.borderStrong}`,
                           background: channelState[type].enabled ? c.lime : "transparent",
                           cursor: channelBusyToggle[type] ? "default" : "pointer",
@@ -2336,7 +2336,7 @@ function SettingsTab({ cur, onRefresh }: { cur: AgentDetailDTO; onRefresh: () =>
                         }} />
                       </button>
                     </div>
-                    <div style={{ fontFamily: font.mono, fontSize: 10, color: channelState[type].enabled ? c.accent : c.faint, letterSpacing: ".06em" }}>
+                    <div style={{ fontFamily: font.sans, fontSize: 12, color: channelState[type].enabled ? c.accent : c.faint, letterSpacing: "normal" }}>
                       {channelState[type].enabled ? t.channelEnabled : t.channelDisabled}
                     </div>
                     {channelState[type].enabled && (
@@ -2347,7 +2347,7 @@ function SettingsTab({ cur, onRefresh }: { cur: AgentDetailDTO; onRefresh: () =>
                           border: `1px solid ${c.border}`,
                           borderRadius: r.radiusSm,
                           color: c.text2,
-                          fontFamily: font.space,
+                          fontFamily: font.sans,
                           fontWeight: 600,
                           fontSize: 11.5,
                           padding: "6px 12px",
@@ -2363,12 +2363,12 @@ function SettingsTab({ cur, onRefresh }: { cur: AgentDetailDTO; onRefresh: () =>
                 ))}
               </div>
               {channelError && (
-                <div style={{ fontFamily: font.mono, fontSize: 11, color: c.red, marginTop: 8 }}>
+                <div style={{ fontFamily: font.sans, fontSize: 12, color: c.red, marginTop: 8 }}>
                   {channelError}
                 </div>
               )}
               {channelSuccessMsg && (
-                <div style={{ fontFamily: font.mono, fontSize: 11, color: c.accent, marginTop: 8 }}>
+                <div style={{ fontFamily: font.sans, fontSize: 12, color: c.accent, marginTop: 8 }}>
                   {channelSuccessMsg}
                 </div>
               )}
@@ -2421,9 +2421,9 @@ function SettingsTab({ cur, onRefresh }: { cur: AgentDetailDTO; onRefresh: () =>
               background: c.lime,
               color: c.ink,
               border: "none",
-              borderRadius: r.radiusSm,
+              borderRadius: 999,
               padding: "13px 20px",
-              fontFamily: font.space,
+              fontFamily: font.sans,
               fontWeight: 700,
               fontSize: 14,
               cursor: saving ? "default" : "pointer",
@@ -2435,17 +2435,17 @@ function SettingsTab({ cur, onRefresh }: { cur: AgentDetailDTO; onRefresh: () =>
           <div style={{ fontSize: 12, color: c.faint }}>
             {t.saveNote}
           </div>
-          {error && <div style={{ fontFamily: font.mono, fontSize: 11, color: c.red }}>{error}</div>}
+          {error && <div style={{ fontFamily: font.sans, fontSize: 12, color: c.red }}>{error}</div>}
         </div>
 
         <div style={{ border: `1px solid ${c.border}`, background: c.panel, padding: 20, borderRadius: r.radiusMd }}>
-          <div style={{ fontFamily: font.mono, fontSize: 11, letterSpacing: ".12em", color: c.muted, marginBottom: 14 }}>
+          <div style={{fontWeight: 600, marginTop: 0,  fontFamily: font.space, fontSize: 19, letterSpacing: "-.01em", color: c.text, marginBottom: 14 }}>
             {t.runtime}
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 10, fontSize: 13.5 }}>
             <div style={{ display: "flex", justifyContent: "space-between" }}>
               <span style={{ color: c.faint }}>{t.runtimeEngine}</span>
-              <span style={{ fontFamily: font.mono, fontSize: 12.5 }}>{ENGINE_LABEL[cur.engine] ?? cur.engine}</span>
+              <span style={{ fontFamily: font.sans, fontSize: 12.5 }}>{ENGINE_LABEL[cur.engine] ?? cur.engine}</span>
             </div>
             <div style={{ display: "flex", justifyContent: "space-between" }}>
               <span style={{ color: c.faint }}>{t.runtimeMachine}</span>
@@ -2455,7 +2455,7 @@ function SettingsTab({ cur, onRefresh }: { cur: AgentDetailDTO; onRefresh: () =>
             </div>
             <div style={{ display: "flex", justifyContent: "space-between" }}>
               <span style={{ color: c.faint }}>{t.runtimeStatus}</span>
-              <span style={{ fontFamily: font.mono, fontSize: 12.5, color: display.color }}>{display.label}</span>
+              <span style={{ fontFamily: font.sans, fontSize: 12.5, color: display.color }}>{display.label}</span>
             </div>
           </div>
         </div>
@@ -2470,7 +2470,7 @@ function SettingsTab({ cur, onRefresh }: { cur: AgentDetailDTO; onRefresh: () =>
             color: c.text,
             padding: 12,
             borderRadius: r.radiusSm,
-            fontFamily: font.space,
+            fontFamily: font.sans,
             fontWeight: 500,
             fontSize: 14,
             cursor: lifeBusy ? "default" : "pointer",
@@ -2489,7 +2489,7 @@ function SettingsTab({ cur, onRefresh }: { cur: AgentDetailDTO; onRefresh: () =>
             color: c.red,
             padding: 12,
             borderRadius: r.radiusSm,
-            fontFamily: font.space,
+            fontFamily: font.sans,
             fontSize: 14,
             cursor: lifeBusy ? "default" : "pointer",
             opacity: lifeBusy ? 0.6 : 1,
@@ -2510,7 +2510,7 @@ function SettingsTab({ cur, onRefresh }: { cur: AgentDetailDTO; onRefresh: () =>
             color: c.red,
             padding: 12,
             borderRadius: r.radiusSm,
-            fontFamily: font.space,
+            fontFamily: font.sans,
             fontSize: 14,
             cursor: lifeBusy || deleteBusy ? "default" : "pointer",
             opacity: lifeBusy || deleteBusy ? 0.6 : 1,
@@ -2529,7 +2529,7 @@ function SettingsTab({ cur, onRefresh }: { cur: AgentDetailDTO; onRefresh: () =>
             color: c.text,
             padding: 12,
             borderRadius: r.radiusSm,
-            fontFamily: font.space,
+            fontFamily: font.sans,
             fontWeight: 500,
             fontSize: 14,
             cursor: "pointer",
@@ -2557,7 +2557,7 @@ function SettingsTab({ cur, onRefresh }: { cur: AgentDetailDTO; onRefresh: () =>
             position: "fixed",
             inset: 0,
             zIndex: 100,
-            background: "rgba(8, 10, 14, 0.62)",
+            background: c.scrim,
             display: "grid",
             placeItems: "center",
             padding: 20,
@@ -2708,8 +2708,8 @@ function InstanceInfoDrawer({ agentId, onClose, onAfterSync }: { agentId: string
             </div>
             <div
               style={{
-                fontFamily: font.mono,
-                fontSize: 11,
+                fontFamily: font.sans,
+                fontSize: 12,
                 color: c.faint,
                 marginTop: 4,
               }}
@@ -2725,7 +2725,7 @@ function InstanceInfoDrawer({ agentId, onClose, onAfterSync }: { agentId: string
               border: `1px solid ${c.border}`,
               color: c.text,
               padding: "6px 12px",
-              fontFamily: font.mono,
+              fontFamily: font.sans,
               fontSize: 12,
               cursor: "pointer",
             }}
@@ -2744,14 +2744,14 @@ function InstanceInfoDrawer({ agentId, onClose, onAfterSync }: { agentId: string
           }}
         >
           {loading && (
-            <div style={{ fontFamily: font.mono, fontSize: 12, color: c.faint }}>
+            <div style={{ fontFamily: font.sans, fontSize: 12, color: c.faint }}>
               Loading…
             </div>
           )}
           {error && (
             <div
               style={{
-                fontFamily: font.mono,
+                fontFamily: font.sans,
                 fontSize: 12,
                 color: c.red,
               }}
@@ -2762,7 +2762,7 @@ function InstanceInfoDrawer({ agentId, onClose, onAfterSync }: { agentId: string
           {!loading && !error && (data?.providers.length ?? 0) === 0 && (
             <div
               style={{
-                fontFamily: font.mono,
+                fontFamily: font.sans,
                 fontSize: 12,
                 color: c.faint,
               }}
@@ -2828,10 +2828,10 @@ function ProviderSection({
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
-          fontFamily: font.mono,
-          fontSize: 11,
+          fontFamily: font.sans,
+          fontSize: 12,
           color: c.muted,
-          letterSpacing: ".08em",
+          letterSpacing: "normal",
         }}
       >
         <span>{provider.provider.toUpperCase()}</span>
@@ -2847,7 +2847,7 @@ function ProviderSection({
       <InfoField label={t.instanceFieldExternalId} value={provider.externalId} mono />
       <InfoField label={t.instanceFieldStatus} value={provider.status} />
       {str(get("name")) !== null && <InfoField label={t.instanceFieldName} value={str(get("name"))!} />}
- 
+
       {strArr(get("access_urls")).length > 0 && (
         <div
           style={{
@@ -2859,11 +2859,11 @@ function ProviderSection({
         >
           <div
             style={{
-              fontFamily: font.mono,
-              fontSize: 10.5,
-              letterSpacing: ".1em",
+              fontFamily: font.sans,
+              fontSize: 12,
+              letterSpacing: "normal",
               color: c.faint,
-              textTransform: "uppercase",
+              textTransform: "none",
               paddingTop: 4,
             }}
           >
@@ -2872,7 +2872,7 @@ function ProviderSection({
           <AccessUrlActions urls={strArr(get("access_urls"))} />
         </div>
       )}
- 
+
       {get("auto_stop_seconds") !== undefined && get("auto_stop_seconds") !== null && (
         <InfoField
           label={t.instanceFieldAutoStopSeconds}
@@ -2933,11 +2933,11 @@ function ProviderSection({
           <div style={{ display: "grid", gridTemplateColumns: "120px 1fr", gap: 12 }}>
             <div
               style={{
-                fontFamily: font.mono,
-                fontSize: 10.5,
-                letterSpacing: ".1em",
+                fontFamily: font.sans,
+                fontSize: 12,
+                letterSpacing: "normal",
                 color: c.faint,
-                textTransform: "uppercase",
+                textTransform: "none",
                 paddingTop: 4,
               }}
             >
@@ -3040,11 +3040,11 @@ function AccessUrlActions({ urls }: { urls: string[] }) {
     border: `1px solid ${c.border}`,
     color: c.text,
     padding: "6px 10px",
-    fontFamily: font.mono,
-    fontSize: 11,
-    letterSpacing: ".08em",
+    fontFamily: font.sans,
+    fontSize: 12,
+    letterSpacing: "normal",
     cursor: "pointer",
-    textTransform: "uppercase",
+    textTransform: "none",
     textAlign: "center",
     display: "inline-block",
     textDecoration: "none",
@@ -3114,11 +3114,11 @@ function InfoField({
       <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
         <div
           style={{
-            fontFamily: font.mono,
-            fontSize: 10.5,
-            letterSpacing: ".1em",
+            fontFamily: font.sans,
+            fontSize: 12,
+            letterSpacing: "normal",
             color: c.faint,
-            textTransform: "uppercase",
+            textTransform: "none",
           }}
         >
           {label}
@@ -3217,15 +3217,14 @@ function ChannelModal({ type, channel, onChange, onSave, onCancel, saving, t, qr
   };
 
   const icon: Record<ChannelType, string> = {
-    feishu: "📱", dingtalk: "💬", wechat: "💚", wecom: "💙",
+    feishu: "/feishu.png", dingtalk: "/dingding.png", wechat: "/weixin.png", wecom: "/qiwei.png",
   };
 
   return (
     <div style={{
       position: "fixed", inset: 0, zIndex: 1000,
       display: "flex", alignItems: "center", justifyContent: "center",
-      background: "rgba(0,0,0,0.55)",
-      backdropFilter: "blur(3px)",
+      background: c.scrim,
     }}
       onClick={e => { if (e.target === e.currentTarget) onCancel(); }}
     >
@@ -3234,18 +3233,18 @@ function ChannelModal({ type, channel, onChange, onSave, onCancel, saving, t, qr
         border: `1px solid ${c.borderStrong}`,
         borderRadius: r.radiusLg,
         padding: 28,
-        width: 480,
+        width: "min(480px, calc(100vw - 32px))",
         maxHeight: "85vh",
         overflowY: "auto",
         display: "flex",
         flexDirection: "column",
         gap: 20,
-        boxShadow: "0 20px 60px rgba(0,0,0,0.4)",
+        boxShadow: `0 16px 40px ${c.shadow}`,
       }}>
         {/* Header */}
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <span style={{ fontSize: 22 }}>{icon[type]}</span>
+            <Image src={icon[type]} alt="" width={24} height={24} />
             <span style={{ fontFamily: font.space, fontWeight: 700, fontSize: 16, color: c.text }}>
               {t.edit} {label[type]}
             </span>
@@ -3310,7 +3309,7 @@ function ChannelModal({ type, channel, onChange, onSave, onCancel, saving, t, qr
               </Field>
             </div>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
-           
+
               {/* <Field label={t.channelDingtalkMessageType}>
                 <SelectField value={d.messageType} onChange={v => set({ messageType: v })} options={[
                   { id: "markdown", label: "Markdown" },
@@ -3328,7 +3327,7 @@ function ChannelModal({ type, channel, onChange, onSave, onCancel, saving, t, qr
         {/* WeChat — QR code login (SSE driven) */}
         {type === "wechat" && (
           <div style={{ display: "flex", flexDirection: "column", gap: 16, alignItems: "center" }}>
-            <div style={{ fontFamily: font.mono, fontSize: 13, color: c.faint, textAlign: "center", lineHeight: 1.6 }}>
+            <div style={{ fontFamily: font.sans, fontSize: 13, color: c.faint, textAlign: "center", lineHeight: 1.6 }}>
               {t.channelWechatScanLoginDesc}
             </div>
             <button
@@ -3336,11 +3335,11 @@ function ChannelModal({ type, channel, onChange, onSave, onCancel, saving, t, qr
               disabled={qrcodeLoading}
               style={{
                 background: c.lime, color: c.ink, border: "none",
-                padding: "10px 20px", fontFamily: font.space,
+                padding: "10px 20px", fontFamily: font.sans,
                 fontWeight: 700, fontSize: 13,
                 cursor: qrcodeLoading ? "default" : "pointer",
                 opacity: qrcodeLoading ? 0.6 : 1,
-                borderRadius: r.radiusSm, width: "100%",
+                borderRadius: 999, width: "100%",
               }}
             >
               {qrcodeLoading
@@ -3355,7 +3354,7 @@ function ChannelModal({ type, channel, onChange, onSave, onCancel, saving, t, qr
               <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 10, width: "100%" }}>
                 {qrcode.connected ? (
                   <div style={{
-                    fontFamily: font.mono, fontSize: 12.5, color: c.green,
+                    fontFamily: font.sans, fontSize: 12.5, color: c.green,
                     padding: "10px 14px", border: `1px solid ${c.greenBorder ?? c.border}`,
                     borderRadius: r.radiusSm, textAlign: "center",
                   }}>
@@ -3363,7 +3362,7 @@ function ChannelModal({ type, channel, onChange, onSave, onCancel, saving, t, qr
                   </div>
                 ) : qrcode.status === "error" ? (
                   <div style={{
-                    fontFamily: font.mono, fontSize: 12, color: c.red,
+                    fontFamily: font.sans, fontSize: 12, color: c.red,
                     padding: "10px 14px", border: `1px solid ${c.redBorder}`,
                     borderRadius: r.radiusSm, textAlign: "center",
                   }}>
@@ -3371,14 +3370,14 @@ function ChannelModal({ type, channel, onChange, onSave, onCancel, saving, t, qr
                   </div>
                 ) : qrOutput ? (
                   <pre style={{
-                    background: "#111",
+                    background: c.panel,
                     padding: "8px 12px",
                     borderRadius: r.radiusSm,
                     border: `1px solid ${c.border}`,
                     fontFamily: "monospace",
                     fontSize: 9,
                     lineHeight: 1,
-                    color: "#00ff88",
+                    color: c.text,
                     textAlign: "left",
                     overflowX: "auto",
                     margin: 0,
@@ -3403,10 +3402,10 @@ function ChannelModal({ type, channel, onChange, onSave, onCancel, saving, t, qr
                     {qrcode.qrcodeUrl}
                   </a>
                 )}
-                <div style={{ fontFamily: font.mono, fontSize: 11, color: c.faint, textAlign: "center" }}>
+                <div style={{ fontFamily: font.sans, fontSize: 12, color: c.faint, textAlign: "center" }}>
                   {qrcode.message}
                 </div>
-                <div style={{ fontFamily: font.mono, fontSize: 10.5, color: c.muted, textAlign: "center" }}>
+                <div style={{ fontFamily: font.sans, fontSize: 12, color: c.muted, textAlign: "center" }}>
                   {qrcode.expiresIn > 0 && !qrcode.connected && qrcode.status !== "error"
                     ? `${qrcode.expiresIn}s`
                     : t.channelLoginExpired}
@@ -3439,7 +3438,7 @@ function ChannelModal({ type, channel, onChange, onSave, onCancel, saving, t, qr
             border: `1px solid ${c.borderStrong}`,
             borderRadius: r.radiusSm,
             color: c.text2,
-            fontFamily: font.space,
+            fontFamily: font.sans,
             fontWeight: 600,
             fontSize: 13,
             cursor: saving ? "default" : "pointer",
@@ -3451,9 +3450,9 @@ function ChannelModal({ type, channel, onChange, onSave, onCancel, saving, t, qr
             padding: "10px 20px",
             background: c.lime,
             border: "none",
-            borderRadius: r.radiusSm,
+            borderRadius: 999,
             color: c.ink,
-            fontFamily: font.space,
+            fontFamily: font.sans,
             fontWeight: 700,
             fontSize: 13,
             cursor: saving ? "default" : "pointer",
@@ -3554,7 +3553,7 @@ function AgentDetailInner() {
               color: c.ink,
               border: "none",
               padding: "11px 22px",
-              fontFamily: font.space,
+              fontFamily: font.sans,
               fontWeight: 700,
               fontSize: 14,
               cursor: "pointer",
@@ -3609,9 +3608,8 @@ function AgentDetailInner() {
       </Btn>
       <div
         style={{
-          border: `1px solid ${c.border}`,
-          background: c.panel,
-          padding: 24,
+          borderBottom: `1px solid ${c.line}`,
+          padding: "8px 0 28px",
           display: "flex",
           alignItems: "center",
           gap: 20,
@@ -3619,41 +3617,27 @@ function AgentDetailInner() {
           flexWrap: "wrap",
         }}
       >
-        <div
-          style={{
-            width: 56,
-            height: 56,
-            background: cur.hue ?? c.lime,
-            color: cur.hue ? c.onBrand : c.ink,
-            display: "grid",
-            placeItems: "center",
-            fontFamily: font.space,
-            fontWeight: 700,
-            fontSize: 24,
-          }}
-        >
-          {cur.mono}
-        </div>
-        <div style={{ flex: 1 }}>
-          <div style={{ fontFamily: font.space, fontWeight: 700, fontSize: "clamp(18px, 4vw, 22px)" }}>
+        <AgentAvatar roleId={cur.roleId} name={cur.name} mono={cur.mono} size={72} />
+        <div style={{ flex: "1 1 180px", minWidth: 0 }}>
+          <h1 style={{ fontFamily: font.space, fontWeight: 650, fontSize: 32, lineHeight: 1.15, letterSpacing: "-.025em", margin: "0 0 8px", overflowWrap: "anywhere" }}>
             {cur.name}
-          </div>
+          </h1>
           <div style={{ fontSize: 14, color: c.muted }}>
             {cur.role} ·{" "}
-            <span style={{ fontFamily: font.mono, fontSize: 12.5 }}>
+            <span style={{ fontFamily: font.sans, fontSize: 12.5 }}>
               {ENGINE_LABEL[cur.engine] ?? cur.engine}
-            </span>{" "}
-            · {cur.vmId}@{cur.vmRegion}
+            </span>
           </div>
+          <div style={{ fontFamily: font.mono, fontSize: 12, color: c.muted, marginTop: 5, overflowWrap: "anywhere" }}>{cur.vmId}@{cur.vmRegion}</div>
         </div>
         <div
           style={{
             display: "flex",
             gap: 24,
-            fontFamily: font.mono,
-            fontSize: 11,
-            color: c.faint,
-            textAlign: "right",
+            flexWrap: "wrap",
+            fontFamily: font.sans,
+            fontSize: 12,
+            color: c.muted,
           }}
         >
           <div>
@@ -3678,10 +3662,9 @@ function AgentDetailInner() {
         className="ark-scroll"
         style={{
           display: "flex",
-          border: `1px solid ${c.border}`,
-          borderTop: "none",
-          background: c.bg,
-          marginBottom: 28,
+          borderBottom: `1px solid ${c.line}`,
+          marginBottom: 32,
+          gap: 8,
           overflowX: "auto",
           flexWrap: "nowrap",
         }}
@@ -3711,13 +3694,13 @@ function AgentDetailInner() {
                 border: "none",
                 borderBottom: `2px solid ${on ? c.accent : "transparent"}`,
                 color: on ? c.text : c.faint,
-                padding: "13px 22px",
+                padding: "16px 14px",
                 fontSize: 14,
-                fontFamily: font.space,
-                fontWeight: 500,
+                fontFamily: font.sans,
+                fontWeight: on ? 600 : 500,
                 cursor: "pointer",
                 whiteSpace: "nowrap",
-                borderRadius: r.radiusSm,
+                borderRadius: 0,
               }}
             >
               {label}

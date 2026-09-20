@@ -128,8 +128,7 @@ export function RunDrawer({
             position: "sticky",
             top: 0,
             zIndex: 1,
-            background: c.glass,
-            backdropFilter: "blur(8px)",
+            background: c.panel,
             borderBottom: `1px solid ${c.line}`,
             padding: "14px 18px",
             display: "flex",
@@ -140,11 +139,13 @@ export function RunDrawer({
           <div style={{ flex: 1, minWidth: 0 }}>
             <div
               style={{
-                fontFamily: font.mono,
-                fontSize: 10.5,
-                letterSpacing: ".08em",
-                textTransform: "uppercase",
-                color: c.muted,
+                fontWeight: 600,
+                marginTop: 0,
+                fontFamily: font.space,
+                fontSize: 19,
+                letterSpacing: "-.01em",
+                textTransform: "none",
+                color: c.text,
               }}
             >
               {t.ui.run.heading}
@@ -168,7 +169,7 @@ export function RunDrawer({
               )}
               <span>{run ? t.status[run.status] : t.ui.run.loading}</span>
               {tg && run && (
-                <span style={{ fontFamily: font.mono, fontSize: 11.5, color: tg.color }}>
+                <span style={{ fontFamily: font.sans, fontSize: 12, color: tg.color }}>
                   <span aria-hidden="true" style={{ marginRight: 4 }}>
                     {tg.glyph}
                   </span>
@@ -267,10 +268,10 @@ export function RunDrawer({
                 >
                   <div
                     style={{
-                      fontFamily: font.mono,
-                      fontSize: 10.5,
-                      letterSpacing: ".07em",
-                      textTransform: "uppercase",
+                      fontFamily: font.sans,
+                      fontSize: 12,
+                      letterSpacing: "normal",
+                      textTransform: "none",
                       color: c.muted,
                       marginBottom: 5,
                     }}
@@ -338,10 +339,10 @@ export function RunDrawer({
                   <div style={{ minWidth: 0 }}>
                     <dt
                       style={{
-                        fontFamily: font.mono,
-                        fontSize: 10,
-                        letterSpacing: ".07em",
-                        textTransform: "uppercase",
+                        fontFamily: font.sans,
+                        fontSize: 12,
+                        letterSpacing: "normal",
+                        textTransform: "none",
                         color: c.muted,
                       }}
                     >
@@ -386,10 +387,10 @@ function Fact({
     <div style={{ minWidth: 0 }}>
       <dt
         style={{
-          fontFamily: font.mono,
-          fontSize: 10,
-          letterSpacing: ".07em",
-          textTransform: "uppercase",
+          fontFamily: font.sans,
+          fontSize: 12,
+          letterSpacing: "normal",
+          textTransform: "none",
           color: c.muted,
         }}
       >
@@ -499,8 +500,8 @@ function Step({ step }: { step: RunStepDTO }) {
               gap: 12,
               flexWrap: "wrap",
               marginTop: 4,
-              fontFamily: font.mono,
-              fontSize: 10.5,
+              fontFamily: font.sans,
+              fontSize: 12,
               color: c.muted,
             }}
           >
@@ -518,8 +519,8 @@ function Step({ step }: { step: RunStepDTO }) {
                   background: "transparent",
                   border: "none",
                   padding: 0,
-                  fontFamily: font.mono,
-                  fontSize: 10.5,
+                  fontFamily: font.sans,
+                  fontSize: 12,
                   color: c.accent,
                   cursor: "pointer",
                 }}
@@ -551,7 +552,7 @@ function Step({ step }: { step: RunStepDTO }) {
                 {step.detail ?? t.ui.run.noDetail}
               </pre>
               {step.detailTruncated && (
-                <div style={{ fontFamily: font.mono, fontSize: 10.5, color: c.muted, marginTop: 4 }}>
+                <div style={{ fontFamily: font.sans, fontSize: 12, color: c.muted, marginTop: 4 }}>
                   {t.label.detailTruncated}
                 </div>
               )}
@@ -587,8 +588,8 @@ function SmallBtn({ children, onClick }: { children: React.ReactNode; onClick: (
       onClick={onClick}
       hoverStyle={{ color: c.text, borderColor: c.borderMute }}
       style={{
-        fontFamily: font.mono,
-        fontSize: 11,
+        fontFamily: font.sans,
+        fontSize: 12,
         padding: "4px 8px",
         borderRadius: r.radiusSm,
         background: "transparent",

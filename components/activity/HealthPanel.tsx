@@ -91,8 +91,10 @@ export function HealthPanel({
       <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
         <h2
           style={{
+            letterSpacing: "-.01em",
+            marginTop: 0,
             fontFamily: font.space,
-            fontSize: 15,
+            fontSize: 19,
             fontWeight: 600,
             color: c.text,
             margin: 0,
@@ -112,8 +114,8 @@ export function HealthPanel({
                   aria-pressed={on}
                   hoverStyle={on ? undefined : { color: c.text, borderColor: c.borderMute }}
                   style={{
-                    fontFamily: font.mono,
-                    fontSize: 11,
+                    fontFamily: font.sans,
+                    fontSize: 12,
                     padding: "5px 10px",
                     cursor: "pointer",
                     background: on ? c.limeWash : "transparent",
@@ -212,11 +214,13 @@ function Liveness({
     >
       <div
         style={{
-          fontFamily: font.mono,
-          fontSize: 10.5,
-          letterSpacing: ".08em",
-          textTransform: "uppercase",
-          color: c.muted,
+          fontWeight: 600,
+          marginTop: 0,
+          fontFamily: font.space,
+          fontSize: 17,
+          letterSpacing: "-.01em",
+          textTransform: "none",
+          color: c.text,
           marginBottom: 12,
         }}
       >
@@ -336,17 +340,17 @@ function Capacity({
       <div style={{ display: "flex", alignItems: "baseline", gap: 10, flexWrap: "wrap" }}>
         <span
           style={{
-            fontFamily: font.mono,
-            fontSize: 10.5,
-            letterSpacing: ".08em",
-            textTransform: "uppercase",
+            fontFamily: font.sans,
+            fontSize: 12,
+            letterSpacing: "normal",
+            textTransform: "none",
             color: c.muted,
           }}
         >
           {t.ui.health.capacity}
         </span>
-        <span style={{ fontFamily: font.mono, fontSize: 11, color: c.faint }}>{spanLabel}</span>
-        <span style={{ fontFamily: font.mono, fontSize: 11, color: c.faint }}>
+        <span style={{ fontFamily: font.sans, fontSize: 12, color: c.faint }}>{spanLabel}</span>
+        <span style={{ fontFamily: font.sans, fontSize: 12, color: c.faint }}>
           {interpolate(t.ui.health.cellSize, { minutes: cellMinutes })}
         </span>
       </div>
@@ -523,10 +527,10 @@ function Cap({ children }: { children: React.ReactNode }) {
   return (
     <div
       style={{
-        fontFamily: font.mono,
-        fontSize: 10,
-        letterSpacing: ".07em",
-        textTransform: "uppercase",
+        fontFamily: font.sans,
+        fontSize: 12,
+        letterSpacing: "normal",
+        textTransform: "none",
         color: c.muted,
       }}
     >

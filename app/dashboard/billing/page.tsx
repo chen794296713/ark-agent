@@ -23,6 +23,7 @@ import { api, ApiError, type BillingDTO, type BillingUsageDTO, type InvoiceDTO }
 import { ANNUAL_DISCOUNT, formatMoney, isCurrency, overagePer1k } from "@/lib/pricing";
 import { c, font, r } from "@/lib/theme";
 import { Btn } from "@/components/ui";
+import { AgentAvatar } from "@/components/AgentAvatar";
 import { useApp } from "@/lib/store";
 import { billing as billingI18n, type BillingDict } from "@/lib/i18n/billing";
 import { BCP47 } from "@/lib/i18n";
@@ -32,7 +33,6 @@ type BillTabId = (typeof billTabIds)[number];
 
 /** Avatar fallback hue when a seat has no role colour. */
 /** Fill for a seat with no role colour. Themed, so it pairs with `c.ink`. */
-const SEAT_FALLBACK_HUE = c.lime;
 
 /** Marker colour per provider; unknown providers stay neutral. */
 const PROVIDER_HUE: Record<string, string> = {
@@ -217,18 +217,18 @@ export default function BillingPage() {
           gap: 14,
         }}
       >
-        <h2
+        <h1
           style={{
             fontFamily: font.space,
-            fontWeight: 700,
-            fontSize: 26,
+            fontWeight: 650,
+            fontSize: 32,
             margin: 0,
           }}
         >
           {t.heading}
-        </h2>
+        </h1>
         <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-          <span style={{ fontFamily: font.mono, fontSize: 12, color: c.faint }}>
+          <span style={{ fontFamily: font.sans, fontSize: 12, color: c.faint }}>
             {t.paymentMeta(`VISA ••4242 · ${t.overageRate(overageTag)}`)}
           </span>
           <Btn
@@ -238,12 +238,11 @@ export default function BillingPage() {
               background: "none",
               border: `1px solid ${c.border}`,
               color: c.accent,
-              fontFamily: font.mono,
-              fontSize: 11,
-              letterSpacing: ".04em",
+              fontFamily: font.sans,
+              fontSize: 12,
+              letterSpacing: "normal",
               padding: "6px 12px",
-              cursor: "pointer",
-            }}
+              cursor: "pointer", borderRadius: 999 }}
           >
             {t.updatePayment}
           </Btn>
@@ -281,11 +280,11 @@ export default function BillingPage() {
                   color: on ? c.ink : c.muted,
                   border: "none",
                   padding: "7px 14px",
-                  fontFamily: font.mono,
-                  fontSize: 11,
-                  letterSpacing: ".04em",
+                  fontFamily: font.sans,
+                  fontSize: 12,
+                  letterSpacing: "normal",
                   cursor: "pointer",
-                  borderRadius: r.radiusSm,
+                  borderRadius: 999,
                 }}
               >
                 {t.tabs[id]}
@@ -304,7 +303,7 @@ export default function BillingPage() {
                 border: `1px solid ${c.border}`,
                 color: c.text,
                 padding: "8px 10px",
-                fontFamily: font.mono,
+                fontFamily: font.sans,
                 fontSize: 12,
                 outline: "none",
               }}
@@ -319,7 +318,7 @@ export default function BillingPage() {
                 border: `1px solid ${c.border}`,
                 color: c.text,
                 padding: "8px 10px",
-                fontFamily: font.mono,
+                fontFamily: font.sans,
                 fontSize: 12,
                 outline: "none",
               }}
@@ -335,7 +334,7 @@ export default function BillingPage() {
             background: c.redWash,
             color: c.red,
             padding: "12px 16px",
-            fontFamily: font.mono,
+            fontFamily: font.sans,
             fontSize: 12.5,
             marginBottom: 24,
           }}
@@ -350,9 +349,9 @@ export default function BillingPage() {
             border: `1px solid ${c.border}`,
             background: c.panel,
             padding: 40,
-            fontFamily: font.mono,
+            fontFamily: font.sans,
             fontSize: 12,
-            letterSpacing: ".08em",
+            letterSpacing: "normal",
             color: c.faint,
             textAlign: "center",
           }}
@@ -372,7 +371,7 @@ export default function BillingPage() {
             }}
           >
             {/* Credits card */}
-            <div style={{ border: `1px solid ${c.border}`, background: c.panel, padding: 24, borderRadius: r.radiusMd }}>
+            <div style={{ borderTop: `1px solid ${c.line}`, background: "transparent", padding: "24px 0" }}>
               <div
                 style={{
                   display: "flex",
@@ -383,9 +382,9 @@ export default function BillingPage() {
               >
                 <span
                   style={{
-                    fontFamily: font.mono,
-                    fontSize: 11,
-                    letterSpacing: ".1em",
+                    fontFamily: font.sans,
+                    fontSize: 12,
+                    letterSpacing: "normal",
                     color: c.faint,
                   }}
                 >
@@ -424,8 +423,8 @@ export default function BillingPage() {
                     style={{
                       display: "flex",
                       justifyContent: "space-between",
-                      fontFamily: font.mono,
-                      fontSize: 10.5,
+                      fontFamily: font.sans,
+                      fontSize: 12,
                       color: c.faint,
                       marginTop: 8,
                     }}
@@ -464,9 +463,9 @@ export default function BillingPage() {
             {/* Invoice estimate card */}
             <div
               style={{
-                border: `1px solid ${c.border}`,
-                background: c.panel,
-                padding: 24,
+                borderTop: `1px solid ${c.line}`,
+                background: "transparent",
+                padding: "24px 0",
                 display: "flex",
                 flexDirection: "column",
                 borderRadius: r.radiusMd,
@@ -483,15 +482,15 @@ export default function BillingPage() {
               >
                 <span
                   style={{
-                    fontFamily: font.mono,
-                    fontSize: 11,
-                    letterSpacing: ".1em",
+                    fontFamily: font.sans,
+                    fontSize: 12,
+                    letterSpacing: "normal",
                     color: c.faint,
                   }}
                 >
                   {t.estimateLabel[billRange]}
                 </span>
-                <span style={{ fontFamily: font.mono, fontSize: 10.5, color: c.faint }}>
+                <span style={{ fontFamily: font.sans, fontSize: 12, color: c.faint }}>
                   {t.billedIn(t.currency[currency])}
                 </span>
               </div>
@@ -548,23 +547,23 @@ export default function BillingPage() {
           <div
             style={{
               display: "grid",
-              gridTemplateColumns: r.billing,
-              gap: 20,
+              gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 500px), 1fr))",
+              gap: 36,
               alignItems: "start",
             }}
           >
             <div style={{ minWidth: 0 }}>
-              <div
-                style={{
-                  fontFamily: font.mono,
-                  fontSize: 11,
-                  letterSpacing: ".12em",
-                  color: c.faint,
-                  marginBottom: 12,
+              <h2
+                style={{ margin: 0,
+                  fontFamily: font.space,
+                  fontSize: 20,
+                  fontWeight: 600,
+                  color: c.text,
+                  marginBottom: 16,
                 }}
               >
                 {t.perAgentUsage}
-              </div>
+              </h2>
               <div className="ark-scroll" style={{ overflowX: "auto" }}>
               <div style={{ minWidth: 440 }}>
               <div style={{ border: `1px solid ${c.border}`, background: c.panel }}>
@@ -572,7 +571,7 @@ export default function BillingPage() {
                   <div
                     style={{
                       padding: "28px 20px",
-                      fontFamily: font.mono,
+                      fontFamily: font.sans,
                       fontSize: 12,
                       color: c.faint,
                       textAlign: "center",
@@ -582,10 +581,6 @@ export default function BillingPage() {
                   </div>
                 ) : (
                   billing!.seats.map((seat) => {
-                    const hue = seat.hue ?? SEAT_FALLBACK_HUE;
-                    // A fixed role hue takes the fixed ink; the themed fallback
-                    // fill takes the themed one.
-                    const monoInk = seat.hue ? c.onBrand : c.ink;
                     // Per-row usage bar relative to the workspace allowance.
                     const seatCredits = rangeCreditsByAgent.get(seat.id) ?? 0;
                     const w =
@@ -603,21 +598,7 @@ export default function BillingPage() {
                           borderBottom: `1px solid ${c.lineSoft}`,
                         }}
                       >
-                        <div
-                          style={{
-                            width: 28,
-                            height: 28,
-                            background: hue,
-                            color: monoInk,
-                            display: "grid",
-                            placeItems: "center",
-                            fontFamily: font.space,
-                            fontWeight: 700,
-                            fontSize: 13,
-                          }}
-                        >
-                          {seat.mono}
-                        </div>
+                        <AgentAvatar name={seat.name} mono={seat.mono} size={36} />
                         <div style={{ flex: 1 }}>
                           <div style={{ fontSize: 14 }}>
                             {seat.name}{" "}
@@ -628,12 +609,12 @@ export default function BillingPage() {
                         </div>
                         <div style={{ width: 150 }}>
                           <div style={{ height: 4, background: c.line }}>
-                            <div style={{ height: 4, width: w, background: hue }} />
+                            <div style={{ height: 4, width: w, background: c.lime }} />
                           </div>
                         </div>
                         <span
                           style={{
-                            fontFamily: font.mono,
+                            fontFamily: font.sans,
                             fontSize: 12.5,
                             color: c.text2,
                             width: 120,
@@ -663,17 +644,17 @@ export default function BillingPage() {
             </div>
 
             <div style={{ minWidth: 0 }}>
-              <div
-                style={{
-                  fontFamily: font.mono,
-                  fontSize: 11,
-                  letterSpacing: ".12em",
-                  color: c.faint,
-                  marginBottom: 12,
+              <h2
+                style={{ margin: 0,
+                  fontFamily: font.space,
+                  fontSize: 20,
+                  fontWeight: 600,
+                  color: c.text,
+                  marginBottom: 16,
                 }}
               >
                 {t.invoices}
-              </div>
+              </h2>
               {/* Wider than the 360 it was: each row now carries a provider chip. */}
               <div className="ark-scroll" style={{ overflowX: "auto" }}>
               <div style={{ minWidth: 420 }}>
@@ -682,7 +663,7 @@ export default function BillingPage() {
                   <div
                     style={{
                       padding: "28px 20px",
-                      fontFamily: font.mono,
+                      fontFamily: font.sans,
                       fontSize: 12,
                       color: c.faint,
                       textAlign: "center",
@@ -707,14 +688,14 @@ export default function BillingPage() {
                       </span>
                       <span
                         title={t.billedIn(invoiceCurrencyName(v, t))}
-                        style={{ fontFamily: font.mono, fontSize: 13 }}
+                        style={{ fontFamily: font.sans, fontSize: 13 }}
                       >
                         {invoiceAmount(v, t)}
                       </span>
                       <span
                         style={{
-                          fontFamily: font.mono,
-                          fontSize: 11,
+                          fontFamily: font.sans,
+                          fontSize: 12,
                           color: v.status === "paid" ? c.green : c.amber,
                         }}
                       >
@@ -728,9 +709,9 @@ export default function BillingPage() {
                         <span
                           title={t.paidVia(providerName(v.provider, t))}
                           style={{
-                            fontFamily: font.mono,
-                            fontSize: 10,
-                            letterSpacing: ".06em",
+                            fontFamily: font.sans,
+                            fontSize: 12,
+                            letterSpacing: "normal",
                             color: PROVIDER_HUE[v.provider] ?? c.faint,
                             border: `1px solid ${PROVIDER_HUE[v.provider] ?? c.border}`,
                             padding: "2px 7px",
@@ -742,8 +723,8 @@ export default function BillingPage() {
                       )}
                       <span
                         style={{
-                          fontFamily: font.mono,
-                          fontSize: 11,
+                          fontFamily: font.sans,
+                          fontSize: 12,
                           color: c.faint,
                           cursor: "pointer",
                         }}

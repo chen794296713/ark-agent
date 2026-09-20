@@ -1,5 +1,5 @@
 /* ArkAgent — global base + animations.
-   Brand: dark terminal + lime. Visual tokens live in lib/theme.ts;
+   Brand: Team Directory, forest and leaf. Visual tokens live in lib/theme.ts;
    this file holds resets, font-variable defaults and keyframes. */
 
 html,
@@ -35,22 +35,21 @@ summary {
 /* =====================================================================
    COLOR TOKEN LAYER  (typed as `c` in lib/theme.ts)
 
-   TWO AXES, straight from the Claude Design source (ArkAgent.dc.html):
-     data-direction : terminal | ivory | midnight   (brand look)
+   TWO AXES: appearance and light/dark preference.
+     data-direction : team | terminal | ivory | midnight   (brand look)
      data-theme     : dark | light                  (mode)
-   Six palettes. Inline styles read these via var(--c-*), so flipping the two
+   Eight palettes. Inline styles read these via var(--c-*), so flipping the two
    attributes on <html> re-skins the whole app with no hydration cost.
 
    TWO RULES THIS LAYER DEPENDS ON — both easy to break silently:
 
-   1. `:root` carries terminal-dark, so it is also the universal fallback.
-      Any --c-* a later block forgets resolves to a TERMINAL DARK value: you
-      get near-white text on cream and it half-works. Every block below
-      declares the SAME 40 token names — a generator emits them together.
-   2. All six pairs have equal specificity (0,2,0) and are mutually exclusive,
+   1. `:root` carries team-light, so it is also the universal fallback.
+      Every palette declares the same complete token set; the contrast suite
+      checks surface, text, field and status pairs.
+   2. All eight pairs have equal specificity (0,2,0) and are mutually exclusive,
       so none can shadow another. `:root` sits below them at (0,1,0). Never
       "clarify" a selector as html[data-direction=…] (0,2,1), which would
-      outrank its five siblings and pin the app to one look.
+      outrank its siblings and pin the app to one look.
 
    Because the pair must both be present for a block to match, the server
    renders BOTH attributes (see app/layout.tsx) and the pre-paint boot script
@@ -76,65 +75,142 @@ summary {
    Edit a palette and run `npm test`.
    ===================================================================== */
 :root {
-  color-scheme: dark;
-
-  /* surfaces */
-  --c-bg: #0A0D12;
-  --c-panel: #161C26;
-  --c-panel-deep: #1c2531;
-  --c-hover: #1d2632;
-  --c-glass: rgba(10,13,18,.86);
-
-  /* hairlines / borders */
-  --c-line: #283140;
-  --c-line-soft: #222a37;
-  --c-border: #384355;
-  --c-border-strong: #48556a;
-  --c-border-mute: #768293;
-  --c-border-field: #647084; /* 3:1 non-text (WCAG 1.4.11) */
-
-  /* accent — the direction's signal colour */
-  --c-lime: #D8FF3E;
-  --c-lime-hover: #E9FF7A;
-  --c-accent: #D8FF3E;
-  --c-lime-wash: #1a210d;
-  --c-lime-wash2: #293311;
-  --c-lime-border: #48571f;
-
-  /* text ramp */
-  --c-ink: #0A0D12;
+  color-scheme: light;
+  --c-bg: #FEFEFD;
+  --c-panel: #FEFEFD;
+  --c-panel-deep: #F4F6EF;
+  --c-hover: #EEF2E7;
+  --c-glass: #FEFEFD;
+  --c-line: #DAE1D6;
+  --c-line-soft: #E6EBE1;
+  --c-border: #CDD6C7;
+  --c-border-strong: #8D9E8A;
+  --c-border-mute: #73836D;
+  --c-border-field: #73836D;
+  --c-lime: #15362D;
+  --c-lime-hover: #2A5142;
+  --c-accent: #15362D;
+  --c-lime-wash: #EEF2E7;
+  --c-lime-wash2: #E6EDDC;
+  --c-lime-border: #A9BA93;
+  --c-ink: #FEFEFD;
   --c-on-brand: #0b0d10;
-  --c-green-ink: #0A0D12;
-  --c-text: #F5F8FC;
-  --c-text2: #D7DEE9;
-  --c-muted: #AEB8C6;
-  --c-faint: #848E9C;
-
-  /* status */
-  --c-green: #4ADE80;
-  --c-green-wash: #0f1f16;
-  --c-green-border: #27462f;
-  --c-amber: #FBBF24;
-  --c-orange: #e8804f;
-  --c-red: #fb8b8b;
-  --c-red-wash: #1a0f11;
-  --c-red-border: #3a2328;
-  --c-blue: #6aa6ff;
-
-  /* payment brands — fixed marks, never themed */
+  --c-green-ink: #FEFEFD;
+  --c-text: #10271F;
+  --c-text2: #213C30;
+  --c-muted: #3C5142;
+  --c-faint: #5A6C5B;
+  --c-green: #28623F;
+  --c-green-wash: #EAF2E7;
+  --c-green-border: #ADC5A5;
+  --c-amber: #805C15;
+  --c-orange: #99451F;
+  --c-red: #A23732;
+  --c-red-wash: #F9ECE8;
+  --c-red-border: #D6AAA1;
+  --c-blue: #315F80;
   --c-stripe: #635bff;
   --c-stripe-hover: #7a73ff;
   --c-alipay: #1677ff;
+  --c-nav-selected: #E6EDDC;
+  --c-grid: transparent;
+  --c-scrim: rgba(16,39,31,.36);
+  --c-scrollbar: #94A38B;
+  --c-shadow: rgba(16,39,31,.13);
+  --f-display: var(--font-team), 'Geom', sans-serif;
+}
 
-  /* chrome */
-  --c-nav-selected: #232d3d;
-  --c-grid: rgba(255,255,255,.03);
-  --c-scrim: rgba(0, 0, 0, 0.6);
-  --c-scrollbar: #48556a;
-  --c-shadow: rgba(0, 0, 0, 0.55);
+/* TEAM DIRECTORY — the approved product world, with a low-light counterpart. */
+[data-direction="team"][data-theme="light"] {
+  color-scheme: light;
+  --c-bg: #FEFEFD;
+  --c-panel: #FEFEFD;
+  --c-panel-deep: #F4F6EF;
+  --c-hover: #EEF2E7;
+  --c-glass: #FEFEFD;
+  --c-line: #DAE1D6;
+  --c-line-soft: #E6EBE1;
+  --c-border: #CDD6C7;
+  --c-border-strong: #8D9E8A;
+  --c-border-mute: #73836D;
+  --c-border-field: #73836D;
+  --c-lime: #15362D;
+  --c-lime-hover: #2A5142;
+  --c-accent: #15362D;
+  --c-lime-wash: #EEF2E7;
+  --c-lime-wash2: #E6EDDC;
+  --c-lime-border: #A9BA93;
+  --c-ink: #FEFEFD;
+  --c-on-brand: #0b0d10;
+  --c-green-ink: #FEFEFD;
+  --c-text: #10271F;
+  --c-text2: #213C30;
+  --c-muted: #3C5142;
+  --c-faint: #5A6C5B;
+  --c-green: #28623F;
+  --c-green-wash: #EAF2E7;
+  --c-green-border: #ADC5A5;
+  --c-amber: #805C15;
+  --c-orange: #99451F;
+  --c-red: #A23732;
+  --c-red-wash: #F9ECE8;
+  --c-red-border: #D6AAA1;
+  --c-blue: #315F80;
+  --c-stripe: #635bff;
+  --c-stripe-hover: #7a73ff;
+  --c-alipay: #1677ff;
+  --c-nav-selected: #E6EDDC;
+  --c-grid: transparent;
+  --c-scrim: rgba(16,39,31,.36);
+  --c-scrollbar: #94A38B;
+  --c-shadow: rgba(16,39,31,.13);
+  --f-display: var(--font-team), 'Geom', sans-serif;
+}
 
-  /* display face — Ivory speaks in a serif, the other two in Space Grotesk */
-  --f-display: var(--font-space), 'Space Grotesk', sans-serif;
+[data-direction="team"][data-theme="dark"] {
+  color-scheme: dark;
+  --c-bg: #101C17;
+  --c-panel: #15231C;
+  --c-panel-deep: #1C2B22;
+  --c-hover: #223027;
+  --c-glass: #15231C;
+  --c-line: #35463A;
+  --c-line-soft: #2A3B30;
+  --c-border: #4C5D50;
+  --c-border-strong: #76866F;
+  --c-border-mute: #93A38B;
+  --c-border-field: #879A7E;
+  --c-lime: #C6D897;
+  --c-lime-hover: #D6E5B3;
+  --c-accent: #C6D897;
+  --c-lime-wash: #293525;
+  --c-lime-wash2: #303D2A;
+  --c-lime-border: #61764A;
+  --c-ink: #10271F;
+  --c-on-brand: #0b0d10;
+  --c-green-ink: #10271F;
+  --c-text: #FEFEF8;
+  --c-text2: #E3EBDD;
+  --c-muted: #C0CEB8;
+  --c-faint: #A0B197;
+  --c-green: #A2D698;
+  --c-green-wash: #243822;
+  --c-green-border: #526D49;
+  --c-amber: #EAC57D;
+  --c-orange: #EBB28A;
+  --c-red: #F3ADA3;
+  --c-red-wash: #3D2925;
+  --c-red-border: #80554B;
+  --c-blue: #ACCBDD;
+  --c-stripe: #635bff;
+  --c-stripe-hover: #7a73ff;
+  --c-alipay: #1677ff;
+  --c-nav-selected: #35452B;
+  --c-grid: transparent;
+  --c-scrim: rgba(0,0,0,.56);
+  --c-scrollbar: #718365;
+  --c-shadow: rgba(0,0,0,.3);
+  --f-display: var(--font-team), 'Geom', sans-serif;
 }
 
 /* TERMINAL LIME — dark */
@@ -723,7 +799,7 @@ button {
    accent ring, keyboard-only, legible on all three palettes. */
 :where(a, button, [role="menuitem"], [role="menuitemradio"], [role="radio"], input, select, textarea):focus-visible {
   outline: 2px solid var(--c-accent);
-  outline-offset: 2px;
+  outline-offset: 3px;
 }
 
 /* Thin scrollbars inside scrolling panels (chat, etc.) */
@@ -790,7 +866,7 @@ button {
   color: var(--c-muted);
 }
 .ark-chat-markdown-user blockquote {
-  border-left-color: rgba(11, 13, 16, 0.45);
+  border-left-color: currentColor;
   color: inherit;
 }
 .ark-chat-markdown code {
@@ -836,7 +912,7 @@ button {
 }
 .ark-chat-markdown-user th,
 .ark-chat-markdown-user td {
-  border-color: rgba(11, 13, 16, 0.3);
+  border-color: color-mix(in srgb, currentColor 30%, transparent);
 }
 .ark-chat-markdown hr {
   margin: 12px 0;
@@ -896,3 +972,12 @@ button {
     opacity: 1;
   }
 }
+
+/* Shared product details: legible selections, fields and tabular data. */
+::selection { background: var(--c-lime); color: var(--c-ink); }
+input, textarea { caret-color: var(--c-accent); }
+table, time, [data-numeric] { font-variant-numeric: tabular-nums; }
+.ark-workspace h1 { text-wrap: balance; }
+.ark-workspace button:disabled { cursor: not-allowed; }
+
+.ark-workspace :where(a, button, input, select, textarea):focus-visible { outline: 2px solid var(--c-accent) !important; outline-offset: 3px; }

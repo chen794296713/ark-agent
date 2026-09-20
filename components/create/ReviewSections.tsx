@@ -32,6 +32,7 @@
 import { useMemo, useState, type CSSProperties } from "react";
 import { c, font, r } from "@/lib/theme";
 import { Btn } from "@/components/ui";
+import { Glyph } from "./Glyph";
 import { harnessLabel } from "@/lib/harness";
 import type { Lang } from "@/lib/types";
 import type { AgentTemplateDraft } from "@/lib/atg/types";
@@ -81,10 +82,8 @@ export interface SectionProps {
 
 /** The recessed shell every repeatable row inside a section sits in. */
 export const SECTION_ROW: CSSProperties = {
-  border: `1px solid ${c.border}`,
-  borderRadius: r.radiusSm,
-  background: c.panelDeep,
-  padding: 14,
+  borderTop: `1px solid ${c.line}`,
+  padding: "20px 0",
   display: "flex",
   flexDirection: "column",
   gap: 10,
@@ -228,8 +227,8 @@ export default function ReviewSections({
             <h1
               style={{
                 fontFamily: font.space,
-                fontWeight: 700,
-                fontSize: "clamp(20px, 4vw, 24px)",
+                fontWeight: 650,
+                fontSize: "clamp(30px, 4vw, 42px)",
                 letterSpacing: "-.01em",
                 margin: "0 0 6px",
                 color: c.text,
@@ -268,7 +267,7 @@ export default function ReviewSections({
             style={ghostBtn}
             hoverStyle={ghostBtnHover}
           >
-            ✎ {t.rename}
+            {t.rename}
           </Btn>
         </div>
 
@@ -287,7 +286,7 @@ export default function ReviewSections({
         )}
 
         <Notice>
-          <span style={{ fontFamily: font.mono, fontSize: 11, letterSpacing: ".06em" }}>
+          <span style={{ fontFamily: font.sans, fontSize: 13, letterSpacing: "normal" }}>
             {t.confidenceLabel}
           </span>{" "}
           {confidence === "high"
@@ -304,7 +303,7 @@ export default function ReviewSections({
                 <li key={`${w.code}${w.path}`} style={{ marginBottom: 4 }}>
                   {/* `remediation` is written by our own linter; `message` is
                       English-for-logs and only a fallback. Both are text. */}
-                  <span style={{ fontFamily: font.mono, fontSize: 11, color: c.muted }}>
+                  <span style={{ fontFamily: font.sans, fontSize: 13, color: c.muted }}>
                     {w.code}
                   </span>{" "}
                   {sanitizeUntrusted(w.remediation ?? w.message, 200)}
@@ -346,7 +345,7 @@ export default function ReviewSections({
             borderRadius: r.radiusMd,
           }}
         >
-          <span style={{ fontFamily: font.mono, fontSize: 11, color: c.muted, flex: "1 1 200px" }}>
+          <span style={{ fontFamily: font.sans, fontSize: 13, color: c.muted, flex: "1 1 200px" }}>
             {t.countdownToLaunch(SECTION_KEYS.length, needsReview)}
           </span>
           {onSaveTemplate && (
@@ -386,17 +385,15 @@ export default function ReviewSections({
         style={{
           position: "sticky",
           top: 88,
-          border: `1px solid ${c.border}`,
-          borderRadius: r.radiusMd,
-          background: c.panel,
-          padding: 18,
+          borderTop: `1px solid ${c.line}`,
+          padding: "22px 0",
           display: "flex",
           flexDirection: "column",
           gap: 10,
           minWidth: 0,
         }}
       >
-        <div style={{ fontFamily: font.mono, fontSize: 11, letterSpacing: ".12em", color: c.text2 }}>
+        <div style={{ fontFamily: font.sans, fontSize: 13, letterSpacing: "normal", color: c.text2 }}>
           {t.readyTitle}
         </div>
         {SECTION_KEYS.map((key) => {
@@ -418,12 +415,12 @@ export default function ReviewSections({
                 aria-hidden
                 style={{ color: s === "ok" ? c.green : s === "review" ? c.amber : c.muted }}
               >
-                {s === "ok" ? "✓" : s === "review" ? "⚠" : "·"}
+                <Glyph symbol={s === "ok" ? "✓" : s === "review" ? "⚠" : "·"} />
               </span>
               <span style={{ fontSize: 13, color: c.text2, flex: 1, minWidth: 0 }}>
                 {t.sectionNames[key]}
               </span>
-              <span style={{ fontFamily: font.mono, fontSize: 10.5, color: c.muted }}>
+              <span style={{ fontFamily: font.sans, fontSize: 12.5, color: c.muted }}>
                 {stateLabel[s]}
               </span>
             </a>
