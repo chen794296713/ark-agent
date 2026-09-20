@@ -2,22 +2,18 @@
 
 import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { c, font, r } from "@/lib/theme";
+import Image from "next/image";
+import Link from "next/link";
 import { api, ApiError, type RoleDTO } from "@/lib/client-api";
 import { ENGINE_LABEL, planLabel } from "@/lib/agent-display";
 import { isHarness, type Harness } from "@/lib/harness";
-import { Btn } from "@/components/ui";
 import { useApp } from "@/lib/store";
 import { hire } from "@/lib/i18n/hire";
 import { create } from "@/lib/i18n/create";
 import { getTranslatedRole } from "@/lib/i18n/roles";
+import { getAgent } from "@/lib/agent-catalog";
+import styles from "./hire.module.css";
 
-const LIME = c.lime;
-const ACCENT = c.accent;
-// Both are theme tokens; the trailing hex comments they used to carry named
-// only the dark values and went stale the moment a second palette existed.
-const INKBG = c.panel;
-const BORD = c.border;
 const CUSTOM_ROLE_ID = "custom";
 const ROLE_PAGE_SIZE = 10;
 
@@ -39,6 +35,22 @@ function HireInner() {
   const t = hire[lang];
 
   const preRole = params.get("role");
+  // A marketing job is a reviewed starting brief, not an interchangeable
+  // manager template. Freeze the entry choice now; choose its localized copy
+  // after hydration, when the role catalogue resolves and editing is enabled.
+  const [agentPreset] = useState(() => {
+    const slug = params.get("agent");
+    const agent = slug ? getAgent(slug) : undefined;
+    return { requested: slug !== null, agent };
+  });
+  const selectedAgent = agentPreset.agent;
+  const isPresetHire = agentPreset.requested && !!selectedAgent;
+  const localeRef = useRef(lang);
+  const presetInitialized = useRef(false);
+
+  useEffect(() => {
+    localeRef.current = lang;
+  }, [lang]);
 
   // ---- roles catalog (from API) ----
   const [roles, setRoles] = useState<RoleDTO[]>([]);
@@ -86,6 +98,28 @@ function HireInner() {
         if (!alive) return;
         setRoles(rs);
         setRolePage(1);
+        if (agentPreset.requested) {
+          if (!selectedAgent || !rs.some((role) => role.id === CUSTOM_ROLE_ID)) {
+            setSelRole("");
+            setRolesError({
+              en: "This agent brief is unavailable right now. Return to the agent directory and choose an agent again.",
+              zh: "暂时无法载入此智能体的工作简报。请返回智能体目录重新选择。",
+              zht: "暫時無法載入此智慧體的工作簡報。請返回智慧體目錄重新選擇。",
+              ja: "このエージェントの業務設定を読み込めません。エージェント一覧に戻り、もう一度選んでください。",
+            }[localeRef.current]);
+            return;
+          }
+          if (!presetInitialized.current) {
+            const copy = selectedAgent.copy[localeRef.current];
+            setCustomRoleName(copy.name);
+            setInstructions(copy.instructions);
+            setRules(copy.rules);
+            setTasks([...copy.tasks]);
+            presetInitialized.current = true;
+          }
+          setSelRole(CUSTOM_ROLE_ID);
+          return;
+        }
         // Honor a ?role= preselect when valid, else first role.
         setSelRole((cur) => {
           if (cur && rs.some((x) => x.id === cur)) return cur;
@@ -99,7 +133,7 @@ function HireInner() {
           router.push("/auth");
           return;
         }
-        setRolesError(err instanceof ApiError ? err.message : t.rolesLoadError);
+        setRolesError(err instanceof ApiError ? err.message : hire[localeRef.current].rolesLoadError);
       })
       .finally(() => {
         if (alive) setRolesLoading(false);
@@ -107,12 +141,13 @@ function HireInner() {
     return () => {
       alive = false;
     };
-    // preRole is read once on mount; router is stable.
+    // Entry selection is read once; localeRef supplies the hydrated locale
+    // without re-running the request or replacing edited fields later.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const selRoleObj = useMemo(
-    () => roles.find((x) => x.id === selRole) || roles[0],
+    () => roles.find((x) => x.id === selRole),
     [roles, selRole],
   );
 
@@ -241,9 +276,9 @@ function HireInner() {
 
   const launchDone = launchStep >= 4 && !!createdId;
 
-  const canNext = hireStep === 1
-    ? !!selRole && (!isCustomRole || !!customRoleName.trim())
-    : true;
+  const canNext = !rolesLoading && !rolesError && !!selRoleObj &&
+    (!agentPreset.requested || isCustomRole) &&
+    (hireStep !== 1 || !isCustomRole || !!customRoleName.trim());
   const nextStep = () => {
     if (!canNext) return;
     if (hireStep < 4) setHireStep(hireStep + 1);
@@ -263,7 +298,7 @@ function HireInner() {
   };
 
   const launch = () => {
-    if (launching || !selRoleObj) return;
+    if (launching || !selRoleObj || (agentPreset.requested && !isCustomRole)) return;
     setLaunching(true);
     setLaunchStep(0);
     setLaunchError(null);
@@ -323,1274 +358,263 @@ function HireInner() {
     }
   }, [launchDone, createdId, router]);
 
-  // ----- stepper rail -----
-  const stepDefs = [
-    { num: "01", label: t.steps.role.label, sub: t.steps.role.sub },
-    { num: "02", label: t.steps.brief.label, sub: t.steps.brief.sub },
-    { num: "03", label: t.steps.engine.label, sub: t.steps.engine.sub },
-    { num: "04", label: t.steps.review.label, sub: t.steps.review.sub },
+  const ui = onboardingCopy[lang];
+  const presetCopy = selectedAgent && isCustomRole ? selectedAgent.copy[lang] : null;
+  const stepDefs = [t.steps.role, t.steps.brief, t.steps.engine, t.steps.review];
+  const engineChoices = [
+    { id: "auto", name: t.autoMatch, description: t.autoMatchBlurb },
+    { id: "openclaw", name: "OpenClaw", description: t.openclawBlurb },
+    { id: "hermes", name: "Hermes", description: t.hermesBlurb },
   ];
-
-  // ----- engine cards -----
-  const mkEc = (id: string) => ({
-    bc: engine === id ? ACCENT : BORD,
-    bg: engine === id ? c.limeWash : INKBG,
-    dot: engine === id ? LIME : "transparent",
-    pick: () => setEngine(id),
-  });
-  const ec = { auto: mkEc("auto"), open: mkEc("openclaw"), hermes: mkEc("hermes") };
-
-  // ----- launch rows -----
-  const launchDefs = [
-    t.launchProvisioning,
-    t.launchInstalling(ENGINE_LABEL[resolvedEngine] ?? "OpenClaw"),
-    t.launchLoadingBrief,
-    t.launchConnecting(chanLabels.join(", ") || t.webConsole.toLowerCase()),
-    t.launchLive(revName),
+  const reviewRows = [
+    { label: t.rowRole, value: selRoleDisplay?.name ?? "—" },
+    { label: t.rowName, value: revName },
+    { label: t.rowEngine, value: engineName },
+    { label: t.rowChannels, value: chanLabels.length ? `${chanLabels.join(" · ")} · ${t.webSuffix}` : t.webConsole },
+    { label: t.rowPlan, value: planLabel(planTier) },
   ];
-  const launchRows = launchDefs.map((label, i) => {
-    const done = launchStep > i;
-    const active = launchStep === i;
-    return {
-      label,
-      sym: done ? "✓" : active ? "◌" : "·",
-      c: done ? c.green : active ? ACCENT : c.faint,
-      tc: done ? c.muted : active ? c.text : c.faint,
-      op: done || active ? 1 : 0.55,
-      anim: active ? "spin 1s linear infinite" : "none",
-    };
-  });
+  const goToStep = (step: number) => {
+    setHireStep(step);
+    window.scrollTo({ top: 0, behavior: "instant" });
+  };
+
+  const agentContext = presetCopy && selectedAgent ? (
+    <div className={styles.agentContext}>
+      <Image src={selectedAgent.image} alt="" width={112} height={140} sizes="112px" className={styles.portrait} />
+      <div>
+        <h2>{presetCopy.name}</h2>
+        <p>{presetCopy.summary}</p>
+        <span className={styles.portraitNote}>{ui.illustration}</span>
+      </div>
+    </div>
+  ) : null;
 
   return (
-    <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column" }}>
-      {/* Top bar */}
-      <div
-        style={{
-          height: 60,
-          borderBottom: `1px solid ${c.line}`,
-          display: "flex",
-          alignItems: "center",
-          padding: `0 ${r.pagePx}`,
-          gap: 24,
-        }}
-      >
-        <Btn
-          onClick={() => router.push("/")}
-          style={{
-            background: "none",
-            border: "none",
-            color: c.muted,
-            fontSize: 14,
-            cursor: "pointer",
-            fontFamily: font.sans,
-            padding: 0,
-          }}
-          hoverStyle={{ color: c.text }}
-        >
-          {t.back}
-        </Btn>
-        <span
-          style={{
-            fontFamily: font.mono,
-            fontSize: 12,
-            letterSpacing: ".14em",
-            color: c.accent,
-          }}
-        >
-          {t.newHire}
-        </span>
-        <span
-          style={{
-            marginLeft: "auto",
-            fontFamily: font.mono,
-            fontSize: 12,
-            color: c.faint,
-          }}
-        >
-          {t.stepCounter(hireStep)}
-        </span>
-      </div>
+    <div className={styles.page}>
+      <header className={styles.header}>
+        <Link href="/" className={styles.brand}>ArkAgent</Link>
+        <Link href="/#agents" className={styles.directoryLink}>
+          <Arrow direction="left" />{ui.directory}
+        </Link>
+      </header>
 
-      <div
-        style={{
-          flex: 1,
-          display: "grid",
-          gridTemplateColumns: r.hireGrid,
-          maxWidth: 1240,
-          width: "100%",
-          margin: "0 auto",
-        }}
-      >
-        {/* Stepper rail */}
-        <div
-          style={{
-            borderRight: `1px solid ${c.line}`,
-            padding: `48px ${r.pagePx} 48px ${r.pagePxWide}`,
-            display: "flex",
-            flexDirection: "column",
-            gap: 32,
-          }}
-        >
-          {stepDefs.map((d, i) => {
-            const numC =
-              i + 1 === hireStep ? ACCENT : i + 1 < hireStep ? c.green : c.faint;
-            const labelC =
-              i + 1 === hireStep ? c.text : i + 1 < hireStep ? c.muted : c.faint;
-            return (
-              <div key={d.num} style={{ display: "flex", gap: 16, alignItems: "baseline" }}>
-                <span style={{ fontFamily: font.mono, fontSize: 13, color: numC }}>
-                  {d.num}
-                </span>
-                <div>
-                  <div
-                    style={{
-                      fontFamily: font.space,
-                      fontWeight: 500,
-                      fontSize: 15,
-                      color: labelC,
-                    }}
-                  >
-                    {d.label}
-                  </div>
-                  <div style={{ fontSize: 12.5, color: c.faint, marginTop: 2 }}>
-                    {d.sub}
-                  </div>
-                </div>
-              </div>
-            );
-          })}
-          <div
-            style={{
-              marginTop: "auto",
-              border: `1px solid ${c.border}`,
-              padding: 16,
-              fontSize: 13,
-              color: c.muted,
-            }}
-          >
-            <div
-              style={{
-                fontFamily: font.mono,
-                fontSize: 11,
-                color: c.accent,
-                letterSpacing: ".1em",
-                marginBottom: 8,
-              }}
-            >
-              {t.tipLabel}
-            </div>
-            {t.tipBody}
+      <div className={styles.layout}>
+        <aside className={styles.rail}>
+          <div className={styles.railIntro}>
+            <h2>{ui.setup}</h2>
+            <p>{ui.intro}</p>
           </div>
-        </div>
+          <nav aria-label={ui.steps}>
+            <ol className={styles.steps}>
+              {stepDefs.map((step, index) => (
+                <li key={step.label} className={index + 1 === hireStep ? styles.currentStep : index + 1 < hireStep ? styles.completedStep : undefined}>
+                  <button
+                    type="button"
+                    aria-current={index + 1 === hireStep ? "step" : undefined}
+                    disabled={index + 1 > hireStep || launching}
+                    onClick={() => goToStep(index + 1)}
+                    className={styles.stepButton}
+                  >
+                    <span className={styles.stepNumber}>{index + 1 < hireStep ? <Check /> : index + 1}</span>
+                    <span className={styles.stepText}><strong>{step.label}</strong><span>{step.sub}</span></span>
+                  </button>
+                </li>
+              ))}
+            </ol>
+          </nav>
+          <p className={styles.railNote}>{t.tipBody}</p>
+        </aside>
 
-        {/* Step content */}
-        <div style={{ padding: `48px 0 120px ${r.pagePxWide}`, maxWidth: 760 }}>
-          {/* Step 1 — Role */}
+        <main className={styles.main}>
           {hireStep === 1 && (
             <>
-              <h2
-                style={{
-                  fontFamily: font.space,
-                  fontWeight: 700,
-                  fontSize: "clamp(24px, 5vw, 32px)",
-                  letterSpacing: "-.02em",
-                  margin: "0 0 8px",
-                }}
-              >
-                {t.s1Title}
-              </h2>
-              <p style={{ color: c.muted, margin: "0 0 20px" }}>
-                {t.s1Sub}
-              </p>
+              <div className={styles.sectionHeading}><h1>{isPresetHire ? ui.chosenRole : t.s1Title}</h1><p>{isPresetHire ? ui.chosenSub : t.s1Sub}</p></div>
+              {agentContext}
+              {!isPresetHire && <div className={styles.alternative}>
+                <p>{create[lang].entry.hint}</p>
+                <Link href="/hire/create">{create[lang].entry.cta}<Arrow /></Link>
+              </div>}
 
-              {/* The AI-guided alternative (docs/UI_DESIGN_V2.md §C). This
-                  wizard is NOT replaced — a user who already knows which role
-                  they want still picks a tile below. Copy lives in
-                  lib/i18n/create.ts because it belongs to that flow. */}
-              <div
-                style={{
-                  border: `1px solid ${c.limeBorder}`,
-                  background: c.limeWash,
-                  borderRadius: r.radiusMd,
-                  padding: "14px 16px",
-                  margin: "0 0 32px",
-                  display: "flex",
-                  gap: 14,
-                  alignItems: "center",
-                  flexWrap: "wrap",
-                }}
-              >
-                <span style={{ flex: "1 1 260px", fontSize: 13.5, color: c.text2, lineHeight: 1.6 }}>
-                  {create[lang].entry.hint}
-                </span>
-                <Btn
-                  onClick={() => router.push("/hire/create")}
-                  style={{
-                    border: `1px solid ${c.borderStrong}`,
-                    background: "none",
-                    borderRadius: r.radiusSm,
-                    color: c.text,
-                    fontFamily: font.sans,
-                    fontSize: 13.5,
-                    padding: "9px 14px",
-                    cursor: "pointer",
-                    whiteSpace: "nowrap",
-                  }}
-                  hoverStyle={{ borderColor: c.accent, color: c.text }}
-                >
-                  {create[lang].entry.cta}
-                </Btn>
-              </div>
-
-              {rolesLoading && (
-                <div
-                  style={{
-                    fontFamily: font.mono,
-                    fontSize: 13,
-                    color: c.muted,
-                    border: `1px solid ${c.border}`,
-                    background: c.panel,
-                    padding: "20px 22px",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 12,
-                  }}
-                >
-                  <span style={{ color: ACCENT, animation: "spin 1s linear infinite", display: "inline-block" }}>
-                    ◌
-                  </span>
-                  {t.loadingRoles}
+              {rolesLoading && <div role="status" className={styles.notice}><span className={styles.spinner} aria-hidden="true" />{t.loadingRoles}</div>}
+              {!rolesLoading && rolesError && <div role="alert" className={styles.error}>{rolesError}</div>}
+              {!rolesLoading && !rolesError && roles.length === 0 && <div className={styles.notice}>{t.noRoles}</div>}
+              {!rolesLoading && !rolesError && roles.length > 0 && isPresetHire && (
+                <div className={styles.presetSelection}>
+                  <p className={styles.roleDescription}>{presetCopy?.toolNote}</p>
+                  <Link href="/#agents" className={styles.changeAgent}>{ui.changeAgent}<Arrow /></Link>
                 </div>
               )}
-
-              {!rolesLoading && rolesError && (
-                <div
-                  style={{
-                    border: `1px solid ${c.redBorder}`,
-                    background: c.redWash,
-                    padding: "18px 22px",
-                    fontSize: 14,
-                    color: c.text,
-                  }}
-                >
-                  {rolesError}
-                </div>
-              )}
-
-              {!rolesLoading && !rolesError && roles.length === 0 && (
-                <div
-                  style={{
-                    border: `1px solid ${c.border}`,
-                    background: c.panel,
-                    padding: "18px 22px",
-                    fontSize: 14,
-                    color: c.muted,
-                  }}
-                >
-                  {t.noRoles}
-                </div>
-              )}
-
-              {!rolesLoading && !rolesError && roles.length > 0 && (
+              {!rolesLoading && !rolesError && roles.length > 0 && !isPresetHire && (
                 <>
-                  <input
-                    type="search"
-                    value={roleSearch}
-                    onChange={(e) => {
-                      setRoleSearch(e.target.value);
-                      setRolePage(1);
-                    }}
-                    placeholder={t.searchRolesPlaceholder}
-                    aria-label={t.searchRolesPlaceholder}
-                    style={{
-                      width: "100%",
-                      boxSizing: "border-box",
-                      marginBottom: 14,
-                      background: c.panel,
-                      border: `1px solid ${c.border}`,
-                      color: c.text,
-                      padding: "12px 14px",
-                      fontSize: 14.5,
-                      fontFamily: font.sans,
-                      outline: "none",
-                      borderRadius: r.radiusSm,
-                    }}
-                  />
-                  {filteredRoles.length === 0 ? (
-                    <div
-                      style={{
-                        border: `1px solid ${c.border}`,
-                        background: c.panel,
-                        padding: "18px 22px",
-                        fontSize: 14,
-                        color: c.muted,
-                      }}
-                    >
-                      {t.noRolesMatch}
-                    </div>
-                  ) : (
-                    <div
-                      style={{
-                        display: "grid",
-                        gridTemplateColumns: r.col2,
-                        gap: 12,
-                      }}
-                    >
+                  <label className={styles.search}>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5" /><path d="m15.5 15.5 5 5" /></svg>
+                    <span className={styles.visuallyHidden}>{t.searchRolesPlaceholder}</span>
+                    <input type="search" value={roleSearch} onChange={(event) => { setRoleSearch(event.target.value); setRolePage(1); }} placeholder={t.searchRolesPlaceholder} />
+                  </label>
+                  {filteredRoles.length === 0 ? <p className={styles.notice}>{t.noRolesMatch}</p> : (
+                    <fieldset className={styles.roleList}>
+                      <legend className={styles.visuallyHidden}>{t.s1Title}</legend>
                       {visibleRoles.map((role) => {
-                        const sel = selRole === role.id;
-                        const translated = role.id === CUSTOM_ROLE_ID
-                          ? { name: t.customRoleName, blurb: t.customRoleBlurb }
+                        const selected = selRole === role.id;
+                        const copy = role.id === CUSTOM_ROLE_ID
+                          ? { name: presetCopy?.name ?? t.customRoleName, blurb: presetCopy?.summary ?? t.customRoleBlurb }
                           : getTranslatedRole(role.id, role.name, role.blurb, lang);
                         return (
-                          <div
-                            key={role.id}
-                            onClick={() => setSelRole(role.id)}
-                            style={{
-                              border: "1px solid " + (sel ? ACCENT : BORD),
-                              background: sel ? c.limeWash : INKBG,
-                              padding: "18px 20px",
-                              cursor: "pointer",
-                              display: "flex",
-                              gap: 14,
-                              alignItems: "center",
-                              minHeight: 112,
-                              boxSizing: "border-box",
-                              borderRadius: r.radiusMd,
-                            }}
-                          >
-                            <div
-                              style={{
-                                width: 34,
-                                height: 34,
-                                flexShrink: 0,
-                                background: role.hue,
-                                color: c.ink,
-                                display: "grid",
-                                placeItems: "center",
-                                fontFamily: font.space,
-                                fontWeight: 700,
-                              }}
-                            >
-                              {role.mono}
-                            </div>
-                            <div style={{ minWidth: 0, flex: 1 }}>
-                              <div
-                                style={{
-                                  fontFamily: font.space,
-                                  fontWeight: 700,
-                                  fontSize: 15.5,
-                                  lineHeight: "20px",
-                                  display: "-webkit-box",
-                                  WebkitBoxOrient: "vertical",
-                                  WebkitLineClamp: 2,
-                                  overflow: "hidden",
-                                  overflowWrap: "anywhere",
-                                }}
-                              >
-                                {translated.name}
-                              </div>
-                              {role.id === CUSTOM_ROLE_ID && sel ? (
-                                <input
-                                  value={customRoleName}
-                                  onChange={(e) => setCustomRoleName(e.target.value)}
-                                  onClick={(e) => e.stopPropagation()}
-                                  placeholder={t.customRolePlaceholder}
-                                  aria-label={t.customRoleName}
-                                  autoFocus
-                                  style={{
-                                    width: "100%",
-                                    boxSizing: "border-box",
-                                    marginTop: 7,
-                                    background: c.panelDeep,
-                                    border: `1px solid ${customRoleName.trim() ? c.limeBorder : c.border}`,
-                                    color: c.text,
-                                    padding: "8px 10px",
-                                    fontSize: 13,
-                                    fontFamily: font.sans,
-                                    outline: "none",
-                                    borderRadius: r.radiusSm,
-                                  }}
-                                />
-                              ) : (
-                                <div
-                                  style={{
-                                    marginTop: 4,
-                                    fontSize: 12.5,
-                                    lineHeight: "18px",
-                                    color: c.muted,
-                                    display: "-webkit-box",
-                                    WebkitBoxOrient: "vertical",
-                                    WebkitLineClamp: 3,
-                                    overflow: "hidden",
-                                    overflowWrap: "anywhere",
-                                  }}
-                                >
-                                  {translated.blurb}
-                                </div>
-                              )}
-                            </div>
-                          </div>
+                          <label key={role.id} className={`${styles.roleOption} ${selected ? styles.selectedOption : ""}`}>
+                            <input type="radio" name="agent-role" value={role.id} checked={selected} onChange={() => setSelRole(role.id)} />
+                            <span><strong>{copy.name}</strong><span>{copy.blurb}</span></span>
+                          </label>
                         );
                       })}
+                    </fieldset>
+                  )}
+                  {isCustomRole && (
+                    <div className={styles.customName}>
+                      <label htmlFor="custom-role-name">{t.customRoleName}</label>
+                      <input id="custom-role-name" value={customRoleName} onChange={(event) => setCustomRoleName(event.target.value)} placeholder={t.customRolePlaceholder} />
                     </div>
                   )}
                   {totalRolePages > 1 && (
-                    <div
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "space-between",
-                        gap: 12,
-                        marginTop: 16,
-                      }}
-                    >
-                      <Btn
-                        type="button"
-                        disabled={currentRolePage === 1}
-                        onClick={() => setRolePage(Math.max(1, currentRolePage - 1))}
-                        style={{
-                          border: `1px solid ${c.borderStrong}`,
-                          background: "transparent",
-                          color: currentRolePage === 1 ? c.faint : c.text2,
-                          padding: "8px 12px",
-                          fontFamily: font.sans,
-                          fontSize: 13,
-                          cursor: currentRolePage === 1 ? "default" : "pointer",
-                          opacity: currentRolePage === 1 ? 0.55 : 1,
-                          borderRadius: r.radiusSm,
-                        }}
-                        hoverStyle={{ color: c.accent, borderColor: c.limeBorder }}
-                      >
-                        ← {t.rolePrevious}
-                      </Btn>
-                      <span style={{ color: c.muted, fontSize: 12.5, fontFamily: font.mono }}>
-                        {t.rolePage(currentRolePage, totalRolePages)}
-                      </span>
-                      <Btn
-                        type="button"
-                        disabled={currentRolePage === totalRolePages}
-                        onClick={() => setRolePage(Math.min(totalRolePages, currentRolePage + 1))}
-                        style={{
-                          border: `1px solid ${c.borderStrong}`,
-                          background: "transparent",
-                          color: currentRolePage === totalRolePages ? c.faint : c.text2,
-                          padding: "8px 12px",
-                          fontFamily: font.sans,
-                          fontSize: 13,
-                          cursor: currentRolePage === totalRolePages ? "default" : "pointer",
-                          opacity: currentRolePage === totalRolePages ? 0.55 : 1,
-                          borderRadius: r.radiusSm,
-                        }}
-                        hoverStyle={{ color: c.accent, borderColor: c.limeBorder }}
-                      >
-                        {t.roleNext} →
-                      </Btn>
-                    </div>
+                    <nav className={styles.pagination} aria-label={ui.rolePages}>
+                      <button type="button" className={styles.secondaryButton} disabled={currentRolePage === 1} onClick={() => setRolePage(Math.max(1, currentRolePage - 1))}><Arrow direction="left" />{t.rolePrevious}</button>
+                      <span aria-live="polite">{t.rolePage(currentRolePage, totalRolePages)}</span>
+                      <button type="button" className={styles.secondaryButton} disabled={currentRolePage === totalRolePages} onClick={() => setRolePage(Math.min(totalRolePages, currentRolePage + 1))}>{t.roleNext}<Arrow /></button>
+                    </nav>
                   )}
                 </>
               )}
             </>
           )}
 
-          {/* Step 2 — Brief */}
           {hireStep === 2 && (
             <>
-              <h2
-                style={{
-                  fontFamily: font.space,
-                  fontWeight: 700,
-                  fontSize: "clamp(24px, 5vw, 32px)",
-                  letterSpacing: "-.02em",
-                  margin: "0 0 8px",
-                }}
-              >
-                {t.s2Title}
-              </h2>
-              <p style={{ color: c.muted, margin: "0 0 14px" }}>
-                {t.s2Hiring(selRoleDisplay?.name ?? "—")}
-              </p>
-              {selRoleDisplay?.blurb && (
-                <div
-                  style={{
-                    borderLeft: `2px solid ${c.limeBorder}`,
-                    paddingLeft: 14,
-                    marginBottom: 32,
-                  }}
-                >
-                  <div
-                    style={{
-                      fontFamily: font.mono,
-                      fontSize: 10.5,
-                      letterSpacing: ".1em",
-                      color: c.accent,
-                      marginBottom: 5,
-                    }}
-                  >
-                    {/* {t.roleDescription} */}
-                  </div>
-                  <p
-                    style={{
-                      margin: 0,
-                      color: c.text2,
-                      fontSize: 14,
-                      lineHeight: 1.6,
-                      overflowWrap: "anywhere",
-                    }}
-                  >
-                    {selRoleDisplay.blurb}
-                  </p>
+              <div className={styles.sectionHeading}><h1>{t.s2Title}</h1><p>{t.s2Hiring(selRoleDisplay?.name ?? "—")}</p></div>
+              {agentContext ?? (selRoleDisplay?.blurb && <p className={styles.roleDescription}>{selRoleDisplay.blurb}</p>)}
+              <div className={styles.form}>
+                <div className={styles.field}>
+                  <label htmlFor="agent-name">{sentenceLabel(t.agentName)}</label>
+                  <input id="agent-name" value={agentName} onChange={(event) => setAgentName(event.target.value)} placeholder={selRoleDisplay?.name ?? t.agentNamePlaceholder} />
                 </div>
-              )}
-              <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
-                <div>
-                  <div
-                    style={{
-                      fontFamily: font.mono,
-                      fontSize: 11,
-                      letterSpacing: ".12em",
-                      color: c.muted,
-                      marginBottom: 8,
-                    }}
-                  >
-                    {t.agentName}
-                  </div>
-                  <input
-                    value={agentName}
-                    onChange={(e) => setAgentName(e.target.value)}
-                    placeholder={t.agentNamePlaceholder}
-                    style={{
-                      width: "100%",
-                      maxWidth: 280,
-                      background: c.panel,
-                      border: `1px solid ${c.border}`,
-                      color: c.text,
-                      padding: "12px 14px",
-                      fontSize: 15,
-                      fontFamily: font.sans,
-                      outline: "none",
-                      borderRadius: r.radiusSm,
-                    }}
-                  />
+                <div className={styles.field}>
+                  <div className={styles.fieldHeader}><label htmlFor="agent-instructions">{sentenceLabel(t.instructions)}</label><button type="button" className={styles.textButton} disabled={genBusyI} onClick={genInstr}>{genBusyI ? ui.drafting : ui.draft}</button></div>
+                  <textarea id="agent-instructions" rows={6} value={instructions} onChange={(event) => setInstructions(event.target.value)} placeholder={t.instructionsPlaceholder} />
                 </div>
-                <div>
-                  <div
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      alignItems: "center",
-                      marginBottom: 8,
-                    }}
-                  >
-                    <span
-                      style={{
-                        fontFamily: font.mono,
-                        fontSize: 11,
-                        letterSpacing: ".12em",
-                        color: c.muted,
-                      }}
-                    >
-                      {t.instructions}
-                    </span>
-                    <Btn
-                      onClick={genInstr}
-                      style={{
-                        background: "none",
-                        border: `1px solid ${c.limeBorder}`,
-                        color: c.accent,
-                        fontFamily: font.mono,
-                        fontSize: 11,
-                        letterSpacing: ".06em",
-                        padding: "5px 10px",
-                        cursor: "pointer",
-                      }}
-                      hoverStyle={{ background: c.limeWash }}
-                    >
-                      {genBusyI ? t.generating : t.autoGenerate}
-                    </Btn>
-                  </div>
-                  <textarea
-                    value={instructions}
-                    onChange={(e) => setInstructions(e.target.value)}
-                    placeholder={t.instructionsPlaceholder}
-                    style={{
-                      width: "100%",
-                      minHeight: 110,
-                      background: c.panel,
-                      border: `1px solid ${c.border}`,
-                      color: c.text,
-                      padding: "12px 14px",
-                      fontSize: 15,
-                      fontFamily: font.sans,
-                      outline: "none",
-                      resize: "vertical",
-                      borderRadius: r.radiusSm,
-                    }}
-                  />
+                <div className={styles.field}>
+                  <div className={styles.fieldHeader}><label htmlFor="agent-rules">{sentenceLabel(t.rules)}</label><button type="button" className={styles.textButton} disabled={genBusyR} onClick={genRules}>{genBusyR ? ui.drafting : ui.draft}</button></div>
+                  <textarea id="agent-rules" rows={5} value={rules} onChange={(event) => setRules(event.target.value)} placeholder={t.rulesPlaceholder} />
                 </div>
-                <div>
-                  <div
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      alignItems: "center",
-                      marginBottom: 8,
-                    }}
-                  >
-                    <span
-                      style={{
-                        fontFamily: font.mono,
-                        fontSize: 11,
-                        letterSpacing: ".12em",
-                        color: c.muted,
-                      }}
-                    >
-                      {t.rules}
-                    </span>
-                    <Btn
-                      onClick={genRules}
-                      style={{
-                        background: "none",
-                        border: `1px solid ${c.limeBorder}`,
-                        color: c.accent,
-                        fontFamily: font.mono,
-                        fontSize: 11,
-                        letterSpacing: ".06em",
-                        padding: "5px 10px",
-                        cursor: "pointer",
-                      }}
-                      hoverStyle={{ background: c.limeWash }}
-                    >
-                      {genBusyR ? t.generating : t.autoGenerate}
-                    </Btn>
-                  </div>
-                  <textarea
-                    value={rules}
-                    onChange={(e) => setRules(e.target.value)}
-                    placeholder={t.rulesPlaceholder}
-                    style={{
-                      width: "100%",
-                      minHeight: 80,
-                      background: c.panel,
-                      border: `1px solid ${c.border}`,
-                      color: c.text,
-                      padding: "12px 14px",
-                      fontSize: 15,
-                      fontFamily: font.sans,
-                      outline: "none",
-                      resize: "vertical",
-                      borderRadius: r.radiusSm,
-                    }}
-                  />
-                </div>
-                <div>
-                  <div
-                    style={{
-                      fontFamily: font.mono,
-                      fontSize: 11,
-                      letterSpacing: ".12em",
-                      color: c.muted,
-                      marginBottom: 8,
-                    }}
-                  >
-                    {t.firstTasks}
-                  </div>
-                  <div
-                    style={{
-                      display: "flex",
-                      flexDirection: "column",
-                      gap: 8,
-                      marginBottom: 10,
-                    }}
-                  >
-                    {tasks.map((txt, i) => (
-                      <div
-                        key={i}
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          gap: 12,
-                          border: `1px solid ${c.border}`,
-                          background: c.panel,
-                          padding: "10px 14px",
-                          borderRadius: r.radiusSm,
-                        }}
-                      >
-                        <span
-                          style={{
-                            fontFamily: font.mono,
-                            fontSize: 12,
-                            color: c.accent,
-                          }}
-                        >
-                          {String(i + 1).padStart(2, "0")}
-                        </span>
-                        <span style={{ fontSize: 14.5, color: c.text2, flex: 1 }}>
-                          {txt}
-                        </span>
-                        <Btn
-                          onClick={() => setTasks((t) => t.filter((_, j) => j !== i))}
-                          style={{
-                            background: "none",
-                            border: "none",
-                            color: c.faint,
-                            cursor: "pointer",
-                            fontSize: 15,
-                            padding: 0,
-                          }}
-                          hoverStyle={{ color: c.red }}
-                        >
-                          ✕
-                        </Btn>
-                      </div>
+                <fieldset className={styles.tasksField}>
+                  <legend>{sentenceLabel(t.firstTasks)}</legend>
+                  <ol className={styles.taskList}>
+                    {tasks.map((task, index) => (
+                      <li key={index}><span>{task}</span><button type="button" className={styles.iconButton} aria-label={`${ui.removeTask}: ${task}`} onClick={() => setTasks((current) => current.filter((_, taskIndex) => taskIndex !== index))}><Close /></button></li>
                     ))}
+                  </ol>
+                  <div className={styles.addTask}>
+                    <label className={styles.visuallyHidden} htmlFor="new-task">{t.addTaskPlaceholder}</label>
+                    <input id="new-task" value={taskDraft} onChange={(event) => setTaskDraft(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") { event.preventDefault(); addTask(); } }} placeholder={t.addTaskPlaceholder} />
+                    <button type="button" className={styles.secondaryButton} disabled={!taskDraft.trim()} onClick={addTask}>{sentenceLabel(t.addTask)}</button>
                   </div>
-                  <div style={{ display: "flex", gap: 8 }}>
-                    <input
-                      value={taskDraft}
-                      onChange={(e) => setTaskDraft(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") addTask();
-                      }}
-                      placeholder={t.addTaskPlaceholder}
-                      style={{
-                        flex: 1,
-                        background: c.panel,
-                        border: `1px dashed ${c.borderStrong}`,
-                        color: c.text,
-                        padding: "11px 14px",
-                        fontSize: 14.5,
-                        fontFamily: font.sans,
-                        outline: "none",
-                        borderRadius: r.radiusSm,
-                      }}
-                    />
-                    <button
-                      onClick={addTask}
-                      style={{
-                        border: `1px solid ${c.borderStrong}`,
-                        background: "transparent",
-                        color: c.accent,
-                        padding: "0 18px",
-                        fontFamily: font.space,
-                        fontSize: 14,
-                        cursor: "pointer",
-                        borderRadius: r.radiusSm,
-                      }}
-                    >
-                      {t.addTask}
-                    </button>
-                  </div>
-                </div>
-                <div>
-                  <div
-                    style={{
-                      fontFamily: font.mono,
-                      fontSize: 11,
-                      letterSpacing: ".12em",
-                      color: c.muted,
-                      marginBottom: 8,
-                    }}
-                  >
-                    {t.reminders}
-                  </div>
-                  <input
-                    value={remind}
-                    onChange={(e) => setRemind(e.target.value)}
-                    style={{
-                      width: "100%",
-                      background: c.panel,
-                      border: `1px solid ${c.border}`,
-                      color: c.text,
-                      padding: "12px 14px",
-                      fontSize: 15,
-                      fontFamily: font.sans,
-                      outline: "none",
-                      borderRadius: r.radiusSm,
-                    }}
-                  />
+                </fieldset>
+                <div className={styles.field}>
+                  <label htmlFor="agent-reminders">{sentenceLabel(t.reminders)}</label>
+                  <input id="agent-reminders" value={remind} onChange={(event) => setRemind(event.target.value)} />
                 </div>
               </div>
             </>
           )}
 
-          {/* Step 3 — Engine & channels */}
           {hireStep === 3 && (
             <>
-              <h2
-                style={{
-                  fontFamily: font.space,
-                  fontWeight: 700,
-                  fontSize: "clamp(24px, 5vw, 32px)",
-                  letterSpacing: "-.02em",
-                  margin: "0 0 8px",
-                }}
-              >
-                {t.s3Title}
-              </h2>
-              <p style={{ color: c.muted, margin: "0 0 32px" }}>
-                {t.s3Sub}
-              </p>
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: r.col3,
-                  gap: 12,
-                  marginBottom: 40,
-                }}
-              >
-                <div
-                  onClick={ec.auto.pick}
-                  style={{
-                    border: "1px solid " + ec.auto.bc,
-                    background: ec.auto.bg,
-                    padding: "22px 20px",
-                    cursor: "pointer",
-                    borderRadius: r.radiusMd,
-                  }}
-                >
-                  <div
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      alignItems: "center",
-                      marginBottom: 12,
-                    }}
-                  >
-                    <span
-                      style={{
-                        fontFamily: font.mono,
-                        fontSize: 10.5,
-                        letterSpacing: ".1em",
-                        color: c.accent,
-                      }}
-                    >
-                      {t.recommended}
-                    </span>
-                    <span
-                      style={{
-                        width: 14,
-                        height: 14,
-                        borderRadius: "50%",
-                        border: `1px solid ${c.limeBorder}`,
-                        background: ec.auto.dot,
-                      }}
-                    />
-                  </div>
-                  <div
-                    style={{
-                      fontFamily: font.space,
-                      fontWeight: 700,
-                      fontSize: 19,
-                      marginBottom: 6,
-                    }}
-                  >
-                    {t.autoMatch}
-                  </div>
-                  <div style={{ fontSize: 13, color: c.muted }}>
-                    {t.autoMatchBlurb}
-                  </div>
-                </div>
-                <div
-                  onClick={ec.open.pick}
-                  style={{
-                    border: "1px solid " + ec.open.bc,
-                    background: ec.open.bg,
-                    padding: "22px 20px",
-                    cursor: "pointer",
-                    borderRadius: r.radiusMd,
-                  }}
-                >
-                  <div
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      alignItems: "center",
-                      marginBottom: 12,
-                    }}
-                  >
-                    <span
-                      style={{
-                        fontFamily: font.mono,
-                        fontSize: 10.5,
-                        letterSpacing: ".1em",
-                        color: c.orange,
-                      }}
-                    >
-                      {t.community}
-                    </span>
-                    <span
-                      style={{
-                        width: 14,
-                        height: 14,
-                        borderRadius: "50%",
-                        border: `1px solid ${c.limeBorder}`,
-                        background: ec.open.dot,
-                      }}
-                    />
-                  </div>
-                  <div
-                    style={{
-                      fontFamily: font.space,
-                      fontWeight: 700,
-                      fontSize: 19,
-                      marginBottom: 6,
-                    }}
-                  >
-                    OpenClaw
-                  </div>
-                  <div style={{ fontSize: 13, color: c.muted }}>
-                    {t.openclawBlurb}
-                  </div>
-                </div>
-                <div
-                  onClick={ec.hermes.pick}
-                  style={{
-                    border: "1px solid " + ec.hermes.bc,
-                    background: ec.hermes.bg,
-                    padding: "22px 20px",
-                    cursor: "pointer",
-                    borderRadius: r.radiusMd,
-                  }}
-                >
-                  <div
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      alignItems: "center",
-                      marginBottom: 12,
-                    }}
-                  >
-                    <span
-                      style={{
-                        fontFamily: font.mono,
-                        fontSize: 10.5,
-                        letterSpacing: ".1em",
-                        color: c.blue,
-                      }}
-                    >
-                      {t.precision}
-                    </span>
-                    <span
-                      style={{
-                        width: 14,
-                        height: 14,
-                        borderRadius: "50%",
-                        border: `1px solid ${c.limeBorder}`,
-                        background: ec.hermes.dot,
-                      }}
-                    />
-                  </div>
-                  <div
-                    style={{
-                      fontFamily: font.space,
-                      fontWeight: 700,
-                      fontSize: 19,
-                      marginBottom: 6,
-                    }}
-                  >
-                    Hermes
-                  </div>
-                  <div style={{ fontSize: 13, color: c.muted }}>
-                    {t.hermesBlurb}
-                  </div>
-                </div>
-              </div>
-              <div
-                style={{
-                  fontFamily: font.mono,
-                  fontSize: 11,
-                  letterSpacing: ".12em",
-                  color: c.muted,
-                  marginBottom: 12,
-                }}
-              >
-                {t.channelsLabel}
-              </div>
-              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                {CHANNEL_TYPES.map((type) => {
-                  const on = channels[type];
-                  return (
-                    <button
-                      key={type}
-                      onClick={() =>
-                        setChannels((cs) => ({ ...cs, [type]: !cs[type] }))
-                      }
-                      style={{
-                        border: "1px solid " + (on ? ACCENT : BORD),
-                        background: on ? c.limeWash : "transparent",
-                        color: on ? c.text : c.muted,
-                        padding: "10px 18px",
-                        fontSize: 14,
-                        fontFamily: font.sans,
-                        cursor: "pointer",
-                        borderRadius: r.radiusSm,
-                      }}
-                    >
-                      {getChannelLabel(type)}
-                    </button>
-                  );
-                })}
-              </div>
-              <div style={{ fontSize: 13, color: c.faint, marginTop: 14 }}>
-                {t.channelsNote}
-              </div>
-            </>
-          )}
-
-          {/* Step 4 — Review & launch */}
-          {hireStep === 4 && (
-            <>
-              <h2
-                style={{
-                  fontFamily: font.space,
-                  fontWeight: 700,
-                  fontSize: "clamp(24px, 5vw, 32px)",
-                  letterSpacing: "-.02em",
-                  margin: "0 0 8px",
-                }}
-              >
-                {t.s4Title}
-              </h2>
-              <p style={{ color: c.muted, margin: "0 0 32px" }}>
-                {t.s4Sub}
-              </p>
-              <div
-                style={{
-                  border: `1px solid ${c.border}`,
-                  background: c.panel,
-                  marginBottom: 24,
-                  borderRadius: r.radiusMd,
-                  overflow: "hidden",
-                }}
-              >
-                {[
-                  { k: t.rowRole, v: selRoleDisplay?.name ?? "—", last: false },
-                  { k: t.rowName, v: revName, last: false },
-                  { k: t.rowEngine, v: engineName, last: false },
-                  {
-                    k: t.rowChannels,
-                    v: chanLabels.length
-                      ? chanLabels.join(" · ") + " · " + t.webSuffix
-                      : t.webConsole,
-                    last: false,
-                  },
-                  {
-                    k: t.rowFirstTasks,
-                    v: t.tasksQueued(tasks.length, remind.toLowerCase()),
-                    last: false,
-                  },
-                  {
-                    k: t.rowPlan,
-                    v: planLabel(planTier),
-                    last: true,
-                  },
-                ].map((row) => (
-                  <div
-                    key={row.k}
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      padding: "16px 20px",
-                      borderBottom: row.last ? undefined : `1px solid ${c.line}`,
-                    }}
-                  >
-                    <span
-                      style={{
-                        fontFamily: font.mono,
-                        fontSize: 12,
-                        color: c.faint,
-                      }}
-                    >
-                      {row.k}
-                    </span>
-                    <span style={{ fontSize: 14.5, color: c.text }}>{row.v}</span>
-                  </div>
+              <div className={styles.sectionHeading}><h1>{t.s3Title}</h1><p>{t.s3Sub}</p></div>
+              <fieldset className={styles.engineList}>
+                <legend className={styles.visuallyHidden}>{t.s3Title}</legend>
+                {engineChoices.map((choice) => (
+                  <label key={choice.id} className={`${styles.engineOption} ${engine === choice.id ? styles.selectedOption : ""}`}>
+                    <input type="radio" name="agent-engine" value={choice.id} checked={engine === choice.id} onChange={() => setEngine(choice.id)} />
+                    <span><strong>{choice.name}</strong><span>{choice.description}</span></span>
+                    {choice.id === "auto" && <span className={styles.recommended}>{sentenceLabel(t.recommended)}</span>}
+                  </label>
                 ))}
-              </div>
-
-              {launchError && (
-                <div
-                  style={{
-                    border: `1px solid ${c.redBorder}`,
-                    background: c.redWash,
-                    padding: "14px 20px",
-                    fontSize: 14,
-                    color: c.text,
-                    marginBottom: 16,
-                  }}
-                >
-                  {launchError}
-                </div>
-              )}
-
-              {!launching && (
-                <Btn
-                  onClick={launch}
-                  style={{
-                    background: c.lime,
-                    color: c.ink,
-                    border: "none",
-                    padding: "16px 32px",
-                    fontFamily: font.space,
-                    fontWeight: 700,
-                    fontSize: 16,
-                    cursor: "pointer",
-                    width: "100%",
-                    borderRadius: r.radiusMd,
-                  }}
-                  hoverStyle={{ background: c.limeHover }}
-                >
-                  {t.launchBtn(revName)}
-                </Btn>
-              )}
-
-              {launching && (
-                <div
-                  style={{
-                    border: `1px solid ${c.limeBorder}`,
-                    background: c.bg,
-                    padding: 24,
-                    fontFamily: font.mono,
-                    fontSize: 13.5,
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: 14,
-                    borderRadius: r.radiusMd,
-                  }}
-                >
-                  {launchRows.map((l, i) => (
-                    <div
-                      key={i}
-                      style={{
-                        display: "flex",
-                        gap: 14,
-                        alignItems: "center",
-                        opacity: l.op,
-                      }}
-                    >
-                      <span
-                        style={{
-                          color: l.c,
-                          width: 16,
-                          display: "inline-block",
-                          animation: l.anim,
-                        }}
-                      >
-                        {l.sym}
-                      </span>
-                      <span style={{ color: l.tc }}>{l.label}</span>
-                    </div>
+              </fieldset>
+              <fieldset className={styles.channelsField}>
+                <legend>{sentenceLabel(t.channelsLabel)}</legend>
+                <div className={styles.channels}>
+                  {CHANNEL_TYPES.map((type) => (
+                    <label key={type} className={`${styles.channel} ${channels[type] ? styles.selectedOption : ""}`}>
+                      <input type="checkbox" checked={channels[type]} onChange={() => setChannels((current) => ({ ...current, [type]: !current[type] }))} />
+                      <span>{getChannelLabel(type)}</span>
+                    </label>
                   ))}
                 </div>
-              )}
-
-              {launchDone && (
-                <div
-                  style={{
-                    marginTop: 20,
-                    border: `1px solid ${c.greenBorder}`,
-                    background: c.greenWash,
-                    padding: "20px 24px",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "space-between",
-                    gap: 20,
-                    borderRadius: r.radiusMd,
-                  }}
-                >
-                  <div>
-                    <div
-                      style={{
-                        fontFamily: font.space,
-                        fontWeight: 700,
-                        fontSize: 17,
-                        color: c.green,
-                      }}
-                    >
-                      {t.agentLive(revName)}
-                    </div>
-                    <div style={{ fontSize: 13.5, color: c.muted, marginTop: 3 }}>
-                      {t.agentLiveSub}
-                    </div>
-                  </div>
-                  <button
-                    onClick={enterDash}
-                    style={{
-                      background: c.green,
-                      color: c.greenInk,
-                      border: "none",
-                      padding: "12px 22px",
-                      fontFamily: font.space,
-                      fontWeight: 700,
-                      fontSize: 14,
-                      cursor: "pointer",
-                      whiteSpace: "nowrap",
-                      borderRadius: r.radiusSm,
-                    }}
-                  >
-                    {t.openDashboard}
-                  </button>
-                </div>
-              )}
+                <p className={styles.helpText}>{t.channelsNote}</p>
+              </fieldset>
             </>
           )}
 
-          {/* Footer nav */}
-          {hireStep < 4 && (
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                flexWrap: "wrap",
-                gap: 12,
-                marginTop: 48,
-                borderTop: `1px solid ${c.line}`,
-                paddingTop: 24,
-              }}
-            >
-              <button
-                onClick={backStep}
-                style={{
-                  background: "none",
-                  border: "none",
-                  color: c.muted,
-                  fontSize: 14.5,
-                  cursor: "pointer",
-                  fontFamily: font.sans,
-                  padding: 0,
-                }}
-              >
-                {t.navBack}
-              </button>
-              <button
-                onClick={nextStep}
-                disabled={!canNext}
-                style={{
-                  background: canNext ? LIME : c.borderStrong,
-                  color: canNext ? c.ink : c.faint,
-                  border: "none",
-                  padding: "13px 28px",
-                  fontFamily: font.space,
-                  fontWeight: 700,
-                  fontSize: 15,
-                  cursor: canNext ? "pointer" : "not-allowed",
-                  borderRadius: r.radiusSm,
-                }}
-              >
-                {hireStep === 3 ? t.reviewNext : t.continueNext}
-              </button>
-            </div>
+          {hireStep === 4 && (
+            <>
+              <div className={styles.sectionHeading}><h1>{t.s4Title}</h1><p>{t.s4Sub}</p></div>
+              {agentContext}
+              <dl className={styles.review}>
+                {reviewRows.map((row) => <div key={row.label}><dt>{sentenceLabel(row.label)}</dt><dd>{row.value}</dd></div>)}
+              </dl>
+              <section className={styles.reviewBrief} aria-labelledby="review-brief-title">
+                <div className={styles.fieldHeader}><h2 id="review-brief-title">{t.steps.brief.label}</h2><button type="button" className={styles.textButton} disabled={launching} onClick={() => goToStep(2)}>{ui.editBrief}</button></div>
+                {instructions && <div><h3>{sentenceLabel(t.instructions)}</h3><p>{instructions}</p></div>}
+                {rules && <div><h3>{sentenceLabel(t.rules)}</h3><p>{rules}</p></div>}
+                {tasks.length > 0 && <div><h3>{sentenceLabel(t.firstTasks)}</h3><ul>{tasks.map((task, index) => <li key={index}>{task}</li>)}</ul></div>}
+                <div><h3>{sentenceLabel(t.reminders)}</h3><p>{remind}</p></div>
+              </section>
+              {launchError && <div role="alert" className={styles.error}>{launchError}</div>}
+              {launching && !launchDone && <div className={styles.notice} role="status"><span className={styles.spinner} aria-hidden="true" /><span>{ui.preparing}</span></div>}
+              {launchDone && <div className={styles.success} role="status"><Check /><div><strong>{t.agentLive(revName)}</strong><button type="button" className={styles.textButton} onClick={enterDash}>{sentenceLabel(t.openDashboard)}</button></div></div>}
+            </>
           )}
-        </div>
+
+          {!launching && (
+            <footer className={styles.actions}>
+              <button type="button" className={styles.backButton} onClick={backStep}><Arrow direction="left" />{sentenceLabel(t.navBack)}</button>
+              {hireStep < 4 ? (
+                <button type="button" className={styles.primaryButton} disabled={!canNext} onClick={nextStep}>{sentenceLabel(hireStep === 3 ? t.reviewNext : t.continueNext)}<Arrow /></button>
+              ) : (
+                <button type="button" className={styles.primaryButton} disabled={!canNext} onClick={launch}>{sentenceLabel(t.launchBtn(revName))}<Arrow /></button>
+              )}
+            </footer>
+          )}
+        </main>
       </div>
     </div>
   );
 }
 
+const onboardingCopy = {
+  en: { chosenRole: "Your chosen role", chosenSub: "Start with this brief and make it your own in the next step.", changeAgent: "Choose a different agent", setup: "A new teammate.", intro: "Give them a role, a clear brief, and a way to reach you.", directory: "Meet the agents", steps: "Agent setup steps", rolePages: "Role pages", illustration: "Illustrated AI coworker", draft: "Draft with AI", drafting: "Drafting…", removeTask: "Remove task", editBrief: "Edit brief", preparing: "Setting up your agent. This may take a moment." },
+  zh: { chosenRole: "你选好的搭档", chosenSub: "工作简报已经准备好，下一步可以按你的需要调整。", changeAgent: "选择其他智能体", setup: "迎接新搭档。", intro: "选好岗位，交代清楚工作，再约定沟通方式。", directory: "认识智能体", steps: "智能体设置步骤", rolePages: "岗位分页", illustration: "AI 搭档的插画形象", draft: "帮我起草", drafting: "正在起草…", removeTask: "删除任务", editBrief: "修改简报", preparing: "正在为你配置智能体，请稍候。" },
+  zht: { chosenRole: "你選好的搭檔", chosenSub: "工作簡報已經準備好，下一步可以按你的需要調整。", changeAgent: "選擇其他智慧體", setup: "迎接新搭檔。", intro: "選好職位，交代清楚工作，再約定溝通方式。", directory: "認識智慧體", steps: "智慧體設定步驟", rolePages: "職位分頁", illustration: "AI 搭檔的插畫形象", draft: "幫我起草", drafting: "正在起草…", removeTask: "刪除任務", editBrief: "修改簡報", preparing: "正在為你設定智慧體，請稍候。" },
+  ja: { chosenRole: "選んだエージェント", chosenSub: "業務内容の下書きを用意しました。次のステップで、自分に合わせて調整できます。", changeAgent: "別のエージェントを選ぶ", setup: "新しい仕事仲間。", intro: "役割と仕事内容を伝えて、連絡方法を決めましょう。", directory: "エージェントを見る", steps: "エージェントの設定手順", rolePages: "役割一覧のページ", illustration: "AI パートナーのイラスト", draft: "AI と下書き", drafting: "下書き中…", removeTask: "タスクを削除", editBrief: "業務内容を編集", preparing: "エージェントを設定しています。少々お待ちください。" },
+};
+
+/** Keep the localized wording while retiring the old terminal-style casing. */
+function sentenceLabel(value: string) {
+  const clean = value.replace(/[✦⏻←→]/g, "").replace(/^\+\s*/, "").trim();
+  return /[A-Z]/.test(clean) && clean === clean.toUpperCase()
+    ? clean.charAt(0).toUpperCase() + clean.slice(1).toLowerCase()
+    : clean;
+}
+
+function Arrow({ direction = "right" }: { direction?: "left" | "right" }) {
+  return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden="true" style={direction === "left" ? { transform: "rotate(180deg)" } : undefined}><path d="M4 12h15m-6-6 6 6-6 6" /></svg>;
+}
+
+function Check() {
+  return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true"><path d="m5 12 4 4L19 6" /></svg>;
+}
+
+function Close() {
+  return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden="true"><path d="m6 6 12 12M6 18 18 6" /></svg>;
+}
+
 export default function HirePage() {
-  return (
-    <Suspense fallback={null}>
-      <HireInner />
-    </Suspense>
-  );
+  return <Suspense fallback={null}><HireInner /></Suspense>;
 }

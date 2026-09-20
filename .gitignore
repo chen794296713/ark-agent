@@ -41,3 +41,15 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Local design tooling and review captures; retain the approved direction.
+/.impeccable/*
+!/.impeccable/design.json
+!/.impeccable/surfaces/
+!/.impeccable/mocks/
+/.impeccable/mocks/*
+!/.impeccable/mocks/decision/
+/.impeccable/mocks/decision/*
+!/.impeccable/mocks/decision/team-directory.png
+!/.impeccable/mocks/decision/team-directory.json
+!/.impeccable/mocks/decision/team-directory.prompt.txt

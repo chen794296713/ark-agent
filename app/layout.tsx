@@ -4,6 +4,8 @@ import {
   Instrument_Sans,
   IBM_Plex_Mono,
   Newsreader,
+  Geom,
+  Caveat,
 } from "next/font/google";
 import "./globals.css";
 import { AppProvider } from "@/lib/store";
@@ -15,6 +17,9 @@ const spaceGrotesk = Space_Grotesk({
   variable: "--font-space",
   display: "swap",
 });
+
+const teamFont = Geom({ subsets: ["latin"], variable: "--font-team", display: "swap" });
+const handFont = Caveat({ weight: "600", subsets: ["latin"], variable: "--font-hand", display: "swap" });
 
 const instrumentSans = Instrument_Sans({
   subsets: ["latin"],
@@ -43,9 +48,9 @@ const newsreader = Newsreader({
 });
 
 export const metadata: Metadata = {
-  title: "ArkAgent — Hire an AI employee, not another app.",
+  title: "ArkAgent — Meet your next AI coworker",
   description:
-    "ArkAgent puts a real autonomous agent on a dedicated machine — selling, supporting, recruiting and writing for you around the clock. Brief it like a person; manage it from the apps you already use. arkagent.ai (global) · iagent.cc (中国大陆).",
+    "Meet AI coworkers for recruiting, job applications, video planning, sales outreach, and your inbox. Choose a role, write the brief, and stay in control of the work.",
 };
 
 // Ensures the page renders at true device width (not a zoomed-out 980px canvas)
@@ -72,7 +77,7 @@ export default function RootLayout({
       data-direction={DEFAULT_DIRECTION}
       data-theme={DEFAULT_THEME}
       suppressHydrationWarning
-      className={`${spaceGrotesk.variable} ${instrumentSans.variable} ${ibmPlexMono.variable} ${newsreader.variable}`}
+      className={`${spaceGrotesk.variable} ${instrumentSans.variable} ${ibmPlexMono.variable} ${newsreader.variable} ${teamFont.variable} ${handFont.variable}`}
     >
       <body>
         <ThemeBoot />
