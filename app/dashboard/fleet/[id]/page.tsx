@@ -11,6 +11,7 @@ import { isHarness, type Harness } from "@/lib/harness";
 import { selectableHarnesses, useHarnessOptions } from "@/lib/harness/client";
 import { Btn } from "@/components/ui";
 import { AgentAvatar } from "@/components/AgentAvatar";
+import { FleetPackagePanel } from "@/components/agent-packages/FleetPackagePanel";
 import { api, ApiError } from "@/lib/client-api";
 import type {
   AgentDetailDTO,
@@ -3628,7 +3629,7 @@ function AgentDetailInner() {
               {ENGINE_LABEL[cur.engine] ?? cur.engine}
             </span>
           </div>
-          <div style={{ fontFamily: font.mono, fontSize: 12, color: c.muted, marginTop: 5, overflowWrap: "anywhere" }}>{cur.vmId}@{cur.vmRegion}</div>
+          {(cur.vmId || cur.vmRegion) && <div style={{ fontFamily: font.mono, fontSize: 12, color: c.muted, marginTop: 5, overflowWrap: "anywhere" }}>{[cur.vmId, cur.vmRegion].filter(Boolean).join("@")}</div>}
         </div>
         <div
           style={{
@@ -3658,6 +3659,7 @@ function AgentDetailInner() {
           </div>
         </div>
       </div>
+      {cur.roleId === "package-agent" ? <FleetPackagePanel key={cur.id} agentId={cur.id} onRefresh={load} /> : <>
       <div
         className="ark-scroll"
         style={{
@@ -3715,6 +3717,7 @@ function AgentDetailInner() {
       {tab === "performance" && <PerformanceTab key={cur.id} cur={cur} onRefresh={load} />}
       {tab === "usage" && <UsageTab key={cur.id} cur={cur} />}
       {tab === "settings" && <SettingsTab key={cur.id} cur={cur} onRefresh={load} />}
+      </>}
     </div>
   );
 }

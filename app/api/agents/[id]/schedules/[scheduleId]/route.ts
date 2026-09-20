@@ -1,3 +1,4 @@
+import { legacyPackageGuard } from "@/lib/agent-packages/service";
 /**
  * GET | PATCH | DELETE /api/agents/[id]/schedules/[scheduleId]
  *
@@ -41,6 +42,8 @@ export async function PATCH(req: Request, { params }: Ctx) {
   const { id, scheduleId } = await params;
   const agent = await getAgentRow(id, auth.ctx.workspace.id);
   if (!agent) return notFound("Agent not found");
+  const packageGuard = await legacyPackageGuard(id, auth.ctx.workspace.id);
+  if (packageGuard) return packageGuard;
   const existing = await getScheduleRow(id, scheduleId);
   if (!existing) return notFound("Schedule not found");
 
@@ -65,6 +68,8 @@ export async function DELETE(_req: Request, { params }: Ctx) {
   const { id, scheduleId } = await params;
   const agent = await getAgentRow(id, auth.ctx.workspace.id);
   if (!agent) return notFound("Agent not found");
+  const packageGuard = await legacyPackageGuard(id, auth.ctx.workspace.id);
+  if (packageGuard) return packageGuard;
 
   // History is NOT erased: agent_schedule_runs carries no FK to this table and
   // snapshots `schedule_name`, so GET …/runs keeps working after the delete.

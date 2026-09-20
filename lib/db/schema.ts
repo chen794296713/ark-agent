@@ -24,6 +24,7 @@ import {
   boolean,
   timestamp,
   jsonb,
+  json,
   index,
   uniqueIndex,
   primaryKey,
@@ -35,6 +36,8 @@ import { sql } from "drizzle-orm";
 import type { StoredAgentSettings } from "../agent-settings";
 import { HARNESS_IDS, type Harness } from "../harness";
 import { CHANNEL_TYPE_IDS, type ChannelType } from "../channels";
+import type { AgentPackage, CompiledAgentPackage, PackageOverlay } from "../agent-packages/types";
+import type { PackageRuntimeAcknowledgment } from "../agent-packages/deployment";
 import type {
   ImprovementProposal,
   HarnessCompatMap,
@@ -567,6 +570,39 @@ export const agents = pgTable(
     uniqueIndex("agents_idempotency_uniq")
       .on(t.workspaceId, t.idempotencyKey)
       .where(sql`idempotency_key is not null`),
+  ],
+);
+
+/** Immutable package snapshots. Drafts have no subscription or legacy manager binding. */
+export const agentPackages = pgTable(
+  "agent_packages",
+  {
+    agentId: uuid("agent_id").primaryKey().references(() => agents.id, { onDelete: "cascade" }),
+    workspaceId: uuid("workspace_id").notNull().references(() => workspaces.id, { onDelete: "cascade" }),
+    idempotencyKey: varchar("idempotency_key", { length: 80 }).notNull(),
+    requestDigest: varchar("request_digest", { length: 64 }).notNull(),
+    packageId: varchar("package_id", { length: 80 }).notNull(),
+    packageVersion: varchar("package_version", { length: 40 }).notNull(),
+    bundleDigest: varchar("bundle_digest", { length: 64 }).notNull(),
+    definition: jsonb("definition").$type<AgentPackage>().notNull(),
+    overlay: jsonb("overlay").$type<PackageOverlay>().notNull(),
+    // JSONB reorders keys and would invalidate the canonical bundle digest.
+    bundle: json("bundle").$type<CompiledAgentPackage>().notNull(),
+    deploymentState: varchar("deployment_state", { length: 24 }).$type<"configured" | "deploying" | "ready" | "failed">().notNull().default("configured"),
+    deploymentId: uuid("deployment_id").defaultRandom().notNull(),
+    deploymentClaim: uuid("deployment_claim"),
+    deploymentStartedAt: timestamp("deployment_started_at", { withTimezone: true }),
+    acknowledgment: jsonb("acknowledgment").$type<PackageRuntimeAcknowledgment>(),
+    lastError: varchar("last_error", { length: 100 }),
+    readyAt: timestamp("ready_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [
+    uniqueIndex("agent_packages_workspace_idempotency_uniq").on(t.workspaceId, t.idempotencyKey),
+    uniqueIndex("agent_packages_deployment_uniq").on(t.deploymentId),
+    index("agent_packages_workspace_idx").on(t.workspaceId),
+    check("agent_packages_deployment_state_check", sql`${t.deploymentState} in ('configured', 'deploying', 'ready', 'failed')`),
   ],
 );
 

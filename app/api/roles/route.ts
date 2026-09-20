@@ -1,4 +1,4 @@
-import { asc, sql } from "drizzle-orm";
+import { asc, ne, sql } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { agentRoles } from "@/lib/db/schema";
 import { json } from "@/lib/api";
@@ -105,6 +105,7 @@ export async function GET() {
 
   // Preserve the local catalog as a temporary fallback when the manager is
   // unavailable, so an outage does not make the hire flow unusable.
-  const rows = await db.select().from(agentRoles).orderBy(asc(agentRoles.sortOrder));
+  const rows = await db.select().from(agentRoles)
+    .where(ne(agentRoles.id, "package-agent")).orderBy(asc(agentRoles.sortOrder));
   return json({ roles: rows.map(serializeRole) });
 }

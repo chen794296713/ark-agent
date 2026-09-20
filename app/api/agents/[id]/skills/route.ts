@@ -1,3 +1,4 @@
+import { legacyPackageGuard } from "@/lib/agent-packages/service";
 /**
  * GET  /api/agents/[id]/skills — what is attached to this agent, plus tool gaps.
  * POST /api/agents/[id]/skills — attach one catalogue skill.
@@ -45,6 +46,8 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   const { id } = await params;
   const agent = await getAgentRow(id, auth.ctx.workspace.id);
   if (!agent) return notFound("Agent not found");
+  const packageGuard = await legacyPackageGuard(id, auth.ctx.workspace.id);
+  if (packageGuard) return packageGuard;
 
   // `attachSkillSchema` is `lib/skills/validation.ts`'s, re-exported — not a
   // second copy. It is where `riskAcknowledged` and `compatAsserted` default

@@ -1,3 +1,4 @@
+import { legacyPackageGuard } from "@/lib/agent-packages/service";
 /**
  * GET  /api/agents/[id]/context — the agent's context items.
  * POST /api/agents/[id]/context — add pasted text, a URL, or register a file
@@ -62,6 +63,8 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   const { id } = await params;
   const agent = await getAgentRow(id, auth.ctx.workspace.id);
   if (!agent) return notFound("Agent not found");
+  const packageGuard = await legacyPackageGuard(id, auth.ctx.workspace.id);
+  if (packageGuard) return packageGuard;
 
   const parsed = await parseBody(req, createContextItemSchema);
   if (parsed.res) return parsed.res;

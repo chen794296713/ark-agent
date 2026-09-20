@@ -1,3 +1,4 @@
+import { legacyPackageGuard } from "@/lib/agent-packages/service";
 import { and, eq } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { agentImprovements, agentActivities } from "@/lib/db/schema";
@@ -17,6 +18,8 @@ export async function POST(
   const { id, improvementId } = await params;
   const agent = await getAgentRow(id, auth.ctx.workspace.id);
   if (!agent) return notFound("Agent not found");
+  const packageGuard = await legacyPackageGuard(id, auth.ctx.workspace.id);
+  if (packageGuard) return packageGuard;
 
   const parsed = await parseBody(req, improvementActionSchema);
   if (parsed.res) return parsed.res;

@@ -13,6 +13,7 @@ import {
 import { verifyWebhookSignature, type WebhookEvent } from "@/lib/agent-manager";
 import { apiError, json } from "@/lib/api";
 import type { Agent } from "@/lib/db/schema";
+import { legacyPackageGuard } from "@/lib/agent-packages/service";
 
 type ActivityTag = typeof agentActivities.$inferInsert["tag"];
 type MessageChannel = typeof messages.$inferInsert["channelType"];
@@ -44,6 +45,8 @@ export async function POST(req: Request) {
     .where(eq(agents.id, event.externalAgentId))
     .limit(1);
   if (!agent) return apiError("Unknown agent", 404);
+  const packageGuard = await legacyPackageGuard(agent.id, agent.workspaceId);
+  if (packageGuard) return packageGuard;
 
   switch (event.type) {
     case "agent.status":

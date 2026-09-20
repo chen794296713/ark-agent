@@ -21,11 +21,12 @@ four, behind one configuration surface:
 | **Codex Harness** (OpenAI) | Repository-scoped coding agent, pinned to its own model family | Engineering work inside a codebase | Not yet — see below |
 | **DeepSeek Harness** | Files-and-network agent, pinned to its own model family | Document and data work | Not yet — see below |
 
-All four read the same portable `SKILL.md` format from `.agents/skills/`, so a skill is not written
-per harness — compatibility is about *runtime dependencies* (binaries, environment, config), which
-is what the Skill Repository records.
+The role packages use portable `SKILL.md` content with harness-specific installation roots:
+workspace `.agents/skills/` for OpenClaw/Codex and an isolated Hermes profile skill tree.
+Runtime dependencies, tool adapters and enforced permissions must be verified separately.
 
-**Codex and DeepSeek are in the enum, the schema and the code, but gated out of every picker.** The
+**Codex and DeepSeek remain gated out of legacy runtime provisioning.** Codex is available
+for the new package artifact/customization path, which does not imply hosted runtime availability. The
 OpenClaw Manager has not assigned them a `category_id`, so [`categoryIdFor()`](lib/harness/provisioning.ts)
 throws rather than guessing — previously a two-way branch on a four-value enum would have
 provisioned a *Hermes* VM for anyone who hired a Codex agent, silently. Enable them with
@@ -40,6 +41,34 @@ a switch built on an unverified claim is one that silently does nothing.
 > agent, deploys the harness, monitors it and bridges it to channels. ArkAgent calls it over an
 > outbound HTTP API and receives HMAC-signed webhooks back. In development an in-process **mock**
 > stands in; **in production an unconfigured runtime returns `503` rather than simulating one.**
+
+---
+
+## Professional role packages
+
+The five main hiring paths now configure versioned packages: Recruiting, Job Applicant,
+Video Creator, Sales Outreach and Email Assistant. Each contains procedural skills,
+specialist definitions, workflows, quality scenarios and connector requirements.
+Customization saves an **unbilled draft**. A separate package manager protocol verifies
+installation; live execution still requires that external service and connected tools.
+
+- [Product specification](docs/AGENT_PACKAGES_PRODUCT_SPEC.md)
+- [Implementation tasks and launch gates](docs/AGENT_PACKAGES_TASKS.md)
+- [Runtime integration contract](docs/AGENT_PACKAGE_RUNTIME_CONTRACT.md)
+- [Talent research](docs/research/talent-agent-capabilities.md) and [operations research](docs/research/operations-agent-capabilities.md)
+
+Export a reviewable package into a **new** directory:
+
+```bash
+npm run packages:export -- recruiting openclaw /tmp/recruiting-package
+npm run packages:export -- video-creator hermes /tmp/video-package
+npm run packages:export -- email-assistant codex /tmp/email-package
+```
+
+These commands write actual skill files, worker definitions, policy and checksum manifests.
+They do not install provider credentials, start a runtime or send messages. Apply migration
+`0010_agent_packages` in the target environment before enabling package configuration.
+See the runtime contract for explicit manager configuration and remaining execution gates.
 
 ---
 

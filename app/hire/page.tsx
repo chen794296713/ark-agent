@@ -12,6 +12,8 @@ import { hire } from "@/lib/i18n/hire";
 import { create } from "@/lib/i18n/create";
 import { getTranslatedRole } from "@/lib/i18n/roles";
 import { getAgent } from "@/lib/agent-catalog";
+import { getAgentPackage } from "@/lib/agent-packages/catalog";
+import { PackageHire } from "@/components/agent-packages/PackageHire";
 import styles from "./hire.module.css";
 
 const CUSTOM_ROLE_ID = "custom";
@@ -615,6 +617,14 @@ function Close() {
   return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden="true"><path d="m6 6 12 12M6 18 18 6" /></svg>;
 }
 
+function HireRoute() {
+  const params = useSearchParams();
+  const slug = params.get("agent");
+  const agent = slug ? getAgent(slug) : undefined;
+  const definition = slug ? getAgentPackage(slug) : undefined;
+  return agent && definition ? <PackageHire key={definition.id} definition={definition} agent={agent} /> : <HireInner />;
+}
+
 export default function HirePage() {
-  return <Suspense fallback={null}><HireInner /></Suspense>;
+  return <Suspense fallback={null}><HireRoute /></Suspense>;
 }

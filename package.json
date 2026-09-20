@@ -28,7 +28,8 @@
     "skills:sync": "NODE_OPTIONS=--conditions=react-server tsx --env-file=.env scripts/sync-skills.ts",
     "llm:check": "tsx --env-file=.env scripts/check-llm.ts",
     "pricing:check": "tsx scripts/check-pricing.ts",
-    "payments:check": "NODE_OPTIONS=--conditions=react-server tsx scripts/check-payments.ts"
+    "payments:check": "NODE_OPTIONS=--conditions=react-server tsx scripts/check-payments.ts",
+    "packages:export": "tsx scripts/export-agent-package.ts"
   },
   "dependencies": {
     "drizzle-orm": "^0.45.2",

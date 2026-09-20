@@ -1,3 +1,4 @@
+import { legacyPackageGuard } from "@/lib/agent-packages/service";
 /**
  * GET  /api/agents/[id]/schedules   — the list, plus the tick-health scalars
  * POST /api/agents/[id]/schedules   — create
@@ -43,6 +44,8 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   const { id } = await params;
   const agent = await getAgentRow(id, auth.ctx.workspace.id);
   if (!agent) return notFound("Agent not found");
+  const packageGuard = await legacyPackageGuard(id, auth.ctx.workspace.id);
+  if (packageGuard) return packageGuard;
 
   const parsed = await parseBody(req, createScheduleSchema);
   if (parsed.res) return parsed.res;

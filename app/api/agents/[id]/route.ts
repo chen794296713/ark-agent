@@ -1,3 +1,5 @@
+import { legacyPackageGuard } from "@/lib/agent-packages/service";
+import { PackageDeploymentError } from "@/lib/agent-packages/deployment";
 import { eq, sql } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { agents, agentChannels, channels } from "@/lib/db/schema";
@@ -34,6 +36,8 @@ export async function PATCH(req: Request, { params }: Ctx) {
   const { id } = await params;
   const row = await getAgentRow(id, auth.ctx.workspace.id);
   if (!row) return notFound("Agent not found");
+  const packageGuard = await legacyPackageGuard(id, auth.ctx.workspace.id);
+  if (packageGuard) return packageGuard;
   const parsed = await parseBody(req, updateAgentSchema);
   if (parsed.res) return parsed.res;
   const { name, instructions, rules, planTier, engine, channels: chanTypes, settings } = parsed.data;
@@ -122,7 +126,12 @@ export async function DELETE(_req: Request, { params }: Ctx) {
   const auth = await requireAuth();
   if (auth.res) return auth.res;
   const { id } = await params;
-  const deleted = await deleteAgent(id, auth.ctx.workspace.id);
-  if (!deleted) return notFound("Agent not found");
-  return json({ ok: true as const });
+  try {
+    const deleted = await deleteAgent(id, auth.ctx.workspace.id);
+    if (!deleted) return notFound("Agent not found");
+    return json({ ok: true as const });
+  } catch (error) {
+    if (error instanceof PackageDeploymentError) return apiError(error.message, error.status, { code: error.code });
+    throw error;
+  }
 }

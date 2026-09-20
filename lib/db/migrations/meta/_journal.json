@@ -71,6 +71,13 @@
       "when": 1788018888836,
       "tag": "0009_v2_schema",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1789939815386,
+      "tag": "0010_agent_packages",
+      "breakpoints": true
     }
   ]
 }

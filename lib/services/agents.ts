@@ -19,6 +19,8 @@ import { getAgentManager } from "@/lib/agent-manager";
 import type { Harness } from "@/lib/harness";
 import { categoryIdFor } from "@/lib/harness/provisioning";
 import type { AuthContext } from "@/lib/auth";
+import { deletePackageDraft, getLegacyAgentPackageRecord } from "@/lib/agent-packages/service";
+import { PackageDeploymentError } from "@/lib/agent-packages/deployment";
 import {
   serializeAgent,
   serializeActivity,
@@ -176,6 +178,7 @@ export interface CreateAgentInput {
 }
 
 export async function createAgent(ctx: AuthContext, input: CreateAgentInput) {
+  if (input.roleId === "package-agent") throw new Error("Unknown role: package-agent");
   const [role] = await db.select().from(agentRoles).where(eq(agentRoles.id, input.roleId)).limit(1);
   if (!role) throw new Error(`Unknown role: ${input.roleId}`);
 
@@ -286,6 +289,9 @@ export async function setLifecycle(
 ) {
   const row = await getAgentRow(agentId, workspaceId);
   if (!row) return null;
+  if (await getLegacyAgentPackageRecord(agentId, workspaceId)) {
+    throw new PackageDeploymentError("package_runtime_lifecycle_unavailable", "Manage this agent through its package runtime. Legacy lifecycle controls cannot verify package state.", 409);
+  }
   let status: Agent["status"] = row.status;
 
   try {
@@ -330,6 +336,9 @@ export async function setLifecycle(
 export async function deleteAgent(agentId: string, workspaceId: string): Promise<boolean> {
   const row = await getAgentRow(agentId, workspaceId);
   if (!row) return false;
+  if (await getLegacyAgentPackageRecord(agentId, workspaceId)) {
+    return deletePackageDraft(agentId, workspaceId);
+  }
 
   // setLifecycle intentionally treats a manager outage as a terminated local
   // state, so deletion cannot leave the dashboard record behind indefinitely.

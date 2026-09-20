@@ -1,3 +1,4 @@
+import { legacyPackageGuard } from "@/lib/agent-packages/service";
 /**
  * GET    /api/agents/[id]/context/[itemId] — one item, with the full pasted body.
  * PATCH  /api/agents/[id]/context/[itemId] — rename, re-scope, or edit the payload.
@@ -61,6 +62,8 @@ export async function PATCH(req: Request, { params }: Ctx) {
   const { id, itemId } = await params;
   const agent = await getAgentRow(id, auth.ctx.workspace.id);
   if (!agent) return notFound("Agent not found");
+  const packageGuard = await legacyPackageGuard(id, auth.ctx.workspace.id);
+  if (packageGuard) return packageGuard;
   if (!isUuid(itemId)) return notFound("Context item not found");
 
   const parsed = await parseBody(req, updateContextItemSchema);
@@ -91,6 +94,8 @@ export async function DELETE(_req: Request, { params }: Ctx) {
   const { id, itemId } = await params;
   const agent = await getAgentRow(id, auth.ctx.workspace.id);
   if (!agent) return notFound("Agent not found");
+  const packageGuard = await legacyPackageGuard(id, auth.ctx.workspace.id);
+  if (packageGuard) return packageGuard;
   if (!isUuid(itemId)) return notFound("Context item not found");
 
   try {

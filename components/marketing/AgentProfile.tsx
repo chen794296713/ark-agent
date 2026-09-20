@@ -3,6 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { TeamShell } from "@/components/marketing/TeamShell";
+import { PackageTeaser } from "@/components/agent-packages/PackageTeaser";
 import { agentCatalog, agentHireHref, type AgentCatalogEntry } from "@/lib/agent-catalog";
 import { marketing } from "@/lib/i18n/marketing";
 import { formatMoney, planPrice } from "@/lib/pricing";
@@ -73,6 +74,8 @@ export function AgentProfile({ agent }: { agent: AgentCatalogEntry }) {
             </div>
           </div>
         </section>
+
+        <PackageTeaser packageId={agent.slug} />
 
         <div className={styles.work}>
           <section aria-labelledby="responsibilities">

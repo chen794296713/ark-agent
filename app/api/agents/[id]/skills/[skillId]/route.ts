@@ -1,3 +1,4 @@
+import { legacyPackageGuard } from "@/lib/agent-packages/service";
 /**
  * PATCH  /api/agents/[id]/skills/[skillId] — enable/disable, or replace config.
  * DELETE /api/agents/[id]/skills/[skillId] — detach.
@@ -39,6 +40,8 @@ export async function PATCH(req: Request, { params }: Ctx) {
   const { id, skillId } = await params;
   const agent = await getAgentRow(id, auth.ctx.workspace.id);
   if (!agent) return notFound("Agent not found");
+  const packageGuard = await legacyPackageGuard(id, auth.ctx.workspace.id);
+  if (packageGuard) return packageGuard;
   // Both columns this resolves against are `uuid`. A non-uuid segment would
   // reach Postgres as `22P02 invalid input syntax for type uuid` and surface as
   // a 500 — a shape error rendered as a server fault.
@@ -72,6 +75,8 @@ export async function DELETE(_req: Request, { params }: Ctx) {
   const { id, skillId } = await params;
   const agent = await getAgentRow(id, auth.ctx.workspace.id);
   if (!agent) return notFound("Agent not found");
+  const packageGuard = await legacyPackageGuard(id, auth.ctx.workspace.id);
+  if (packageGuard) return packageGuard;
   if (!isUuid(skillId)) return notFound("Skill not attached to this agent");
 
   try {
