@@ -389,6 +389,9 @@ half-written file blocks the Vercel deploy, not just local CI.
 |---|---|---|
 | `npm run dev` | Dev server (Turbopack) | database |
 | `npm run build` / `npm start` | Production build / serve | — / database |
+| `npm stop` | Gracefully stop this checkout's local Next.js servers on all ports | macOS/Linux, `lsof`, `ps` |
+| `npm restart` / `npm run restart:dev` | Stop, then start the dev server in the foreground | same as dev + stop |
+| `npm run restart:prod` | Stop, then serve the existing production build (does not rebuild) | existing build + stop |
 | `npm run lint` | ESLint | — |
 | `npm run typecheck` | `tsc --noEmit` | — |
 | `npm test` / `npm run test:watch` | `node:test` via `tsx` under the `react-server` condition | — |

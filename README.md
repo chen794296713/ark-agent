@@ -90,7 +90,7 @@ npm run db:seed:demo
 npm run skills:seed
 
 # 5. Run
-npm run dev        # http://localhost:3000  (or the PORT set in .env)
+npm run dev        # http://localhost:3000 (or an exported PORT)
 ```
 
 After `npm run db:seed:demo`, sign in with **`demo` / `demo123`** to explore a fully-populated workspace, or **create an account** (a real email is required) to start with an empty one.
@@ -101,6 +101,9 @@ After `npm run db:seed:demo`, sign in with **`demo` / `demo123`** to explore a f
 |---|---|
 | `npm run dev` | Start the dev server |
 | `npm run build` / `npm start` | Production build / serve |
+| `npm stop` | Gracefully stop Next.js servers in this checkout |
+| `npm restart` / `npm run restart:dev` | Stop, then start the dev server |
+| `npm run restart:prod` | Stop, then serve the existing production build |
 | `npm run lint` | ESLint |
 | `npm run db:generate` | Generate a SQL migration from the schema |
 | `npm run db:migrate` | Apply migrations (uses `DIRECT_DATABASE_URL`) |
@@ -116,6 +119,20 @@ After `npm run db:seed:demo`, sign in with **`demo` / `demo123`** to explore a f
 | `npm run payments:check` | Assert the Stripe/Alipay mode resolution, including the production fail-closed |
 | `npm run skills:seed` | Load the curated skill catalogue into the database |
 | `npm run skills:sync` | Refresh the Skill Repository from its allowlisted sources |
+
+Stop/restart requires macOS or Linux (including WSL) with `lsof` and `ps`.
+`npm stop` sends SIGTERM to every Next.js dev/production server whose working
+directory is this checkout, regardless of port, and waits up to 10 seconds for
+shutdown. It succeeds if none are running and fails if shutdown times out, so
+restart cannot continue after a failed stop. Other projects and other processes
+are left running. These commands manage local Next.js CLI servers; use the
+deployment platform or Docker Compose to manage hosted/containerized services.
+
+Restart runs in the foreground. `npm restart -- --port 3001` forwards flags to
+the new dev server; `npm run restart:prod -- --port 3001` does the same for production.
+Previous CLI flags are not remembered. Production restart uses the last build;
+run `npm run build` first to include code changes. Set `PORT` in the shell (for
+example, `PORT=3001 npm restart`), since Next.js cannot read the listening port from `.env`.
 
 **Agent runtime.** `AGENT_MANAGER_MODE=mock` uses the in-process simulator; `live` plus `AGENT_MANAGER_BASE_URL` talks to a real Agent Manager. Unset, it is inferred — and **in production it resolves to `unconfigured`, which returns `503`**, because a simulated fleet reports every agent as working, invents VM ids and uptimes, and bills for a seat behind which no machine was ever started.
 
