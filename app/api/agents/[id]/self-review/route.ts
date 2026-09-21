@@ -9,7 +9,8 @@ import {
 import { requireAuth, parseBody, json, notFound, apiError } from "@/lib/api";
 import { selfReviewSchema } from "@/lib/validation";
 import { getAgentRow, getAgentDetail } from "@/lib/services/agents";
-import { isLLMConfigured, chatCompletion, type LlmUsageSample } from "@/lib/llm/openrouter";
+import { chatCompletion, type LlmUsageSample } from "@/lib/llm/openrouter";
+import { resolveWorkspaceLlmConnection } from "@/lib/llm/channel-config";
 import { buildSelfReviewPrompt, parseImprovements } from "@/lib/llm/agent-prompt";
 import { recordLlmUsage, classifyLlmError } from "@/lib/llm/usage";
 
@@ -31,8 +32,9 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   const parsed = await parseBody(req, selfReviewSchema);
   if (parsed.res) return parsed.res;
 
-  if (!isLLMConfigured()) {
-    return apiError("Self-review needs an LLM. Set OPENROUTER_API_KEY to enable it.", 503);
+  const connection = await resolveWorkspaceLlmConnection(auth.ctx.workspace.id);
+  if (!connection) {
+    return apiError("Self-review needs an available LLM channel.", 503);
   }
 
   const [role] = await db
@@ -76,6 +78,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   const startedAt = Date.now();
   try {
     const raw = await chatCompletion({
+      connection,
       messages: [
         { role: "system", content: system },
         { role: "user", content: user },

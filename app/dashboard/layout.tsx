@@ -20,6 +20,7 @@ const navDefs = [
   { id: "templates", key: "navTemplates", icon: "▤", href: "/dashboard/templates" },
   { id: "skills", key: "navSkills", icon: "◈", href: "/dashboard/skills" },
   // { id: "channels", key: "navChannels", icon: "⌁", href: "/dashboard/channels" },
+  { id: "llm", key: "navLlmConfiguration", icon: "◎", href: "/dashboard/llm" },
   { id: "billing", key: "navBilling", icon: "▤", href: "/dashboard/billing" },
   { id: "apiKeys", key: "navApiKeys", icon: "⌗", href: "/dashboard/api-keys" },
   { id: "payment", key: "navPayment", icon: "◇", href: "/payment" },
@@ -76,6 +77,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     if (id === "templates") return pathname.startsWith("/dashboard/templates");
     if (id === "skills") return pathname.startsWith("/dashboard/skills");
     if (id === "channels") return pathname.startsWith("/dashboard/channels");
+    if (id === "llm") return pathname.startsWith("/dashboard/llm");
     if (id === "billing") return pathname.startsWith("/dashboard/billing");
     if (id === "apiKeys") return pathname.startsWith("/dashboard/api-keys");
     if (id === "payment") return pathname.startsWith("/payment");
@@ -189,30 +191,31 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           {navItems.map((n) => {
             const on = isActive(n.id);
             return (
-              <button
-                key={n.id}
-                onClick={() => go(n.href)}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 10,
-                  background: on ? c.navSelected : "transparent",
-                  color: on ? c.text : c.muted,
-                  border: "none",
-                  padding: "10px 12px",
-                  fontSize: 14,
-                  fontFamily: font.sans,
-                  cursor: "pointer",
-                  textAlign: "left",
-                  width: "100%",
-                  borderRadius: r.radiusSm,
-                }}
-              >
-                <span style={{ fontFamily: font.mono, fontSize: 12, color: on ? c.accent : c.faint }}>
-                  {n.icon}
-                </span>
-                {t[n.key]}
-              </button>
+              <div key={n.id}>
+                <button
+                  onClick={() => go(n.href)}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 10,
+                    background: on ? c.navSelected : "transparent",
+                    color: on ? c.text : c.muted,
+                    border: "none",
+                    padding: "10px 12px",
+                    fontSize: 14,
+                    fontFamily: font.sans,
+                    cursor: "pointer",
+                    textAlign: "left",
+                    width: "100%",
+                    borderRadius: r.radiusSm,
+                  }}
+                >
+                  <span style={{ fontFamily: font.mono, fontSize: 12, color: on ? c.accent : c.faint }}>
+                    {n.icon}
+                  </span>
+                  {t[n.key]}
+                </button>
+              </div>
             );
           })}
         </div>

@@ -733,6 +733,57 @@ export const channels = pgTable(
   ],
 );
 
+// ---------------------------------------------------------------------------
+// LLM routing
+// ---------------------------------------------------------------------------
+
+/**
+ * Workspace-owned model gateways. Platform/system gateways are deployment
+ * configuration and are intentionally not copied into this table: that keeps
+ * their credentials out of tenant data and lets operators rotate them once.
+ */
+export const llmChannels = pgTable(
+  "llm_channels",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    workspaceId: uuid("workspace_id")
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    name: varchar("name", { length: 80 }).notNull(),
+    provider: varchar("provider", { length: 40 }).notNull(),
+    protocol: varchar("protocol", { length: 24 }).notNull(),
+    baseUrl: varchar("base_url", { length: 500 }).notNull(),
+    apiKeyEncrypted: text("api_key_encrypted").notNull(),
+    enabled: boolean("enabled").notNull().default(true),
+    models: jsonb("models").$type<string[]>().notNull().default([]),
+    lastSyncedAt: timestamp("last_synced_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [
+    index("llm_channels_workspace_idx").on(t.workspaceId),
+    uniqueIndex("llm_channels_workspace_name_uniq").on(t.workspaceId, t.name),
+  ],
+);
+
+/** One effective routing choice per workspace. */
+export const workspaceLlmConfigs = pgTable("workspace_llm_configs", {
+  workspaceId: uuid("workspace_id")
+    .primaryKey()
+    .references(() => workspaces.id, { onDelete: "cascade" }),
+  channelKind: varchar("channel_kind", { length: 16 }).notNull().default("system"),
+  channelId: varchar("channel_id", { length: 64 }).notNull().default("system-openrouter"),
+  model: varchar("model", { length: 200 }).notNull().default("openai/gpt-4o-mini"),
+  defaultChannelKind: varchar("default_channel_kind", { length: 16 }).notNull().default("system"),
+  primaryChannelKind: varchar("primary_channel_kind", { length: 16 }).notNull().default("system"),
+  primaryChannelId: varchar("primary_channel_id", { length: 64 }).notNull().default("system-openrouter"),
+  primaryModel: varchar("primary_model", { length: 200 }).notNull().default("openai/gpt-4o-mini"),
+  backupChannelKind: varchar("backup_channel_kind", { length: 16 }),
+  backupChannelId: varchar("backup_channel_id", { length: 64 }),
+  backupModel: varchar("backup_model", { length: 200 }),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
 export const agentChannels = pgTable(
   "agent_channels",
   {

@@ -15,6 +15,7 @@ import {
   plans,
 } from "@/lib/db/schema";
 import type { Agent } from "@/lib/db/schema";
+import type { StoredAgentSettings } from "@/lib/agent-settings";
 import { getAgentManager } from "@/lib/agent-manager";
 import type { Harness } from "@/lib/harness";
 import { categoryIdFor } from "@/lib/harness/provisioning";
@@ -173,6 +174,7 @@ export interface CreateAgentInput {
   rules: string;
   channels: ChannelType[];
   tasks: string[];
+  settings?: StoredAgentSettings;
 }
 
 export async function createAgent(ctx: AuthContext, input: CreateAgentInput) {
@@ -192,6 +194,7 @@ export async function createAgent(ctx: AuthContext, input: CreateAgentInput) {
       instructions: input.instructions,
       rules: input.rules,
       hue: role.hue,
+      settings: input.settings ?? {},
     })
     .returning();
 

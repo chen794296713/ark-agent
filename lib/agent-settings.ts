@@ -15,6 +15,7 @@ export type Tone = "professional" | "friendly" | "concise" | "formal" | "playful
 export type ResponseLanguage = "auto" | "en" | "zh" | "zht" | "ja";
 export type Autonomy = "suggest" | "ask" | "auto";
 export type ReasoningEffort = "low" | "medium" | "high";
+export type ModelChannelKind = "system" | "custom";
 
 /**
  * Fixed denomination of `AgentSettings.approvalAmount`. Not the display
@@ -58,6 +59,11 @@ export interface AgentSettings {
 
   // ---- LLM provider (model-agnostic) ----
   model: string; // "auto" or a provider/model id
+  fallbackModel: string; // empty = no explicit backup model
+  modelChannelKind: ModelChannelKind;
+  modelChannelId: string;
+  fallbackModelChannelKind: ModelChannelKind;
+  fallbackModelChannelId: string;
   temperature: number; // 0..1
   maxTokens: number;
   reasoningEffort: ReasoningEffort; // Hermes deep-reasoning depth
@@ -102,6 +108,11 @@ export const DEFAULT_SETTINGS: AgentSettings = {
   digestTime: "18:00",
 
   model: "auto",
+  fallbackModel: "",
+  modelChannelKind: "system",
+  modelChannelId: "system-openrouter",
+  fallbackModelChannelKind: "system",
+  fallbackModelChannelId: "system-openrouter",
   temperature: 0.4,
   maxTokens: 4096,
   reasoningEffort: "medium",

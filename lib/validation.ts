@@ -87,6 +87,11 @@ export const createAgentSchema = z.object({
   rules: z.string().max(8000).default(""),
   channels: z.array(z.enum(CHANNEL_TYPES)).default([]),
   tasks: z.array(z.string().min(1).max(400)).default([]),
+  settings: z.object({
+    model: z.string().max(200), fallbackModel: z.string().max(200),
+    modelChannelKind: z.enum(["system", "custom"]), modelChannelId: z.string().max(64),
+    fallbackModelChannelKind: z.enum(["system", "custom"]), fallbackModelChannelId: z.string().max(64),
+  }).partial().optional(),
 });
 
 export const agentSettingsSchema = z.object({
@@ -107,7 +112,12 @@ export const agentSettingsSchema = z.object({
   notifyErrors: z.boolean().optional(),
   dailyDigest: z.boolean().optional(),
   digestTime: z.string().max(5).optional(),
-  model: z.string().max(80).optional(),
+  model: z.string().max(200).optional(),
+  fallbackModel: z.string().max(200).optional(),
+  modelChannelKind: z.enum(["system", "custom"]).optional(),
+  modelChannelId: z.string().max(64).optional(),
+  fallbackModelChannelKind: z.enum(["system", "custom"]).optional(),
+  fallbackModelChannelId: z.string().max(64).optional(),
   temperature: z.number().min(0).max(2).optional(),
   maxTokens: z.number().int().min(256).max(200_000).optional(),
   reasoningEffort: z.enum(["low", "medium", "high"]).optional(),

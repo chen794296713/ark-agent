@@ -12,11 +12,12 @@ import {
 } from "@/lib/services/openclaw_instances";
 import { mergeSettings } from "@/lib/agent-settings";
 import {
-  isLLMConfigured,
   streamChatCompletion,
   type ChatMessage,
+  type LlmConnection,
   type LlmUsageSample,
 } from "@/lib/llm/openrouter";
+import { resolveWorkspaceLlmConnection } from "@/lib/llm/channel-config";
 import { buildAgentSystemPrompt } from "@/lib/llm/agent-prompt";
 import { recordLlmUsage, classifyLlmError, type LlmErrorCode } from "@/lib/llm/usage";
 import type { Agent, Message } from "@/lib/db/schema";
@@ -91,7 +92,19 @@ export async function POST(req: Request, { params }: Ctx) {
   const useStream = agentManagerMode() === "live" && !!openclawConfig?.externalId;
   // When no live OpenClaw runtime is attached, prefer a real LLM (OpenRouter)
   // over the canned reply — as long as an API key is configured.
-  const useLLM = !useStream && isLLMConfigured();
+  const agentSettings = mergeSettings(agent.settings);
+  const primaryOverride = agentSettings.model && agentSettings.model !== "auto" ? {
+    channelKind: agentSettings.modelChannelKind,
+    channelId: agentSettings.modelChannelId,
+    model: agentSettings.model,
+  } : undefined;
+  const llmConnection = !useStream ? await resolveWorkspaceLlmConnection(auth.ctx.workspace.id, primaryOverride) : null;
+  const fallbackConnection = !useStream && agentSettings.fallbackModel ? await resolveWorkspaceLlmConnection(auth.ctx.workspace.id, {
+    channelKind: agentSettings.fallbackModelChannelKind,
+    channelId: agentSettings.fallbackModelChannelId,
+    model: agentSettings.fallbackModel,
+  }) : null;
+  const useLLM = !!llmConnection;
 
   // Neither a runtime nor a model: the only thing left is the canned reply, and
   // pantomiming a model to a paying customer is worse than saying nothing. Fail
@@ -129,6 +142,8 @@ export async function POST(req: Request, { params }: Ctx) {
         } else if (useLLM) {
           await streamLLMReply({
             agent,
+            connection: llmConnection!,
+            fallbackConnection,
             userId: auth.ctx.user.id,
             workspaceId: auth.ctx.workspace.id,
             conversationId: conv!.id,
@@ -256,6 +271,8 @@ async function streamOpenclawReply(opts: {
 
 async function streamLLMReply(opts: {
   agent: Agent;
+  connection: LlmConnection;
+  fallbackConnection: LlmConnection | null;
   userId: string;
   workspaceId: string;
   conversationId: string;
@@ -300,15 +317,19 @@ async function streamLLMReply(opts: {
       else if (m.sender === "agent") llmMessages.push({ role: "assistant", content: m.body });
     }
 
-    const full = await streamChatCompletion({
-      messages: llmMessages,
-      temperature: settings.temperature,
-      maxTokens: settings.maxTokens,
-      onDelta: opts.onDelta,
-      onUsage: (u) => {
-        sample = u;
-      },
+    let emitted = false;
+    const run = (connection: LlmConnection) => streamChatCompletion({
+      connection, messages: llmMessages, temperature: settings.temperature, maxTokens: settings.maxTokens,
+      onDelta: (delta) => { emitted = true; opts.onDelta(delta); },
+      onUsage: (u) => { sample = u; },
     });
+    let full: string;
+    try {
+      full = await run(opts.connection);
+    } catch (primaryError) {
+      if (!opts.fallbackConnection || emitted) throw primaryError;
+      full = await run(opts.fallbackConnection);
+    }
 
     const reply = await persistAgentReply({
       agentId: opts.agent.id,

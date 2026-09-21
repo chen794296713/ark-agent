@@ -164,6 +164,20 @@ export const api = {
   connectChannel: (body: { type: string; config: Record<string, string>; label?: string }) =>
     req<{ channel: ChannelDTO }>("POST", "/api/channels", body),
   disconnectChannel: (id: string) => req<{ channel: ChannelDTO }>("DELETE", `/api/channels/${id}`),
+
+  // ---- LLM routing ----
+  llmChannels: () => req<LlmChannelsDTO>("GET", "/api/llm/channels"),
+  createLlmChannel: (body: LlmChannelInput) =>
+    req<{ channel: LlmChannelDTO }>("POST", "/api/llm/channels", body),
+  updateLlmChannel: (id: string, body: Partial<LlmChannelInput>) =>
+    req<{ channel: LlmChannelDTO }>("PATCH", `/api/llm/channels/${encodeURIComponent(id)}`, body),
+  deleteLlmChannel: (id: string) =>
+    req<{ ok: true }>("DELETE", `/api/llm/channels/${encodeURIComponent(id)}`),
+  fetchLlmModels: (body: LlmModelRequest) =>
+    req<{ models: string[] }>("POST", "/api/llm/models", body),
+  llmCallConfig: () => req<{ config: LlmCallConfigDTO }>("GET", "/api/llm/config"),
+  updateLlmCallConfig: (body: LlmCallConfigDTO) =>
+    req<{ config: LlmCallConfigDTO }>("PATCH", "/api/llm/config", body),
   billing: () => req<BillingDTO>("GET", "/api/billing"),
   billingUsage: (range: BillingUsageDTO["range"], from?: string, to?: string) => {
     const q = new URLSearchParams({ range });
@@ -241,6 +255,55 @@ export interface ApiKeyDTO {
 
 export interface ApiKeyWithSecretDTO extends ApiKeyDTO {
   key: string | null;
+}
+
+export type LlmProtocol = "openai" | "anthropic";
+export type LlmChannelKind = "system" | "custom";
+export type LlmProvider = "openai" | "anthropic" | "openrouter" | "deepseek" | "xai" | "custom";
+
+export interface LlmChannelDTO {
+  id: string;
+  kind: LlmChannelKind;
+  name: string;
+  provider: string;
+  protocol: LlmProtocol;
+  baseUrl: string;
+  enabled: boolean;
+  available: boolean;
+  hasApiKey: boolean;
+  models: string[];
+  lastSyncedAt: string | null;
+  createdAt: string | null;
+  updatedAt: string | null;
+}
+
+export interface LlmChannelsDTO {
+  system: LlmChannelDTO[];
+  custom: LlmChannelDTO[];
+}
+
+export interface LlmChannelInput {
+  name: string;
+  provider: LlmProvider;
+  protocol: LlmProtocol;
+  baseUrl: string;
+  apiKey: string;
+  enabled?: boolean;
+  models?: string[];
+}
+
+export type LlmModelRequest =
+  | { source: "channel"; channelKind: LlmChannelKind; channelId: string }
+  | { source: "draft"; protocol: LlmProtocol; baseUrl: string; apiKey: string };
+
+export interface LlmCallConfigDTO {
+  defaultChannelKind: LlmChannelKind;
+  primaryChannelKind: LlmChannelKind;
+  primaryChannelId: string;
+  primaryModel: string;
+  backupChannelKind: LlmChannelKind | null;
+  backupChannelId: string | null;
+  backupModel: string | null;
 }
 
 // ---- admin console shapes ----
@@ -524,7 +587,7 @@ export interface CreateAgentBody {
   name: string; roleId: string; engine: Harness;
   managerAgentId?: number;
   planTier: "associate" | "professional" | "director"; instructions: string; rules: string;
-  channels: string[]; tasks: string[];
+  channels: string[]; tasks: string[]; settings?: Partial<AgentSettings>;
 }
 export interface UpdateAgentBody {
   name?: string; instructions?: string; rules?: string;

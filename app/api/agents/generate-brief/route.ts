@@ -3,7 +3,8 @@ import { db } from "@/lib/db";
 import { agentRoles } from "@/lib/db/schema";
 import { requireAuth, parseBody, json, notFound } from "@/lib/api";
 import { generateBriefSchema } from "@/lib/validation";
-import { isLLMConfigured, chatCompletion, type LlmUsageSample } from "@/lib/llm/openrouter";
+import { chatCompletion, type LlmUsageSample } from "@/lib/llm/openrouter";
+import { resolveWorkspaceLlmConnection } from "@/lib/llm/channel-config";
 import { buildBriefPrompt } from "@/lib/llm/agent-prompt";
 import { recordLlmUsage, classifyLlmError } from "@/lib/llm/usage";
 
@@ -32,7 +33,8 @@ export async function POST(req: Request) {
   const fallback =
     (field === "instructions" ? role.defaultInstructions : role.defaultRules) ?? "";
 
-  if (!isLLMConfigured()) {
+  const connection = await resolveWorkspaceLlmConnection(auth.ctx.workspace.id);
+  if (!connection) {
     return json({ text: fallback, source: "default" as const });
   }
 
@@ -51,6 +53,7 @@ export async function POST(req: Request) {
       lang: locale ?? "en",
     });
     const text = await chatCompletion({
+      connection,
       messages: [
         { role: "system", content: system },
         { role: "user", content: user },

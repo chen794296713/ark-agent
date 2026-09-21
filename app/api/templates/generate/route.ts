@@ -43,7 +43,7 @@
  */
 import { after } from "next/server";
 import { apiError, json, parseBody, requireAuth } from "@/lib/api";
-import { isLLMConfigured } from "@/lib/llm/openrouter";
+import { resolveWorkspaceLlmConnection } from "@/lib/llm/channel-config";
 import {
   BriefTooThinError,
   generateTemplate,
@@ -152,7 +152,8 @@ export async function POST(req: Request) {
     throw e;
   }
 
-  const modelPlanned = isLLMConfigured() && !quota.budgetExhausted;
+  const llmConnection = await resolveWorkspaceLlmConnection(auth.ctx.workspace.id);
+  const modelPlanned = !!llmConnection && !quota.budgetExhausted;
   const ledger = modelPlanned ? MODEL_LEDGER : RULES_LEDGER;
 
   const [roles, existingSlugs] = await Promise.all([
@@ -172,6 +173,7 @@ export async function POST(req: Request) {
       budgetExhausted: quota.budgetExhausted,
       generationId,
       roles,
+      ...(llmConnection ? { connection: llmConnection } : {}),
       now,
       ...(onStage ? { onStage } : {}),
       ...(signal ? { signal } : {}),

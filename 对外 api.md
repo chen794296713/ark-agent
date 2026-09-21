@@ -4,7 +4,24 @@ curl --url 'https://www.iagent.cc/api/auth/register' \
   --data-raw '{"name":"陈振东","email":"zhendongchen2@lightark.ai","password":"lightark@1"}'
 
  
-
+curl -X POST 'https://www.iagent.cc/api/auth/api-key' \
+  -H 'Content-Type: application/json' \
+  --data-raw '{"username":"user@example.com","password":"password"}'
+  {
+    "apiKey": {
+        "id": "834b2528-17d3-4b01-87dd-d452e9521423",
+        "name": "Default",
+        "description": null,
+        "tokenPrefix": "ark_live_bef8845",
+        "expiresAt": null,
+        "disabledAt": null,
+        "lastUsedAt": null,
+        "createdAt": "2026-09-16T08:19:50.233Z",
+        "updatedAt": "2026-09-16T08:19:50.233Z"
+    },
+    "key": "ark_live_bef8845e0abe4094b7ed52cd526d43f5",
+    "created": true
+}
 创建智能体
 curl --url 'https://www.iagent.cc/api/agents' \
   -H 'Accept: */*' \

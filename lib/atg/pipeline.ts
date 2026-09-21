@@ -34,7 +34,7 @@ import { asc, eq, inArray } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { agentRoles, type AgentRole } from "@/lib/db/schema";
 import { chatCompletion, isLLMConfigured, llmModel, normalizeModelId } from "@/lib/llm/openrouter";
-import type { LlmUsageSample } from "@/lib/llm/openrouter";
+import type { LlmConnection, LlmUsageSample } from "@/lib/llm/openrouter";
 import { classifyLlmError, recordLlmUsage } from "@/lib/llm/usage";
 import { DEFAULT_SETTINGS } from "@/lib/agent-settings";
 import { HARNESS_IDS, type Harness } from "@/lib/harness";
@@ -116,9 +116,9 @@ type ModelTier = "reason" | "fast";
  * `LLM_MODEL`, so a deployment that sets nothing new keeps working exactly as
  * before.
  */
-function atgModel(tier: ModelTier): string {
+function atgModel(tier: ModelTier, configuredModel?: string): string {
   const raw = tier === "reason" ? process.env.ATG_REASON_MODEL : process.env.ATG_FAST_MODEL;
-  return normalizeModelId(raw || "") || llmModel();
+  return normalizeModelId(raw || "") || normalizeModelId(configuredModel || "") || llmModel();
 }
 
 function intEnv(name: string, fallback: number): number {
@@ -251,6 +251,7 @@ interface RunContext {
   fellBack: boolean;
   onStage?: (trace: DraftStageTrace) => void;
   signal?: AbortSignal;
+  connection?: LlmConnection;
 }
 
 function trace(
@@ -303,7 +304,7 @@ async function callModel(
   maxTokens: number,
 ): Promise<CallResult> {
   const started = Date.now();
-  const model = atgModel(tier);
+  const model = atgModel(tier, ctx.connection?.model);
   if (ctx.calls >= maxCalls()) {
     return { text: null, sample: null, errorCode: "budget", latencyMs: 0 };
   }
@@ -311,6 +312,7 @@ async function callModel(
   let sample: LlmUsageSample | null = null;
   try {
     const text = await chatCompletion({
+      ...(ctx.connection ? { connection: ctx.connection } : {}),
       model,
       temperature,
       maxTokens,
@@ -465,6 +467,8 @@ export interface GenerateInput {
   roles?: AgentRole[];
   onStage?: (trace: DraftStageTrace) => void;
   signal?: AbortSignal;
+  /** Resolved by the authenticated route; omitted callers retain env behavior. */
+  connection?: LlmConnection;
 }
 
 export interface GenerateResult {
@@ -523,11 +527,12 @@ export async function generateTemplate(input: GenerateInput): Promise<GenerateRe
     fellBack: false,
     ...(input.onStage ? { onStage: input.onStage } : {}),
     ...(input.signal ? { signal: input.signal } : {}),
+    ...(input.connection ? { connection: input.connection } : {}),
   };
 
   trace(ctx, "intake", "rules", "ok");
 
-  const modelAvailable = isLLMConfigured() && !llmDisabled() && input.budgetExhausted !== true;
+  const modelAvailable = (input.connection ? true : isLLMConfigured()) && !llmDisabled() && input.budgetExhausted !== true;
   const draft = modelAvailable
     ? await generateWithModel(ctx)
     : composeAllDeterministic(ctx, await retrieveDeterministic(ctx));

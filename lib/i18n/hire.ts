@@ -69,6 +69,12 @@ export interface HireDict {
   channelLINE: string;
   channelSlack: string;
   channelEmail: string;
+  primaryModel: string;
+  backupModel: string;
+  modelSelectEmpty: string;
+  systemSource: string;
+  customSource: string;
+  selectChannel: string;
 
   // Step 4 — Review & launch
   s4Title: string;
@@ -77,6 +83,8 @@ export interface HireDict {
   rowName: string;
   rowEngine: string;
   rowChannels: string;
+  rowPrimaryModel: string;
+  rowBackupModel: string;
   rowFirstTasks: string;
   rowPlan: string;
   webConsole: string;
@@ -175,6 +183,12 @@ const en: HireDict = {
   channelLINE: "LINE",
   channelSlack: "Slack",
   channelEmail: "Email",
+  primaryModel: "PRIMARY MODEL",
+  backupModel: "BACKUP MODEL",
+  modelSelectEmpty: "No model selected",
+  systemSource: "System channel",
+  customSource: "Custom channel",
+  selectChannel: "Select channel",
 
   s4Title: "Review & launch",
   s4Sub: "A dedicated machine will be provisioned for this agent.",
@@ -182,6 +196,8 @@ const en: HireDict = {
   rowName: "NAME",
   rowEngine: "ENGINE",
   rowChannels: "CHANNELS",
+  rowPrimaryModel: "PRIMARY MODEL",
+  rowBackupModel: "BACKUP MODEL",
   rowFirstTasks: "FIRST TASKS",
   rowPlan: "PLAN",
   webConsole: "Web console",
@@ -275,6 +291,12 @@ const zh: HireDict = {
   channelLINE: "LINE",
   channelSlack: "Slack",
   channelEmail: "电子邮件",
+  primaryModel: "主模型",
+  backupModel: "备用模型",
+  modelSelectEmpty: "暂无模型",
+  systemSource: "系统渠道",
+  customSource: "自定义渠道",
+  selectChannel: "选择渠道",
 
   s4Title: "确认并启动",
   s4Sub: "我们将为这个智能体开通一台专属服务器。",
@@ -282,6 +304,8 @@ const zh: HireDict = {
   rowName: "名称",
   rowEngine: "引擎",
   rowChannels: "渠道",
+  rowPrimaryModel: "主模型",
+  rowBackupModel: "备用模型",
   rowFirstTasks: "首批任务",
   rowPlan: "方案",
   webConsole: "网页控制台",
@@ -375,6 +399,12 @@ const zht: HireDict = {
   channelLINE: "LINE",
   channelSlack: "Slack",
   channelEmail: "電子郵件",
+  primaryModel: "主模型",
+  backupModel: "備用模型",
+  modelSelectEmpty: "暫無模型",
+  systemSource: "系統管道",
+  customSource: "自訂管道",
+  selectChannel: "選擇管道",
 
   s4Title: "確認並啟動",
   s4Sub: "我們將為這個智能體開通一台專屬伺服器。",
@@ -382,6 +412,8 @@ const zht: HireDict = {
   rowName: "名稱",
   rowEngine: "引擎",
   rowChannels: "管道",
+  rowPrimaryModel: "主模型",
+  rowBackupModel: "備用模型",
   rowFirstTasks: "首批任務",
   rowPlan: "方案",
   webConsole: "網頁主控台",
@@ -478,6 +510,12 @@ const ja: HireDict = {
   channelLINE: "LINE",
   channelSlack: "Slack",
   channelEmail: "メール",
+  primaryModel: "主モデル",
+  backupModel: "バックアップモデル",
+  modelSelectEmpty: "モデルなし",
+  systemSource: "システムチャネル",
+  customSource: "カスタムチャネル",
+  selectChannel: "チャネルを選択",
 
   s4Title: "確認して起動",
   s4Sub: "このエージェント専用のマシンをプロビジョニングします。",
@@ -485,6 +523,8 @@ const ja: HireDict = {
   rowName: "名前",
   rowEngine: "エンジン",
   rowChannels: "チャネル",
+  rowPrimaryModel: "主モデル",
+  rowBackupModel: "バックアップモデル",
   rowFirstTasks: "最初のタスク",
   rowPlan: "プラン",
   webConsole: "Web コンソール",

@@ -25,7 +25,8 @@ import { apiError, json, notFound, parseBody, requireAuth } from "@/lib/api";
 import { db } from "@/lib/db";
 import { llmUsage } from "@/lib/db/schema";
 import { getAgentRow } from "@/lib/services/agents";
-import { chatCompletion, isLLMConfigured, type LlmUsageSample } from "@/lib/llm/openrouter";
+import { chatCompletion, type LlmConnection, type LlmUsageSample } from "@/lib/llm/openrouter";
+import { resolveWorkspaceLlmConnection } from "@/lib/llm/channel-config";
 import { classifyLlmError, recordLlmUsage } from "@/lib/llm/usage";
 import {
   cronError,
@@ -91,20 +92,21 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     (isValidTimeZone(settings.timezone) ? settings.timezone : "UTC");
 
   const now = new Date();
+  const llmConnection = await resolveWorkspaceLlmConnection(auth.ctx.workspace.id);
 
   // ---- The ADVANCED cron field: no parser, no model, just the engine --------
   if (cron !== undefined) {
-    return json(previewCron(cron, timezone, lang, now, isLLMConfigured()));
+    return json(previewCron(cron, timezone, lang, now, !!llmConnection));
   }
 
   if (!phrase?.trim()) {
-    return json(emptyPreview(timezone, isLLMConfigured()));
+    return json(emptyPreview(timezone, !!llmConnection));
   }
 
   // ---- The natural-language field ------------------------------------------
   let askModel: AskModel | undefined;
   let rateLimited = false;
-  if (!deterministicOnly && isLLMConfigured()) {
+  if (!deterministicOnly && llmConnection) {
     // No rate limiter exists in this repository and no new runtime dependency
     // may be added, so the mechanism is a COUNT over the table the call already
     // writes: correct across serverless instances in a way an in-memory bucket
@@ -121,7 +123,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
         ),
       );
     if ((used?.n ?? 0) >= SCHEDULE_LIMITS.PARSE_RATE_PER_MINUTE) rateLimited = true;
-    else askModel = makeAskModel(auth.ctx.user.id, auth.ctx.workspace.id, id);
+    else askModel = makeAskModel(auth.ctx.user.id, auth.ctx.workspace.id, id, llmConnection);
   }
 
   const resolved = await resolveSchedulePhrase(phrase, {
@@ -130,7 +132,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     // ("tomorrow at 9") silently stop parsing rather than failing loudly.
     today: zonedParts(now, timezone),
     askModel,
-    llmAvailable: isLLMConfigured(),
+    llmAvailable: !!llmConnection,
   });
 
   const body: PreviewResponse = {
@@ -285,12 +287,13 @@ function unionRestricted(expr: string): boolean {
  * put schedule parses into the admin console's brief-generation cost line and
  * make both numbers wrong.
  */
-function makeAskModel(userId: string, workspaceId: string, agentId: string): AskModel {
+function makeAskModel(userId: string, workspaceId: string, agentId: string, connection: LlmConnection): AskModel {
   return async ({ text, timezone, today }) => {
     let sample: LlmUsageSample | undefined;
     const startedAt = Date.now();
     try {
       const raw = await chatCompletion({
+        connection,
         messages: [
           { role: "system", content: SCHEDULE_SYSTEM_PROMPT },
           // The phrase is user content and travels as user content.

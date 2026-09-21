@@ -3,7 +3,7 @@
 import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { c, font, r } from "@/lib/theme";
-import { api, ApiError, type RoleDTO } from "@/lib/client-api";
+import { api, ApiError, type LlmChannelDTO, type RoleDTO } from "@/lib/client-api";
 import { ENGINE_LABEL, planLabel } from "@/lib/agent-display";
 import { isHarness, type Harness } from "@/lib/harness";
 import { Btn } from "@/components/ui";
@@ -11,6 +11,7 @@ import { useApp } from "@/lib/store";
 import { hire } from "@/lib/i18n/hire";
 import { create } from "@/lib/i18n/create";
 import { getTranslatedRole } from "@/lib/i18n/roles";
+import { defaultHireModelSelection } from "@/lib/llm/model-selection";
 
 const LIME = c.lime;
 const ACCENT = c.accent;
@@ -20,17 +21,6 @@ const INKBG = c.panel;
 const BORD = c.border;
 const CUSTOM_ROLE_ID = "custom";
 const ROLE_PAGE_SIZE = 10;
-
-/** Channel picker labels mapped to API type strings. Labels are set dynamically from i18n. */
-const CHANNEL_TYPES = [
-  "telegram",
-  "whatsapp",
-  "wechat",
-  "line",
-  "slack",
-  "email",
-] as const;
-type ChannelType = (typeof CHANNEL_TYPES)[number];
 
 function HireInner() {
   const router = useRouter();
@@ -57,11 +47,13 @@ function HireInner() {
   const [taskDraft, setTaskDraft] = useState("");
   const [tasks, setTasks] = useState<string[]>(() => [...t.tasksDefault]);
   const [engine, setEngine] = useState("auto");
-  const [channels, setChannels] = useState<Record<ChannelType, boolean>>(() =>
-    Object.fromEntries(
-      CHANNEL_TYPES.map((type) => [type, type === "telegram" || type === "whatsapp"]),
-    ) as Record<ChannelType, boolean>,
-  );
+  const [llmChannels, setLlmChannels] = useState<{ system: LlmChannelDTO[]; custom: LlmChannelDTO[] }>({ system: [], custom: [] });
+  const [primaryModel, setPrimaryModel] = useState("");
+  const [backupModel, setBackupModel] = useState("");
+  const [primaryChannelKind, setPrimaryChannelKind] = useState<"system" | "custom">("system");
+  const [primaryChannelId, setPrimaryChannelId] = useState("system-openrouter");
+  const [backupChannelKind, setBackupChannelKind] = useState<"system" | "custom">("system");
+  const [backupChannelId, setBackupChannelId] = useState("system-openrouter");
   const [genBusyI, setGenBusyI] = useState(false);
   const [genBusyR, setGenBusyR] = useState(false);
 
@@ -76,6 +68,19 @@ function HireInner() {
       if (lvRef.current) clearInterval(lvRef.current);
     };
   }, []);
+
+  useEffect(() => {
+    api.llmChannels().then((result) => {
+      setLlmChannels(result);
+      const defaults = defaultHireModelSelection(result);
+      setPrimaryChannelKind(defaults.primary.channelKind); setPrimaryChannelId(defaults.primary.channelId); setPrimaryModel(defaults.primary.model);
+      setBackupChannelKind(defaults.backup.channelKind); setBackupChannelId(defaults.backup.channelId); setBackupModel(defaults.backup.model);
+    }).catch(() => undefined);
+  }, []);
+  const primaryChannels = primaryChannelKind === "system" ? llmChannels.system : llmChannels.custom.filter((channel) => channel.enabled);
+  const backupChannels = backupChannelKind === "system" ? llmChannels.system : llmChannels.custom.filter((channel) => channel.enabled);
+  const primaryChannel = primaryChannels.find((channel) => channel.id === primaryChannelId);
+  const backupChannel = backupChannels.find((channel) => channel.id === backupChannelId);
 
   // Fetch the role catalog on mount. (rolesLoading starts true, rolesError null.)
   useEffect(() => {
@@ -208,22 +213,6 @@ function HireInner() {
     setTaskDraft("");
   };
 
-  // Selected channel TYPE strings (e.g. ["telegram","whatsapp"]).
-  const chanTypes = CHANNEL_TYPES.filter((type) => channels[type]);
-
-  // Channel labels from i18n
-  const getChannelLabel = (type: ChannelType): string => {
-    switch (type) {
-      case "telegram": return t.channelTelegram;
-      case "whatsapp": return t.channelWhatsApp;
-      case "wechat": return t.channelWeChat;
-      case "line": return t.channelLINE;
-      case "slack": return t.channelSlack;
-      case "email": return t.channelEmail;
-    }
-  };
-
-  const chanLabels = chanTypes.map(getChannelLabel);
   const revName = agentName.trim() || selRoleDisplay?.name || "Aria";
 
   // Engine actually used: explicit pick, or the role's default for auto-match.
@@ -291,8 +280,16 @@ function HireInner() {
         planTier,
         instructions,
         rules,
-        channels: chanTypes,
+        channels: [],
         tasks,
+        settings: {
+          model: primaryModel,
+          fallbackModel: backupModel,
+          modelChannelKind: primaryChannelKind,
+          modelChannelId: primaryChannelId,
+          fallbackModelChannelKind: backupChannelKind,
+          fallbackModelChannelId: backupChannelId,
+        },
       })
       .then(({ agent }) => {
         setCreatedId(agent.id);
@@ -345,7 +342,7 @@ function HireInner() {
     t.launchProvisioning,
     t.launchInstalling(ENGINE_LABEL[resolvedEngine] ?? "OpenClaw"),
     t.launchLoadingBrief,
-    t.launchConnecting(chanLabels.join(", ") || t.webConsole.toLowerCase()),
+    t.launchConnecting([primaryModel, backupModel].filter(Boolean).join(" / ") || t.modelSelectEmpty),
     t.launchLive(revName),
   ];
   const launchRows = launchDefs.map((label, i) => {
@@ -1295,44 +1292,9 @@ function HireInner() {
                   </div>
                 </div>
               </div>
-              <div
-                style={{
-                  fontFamily: font.mono,
-                  fontSize: 11,
-                  letterSpacing: ".12em",
-                  color: c.muted,
-                  marginBottom: 12,
-                }}
-              >
-                {t.channelsLabel}
-              </div>
-              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                {CHANNEL_TYPES.map((type) => {
-                  const on = channels[type];
-                  return (
-                    <button
-                      key={type}
-                      onClick={() =>
-                        setChannels((cs) => ({ ...cs, [type]: !cs[type] }))
-                      }
-                      style={{
-                        border: "1px solid " + (on ? ACCENT : BORD),
-                        background: on ? c.limeWash : "transparent",
-                        color: on ? c.text : c.muted,
-                        padding: "10px 18px",
-                        fontSize: 14,
-                        fontFamily: font.sans,
-                        cursor: "pointer",
-                        borderRadius: r.radiusSm,
-                      }}
-                    >
-                      {getChannelLabel(type)}
-                    </button>
-                  );
-                })}
-              </div>
-              <div style={{ fontSize: 13, color: c.faint, marginTop: 14 }}>
-                {t.channelsNote}
+              <div style={{ display: "grid", gridTemplateColumns: r.split, gap: 14, marginTop: 28 }}>
+                <div><label style={{ display: "block", fontFamily: font.mono, fontSize: 11, letterSpacing: ".1em", color: c.muted }}>{t.primaryModel}</label><div className="hire-model-selects" style={{ gap: 8, marginTop: 7 }}><select value={primaryChannelKind} onChange={(event) => { const kind = event.target.value as "system" | "custom"; const channel = (kind === "system" ? llmChannels.system : llmChannels.custom.filter((item) => item.enabled)).find((item) => item.models.length > 0); setPrimaryChannelKind(kind); setPrimaryChannelId(channel?.id ?? ""); setPrimaryModel(channel?.models[0] ?? ""); }} style={{ background: c.panel, border: `1px solid ${c.border}`, color: c.text, padding: "12px 10px", fontSize: 14, borderRadius: r.radiusSm }}><option value="system">{t.systemSource}</option><option value="custom">{t.customSource}</option></select><select value={primaryChannelId} onChange={(event) => { const channel = primaryChannels.find((item) => item.id === event.target.value); setPrimaryChannelId(event.target.value); setPrimaryModel(channel?.models[0] ?? ""); }} style={{ background: c.panel, border: `1px solid ${c.border}`, color: c.text, padding: "12px 10px", fontSize: 14, borderRadius: r.radiusSm }}><option value="">{t.selectChannel}</option>{primaryChannels.map((channel) => <option key={`primary-channel-${channel.id}`} value={channel.id}>{channel.name}</option>)}</select><select value={primaryModel} onChange={(event) => setPrimaryModel(event.target.value)} style={{ background: c.panel, border: `1px solid ${c.border}`, color: c.text, padding: "12px 10px", fontSize: 14, borderRadius: r.radiusSm }}><option value="">{t.modelSelectEmpty}</option>{(primaryChannel?.models ?? []).map((model) => <option key={`primary-${model}`} value={model}>{model}</option>)}</select></div></div>
+                <div><label style={{ display: "block", fontFamily: font.mono, fontSize: 11, letterSpacing: ".1em", color: c.muted }}>{t.backupModel}</label><div className="hire-model-selects" style={{ gap: 8, marginTop: 7 }}><select value={backupChannelKind} onChange={(event) => { const kind = event.target.value as "system" | "custom"; const channel = (kind === "system" ? llmChannels.system : llmChannels.custom.filter((item) => item.enabled)).find((item) => item.models.length > 0); setBackupChannelKind(kind); setBackupChannelId(channel?.id ?? ""); setBackupModel(channel?.models[0] ?? ""); }} style={{ background: c.panel, border: `1px solid ${c.border}`, color: c.text, padding: "12px 10px", fontSize: 14, borderRadius: r.radiusSm }}><option value="system">{t.systemSource}</option><option value="custom">{t.customSource}</option></select><select value={backupChannelId} onChange={(event) => { const channel = backupChannels.find((item) => item.id === event.target.value); setBackupChannelId(event.target.value); setBackupModel(channel?.models[0] ?? ""); }} style={{ background: c.panel, border: `1px solid ${c.border}`, color: c.text, padding: "12px 10px", fontSize: 14, borderRadius: r.radiusSm }}><option value="">{t.selectChannel}</option>{backupChannels.map((channel) => <option key={`backup-channel-${channel.id}`} value={channel.id}>{channel.name}</option>)}</select><select value={backupModel} onChange={(event) => setBackupModel(event.target.value)} style={{ background: c.panel, border: `1px solid ${c.border}`, color: c.text, padding: "12px 10px", fontSize: 14, borderRadius: r.radiusSm }}><option value="">{t.modelSelectEmpty}</option>{(backupChannel?.models ?? []).map((model) => <option key={`backup-${model}`} value={model}>{model}</option>)}</select></div></div>
               </div>
             </>
           )}
@@ -1367,13 +1329,8 @@ function HireInner() {
                   { k: t.rowRole, v: selRoleDisplay?.name ?? "—", last: false },
                   { k: t.rowName, v: revName, last: false },
                   { k: t.rowEngine, v: engineName, last: false },
-                  {
-                    k: t.rowChannels,
-                    v: chanLabels.length
-                      ? chanLabels.join(" · ") + " · " + t.webSuffix
-                      : t.webConsole,
-                    last: false,
-                  },
+                  { k: t.rowPrimaryModel, v: primaryModel || "—", last: false },
+                  { k: t.rowBackupModel, v: backupModel || "—", last: false },
                   {
                     k: t.rowFirstTasks,
                     v: t.tasksQueued(tasks.length, remind.toLowerCase()),
