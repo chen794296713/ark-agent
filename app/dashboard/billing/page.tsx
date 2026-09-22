@@ -6,51 +6,106 @@
  * by app/dashboard/layout.tsx; this page renders only the billing screen.
  *
  * Data source: api.billing() drives the headline credit numbers, the per-agent
- * usage table and the invoices table. The range tabs + the credit bar-chart /
- * estimate card keep their static visual shape from getBillDatasets() (there is
- * no historical-range endpoint), but the live credits headline is overlaid on
- * top of whichever range dataset is selected.
+ * usage table and the invoices table. api.billingUsage(range) drives the credit
+ * bar-chart and the estimate card from `usage_records` — this used to be
+ * getBillDatasets(), which handed EVERY workspace the same invented 18,420
+ * credits, fourteen hardcoded bar heights and an estimate for four seats it had
+ * never bought.
+ *
+ * Money splits two ways. Seat prices and the projected-invoice estimate are
+ * *quotes*, so they follow the visitor's display currency. Invoices are
+ * *records*, so each renders in the currency it was settled in — a CN invoice
+ * stays ¥ even while the rest of the screen is showing $.
  */
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { getBillDatasets } from "@/lib/data";
-import { api, ApiError, type BillingDTO } from "@/lib/client-api";
+import { api, ApiError, type BillingDTO, type BillingUsageDTO, type InvoiceDTO } from "@/lib/client-api";
+import { ANNUAL_DISCOUNT, formatMoney, isCurrency, overagePer1k } from "@/lib/pricing";
 import { c, font, r } from "@/lib/theme";
 import { Btn } from "@/components/ui";
 import { useApp } from "@/lib/store";
 import { billing as billingI18n, type BillingDict } from "@/lib/i18n/billing";
+import { BCP47 } from "@/lib/i18n";
 
 const billTabIds = ["cycle", "last", "d90", "custom"] as const;
 type BillTabId = (typeof billTabIds)[number];
 
 /** Avatar fallback hue when a seat has no role colour. */
-const SEAT_FALLBACK_HUE = c.muted;
+/** Fill for a seat with no role colour. Themed, so it pairs with `c.ink`. */
+const SEAT_FALLBACK_HUE = c.lime;
 
-const fmtMoney = (cents: number) =>
-  "$" +
-  (cents / 100).toLocaleString("en-US", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  });
+/** Marker colour per provider; unknown providers stay neutral. */
+const PROVIDER_HUE: Record<string, string> = {
+  stripe: c.stripe,
+  alipay: c.alipay,
+};
 
-const fmtCredits = (n: number) => n.toLocaleString("en-US");
+const fmtCredits = (n: number, locale: string) => n.toLocaleString(locale);
 
-const fmtInvoiceDate = (iso: string) =>
-  new Date(iso).toLocaleDateString("en-US", {
+/** `YYYY-MM-DD`, `n` days before today, in UTC. */
+function isoDaysAgo(n: number): string {
+  return new Date(Date.now() - n * 86_400_000).toISOString().slice(0, 10);
+}
+
+/** "JUN 1 – JUN 13" for a chart label. */
+function fmtSpan(fromIso: string, toIso: string, locale: string): string {
+  const opts: Intl.DateTimeFormatOptions = { month: "short", day: "numeric" };
+  const from = new Date(fromIso);
+  // The window is half-open, so the last day the user sees is one before `to`.
+  const to = new Date(new Date(toIso).getTime() - 86_400_000);
+  return `${from.toLocaleDateString(locale, opts)} – ${to.toLocaleDateString(locale, opts)}`;
+}
+
+const fmtInvoiceDate = (iso: string, locale: string) =>
+  new Date(iso).toLocaleDateString(locale, {
     month: "short",
     day: "numeric",
     year: "numeric",
   });
 
+/**
+ * An invoice is a historical record, so it renders in the currency it was
+ * actually settled in — never the visitor's display currency. Showing a
+ * ¥2,267.20 Alipay invoice as "$2,267.20" would overstate it sevenfold.
+ */
+function invoiceAmount(inv: InvoiceDTO, t: BillingDict): string {
+  return isCurrency(inv.currency)
+    ? formatMoney(inv.amountCents, inv.currency)
+    : // A currency we do not format yet: show the code rather than guess a symbol.
+      `${t.currencyFallback(inv.currency)} ${(inv.amountCents / 100).toFixed(2)}`;
+}
+
+function invoiceCurrencyName(inv: InvoiceDTO, t: BillingDict): string {
+  return isCurrency(inv.currency)
+    ? t.currency[inv.currency]
+    : t.currencyFallback(inv.currency);
+}
+
+function providerName(provider: string | null, t: BillingDict): string {
+  if (provider === "stripe") return t.provider.stripe;
+  if (provider === "alipay") return t.provider.alipay;
+  return t.providerFallback(provider ?? "");
+}
+
 export default function BillingPage() {
   const router = useRouter();
-  const { lang } = useApp();
+  const { lang, currency } = useApp();
   const t: BillingDict = billingI18n[lang];
-  const [billRange, setBillRange] = useState<string>("cycle");
-  const [billFrom, setBillFrom] = useState("2026-06-01");
-  const [billTo, setBillTo] = useState("2026-06-13");
+  const locale = BCP47[lang];
+  const [billRange, setBillRange] = useState<BillTabId>("cycle");
+  // Default the custom picker to the last 14 days rather than to two dates from
+  // 2026, which is what it used to be pinned to.
+  const [billFrom, setBillFrom] = useState(() => isoDaysAgo(13));
+  const [billTo, setBillTo] = useState(() => isoDaysAgo(0));
 
   const [billing, setBilling] = useState<BillingDTO | null>(null);
+  // Held together with the request it answered, so "is this stale?" is a
+  // comparison rather than a second `loading` flag that has to be flipped
+  // synchronously inside the effect (which React 19 rightly rejects).
+  const [usageState, setUsageState] = useState<{
+    key: string;
+    data: BillingUsageDTO | null;
+  } | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -76,17 +131,78 @@ export default function BillingPage() {
     };
   }, []);
 
-  // Static chart/estimate shape (bars, x-axis, projected invoice) for the
-  // selected range — there is no historical-range API, so the visual stays.
-  const datasets = getBillDatasets(billFrom, billTo);
-  const bd = datasets[billRange] || datasets.cycle;
   const billCustom = billRange === "custom";
 
-  // Live credit headline overlaid on the chart card.
-  const creditsUsed = billing?.credits.used ?? 0;
-  const creditsIncluded = billing?.credits.included ?? 0;
+  // Identifies the request the chart currently wants. Only the custom range
+  // depends on the dates; the other three are resolved server-side from the
+  // workspace's own cycle.
+  const usageKey = billCustom ? `custom:${billFrom}:${billTo}` : billRange;
+  const usage = usageState?.key === usageKey ? usageState.data : null;
+  const usageLoading = usageState?.key !== usageKey;
+
+  useEffect(() => {
+    let cancelled = false;
+    api
+      .billingUsage(billRange, billCustom ? billFrom : undefined, billCustom ? billTo : undefined)
+      // On failure the key is still recorded, so the card settles on its empty
+      // state instead of spinning forever. A failed chart must not blank the
+      // seats and invoices around it.
+      .then((data) => !cancelled && setUsageState({ key: usageKey, data }))
+      .catch(() => !cancelled && setUsageState({ key: usageKey, data: null }));
+    return () => {
+      cancelled = true;
+    };
+  }, [usageKey, billRange, billCustom, billFrom, billTo]);
+
+  // The API prices seats from plans.monthly_price_cents (USD only), but every
+  // plan row carries both ladders — so look the seat's tier back up to follow
+  // the display currency.
+  const planByTier = new Map((billing?.plans ?? []).map((p) => [p.id as string, p]));
+  const seatPriceMinor = (seat: BillingDTO["seats"][number]): number => {
+    const plan = planByTier.get(seat.planTier);
+    if (!plan) return seat.priceCents;
+    return currency === "cny" ? plan.monthlyPriceFen : plan.monthlyPriceCents;
+  };
+
+  // Flat across tiers, so any tier reads the same rate.
+  const overageTag = formatMoney(overagePer1k("associate", currency), currency, {
+    compact: true,
+  });
+
+  // Credit headline: the SELECTED RANGE's usage, not the workspace lifetime —
+  // the two disagree for every range but "this cycle", and the chart beneath is
+  // the range's.
+  const creditsUsed = usage?.credits ?? billing?.credits.used ?? 0;
+  const creditsIncluded = usage?.included ?? billing?.credits.included ?? 0;
   const usedPct =
-    creditsIncluded > 0 ? Math.round((creditsUsed / creditsIncluded) * 100) : 0;
+    creditsIncluded > 0 ? Math.min(100, Math.round((creditsUsed / creditsIncluded) * 100)) : 0;
+
+  // ---- the estimate, entirely from real rows ------------------------------
+  const seats = billing?.seats ?? [];
+  // Whole cycles, floored at one: a three-day-old workspace still owes one
+  // month of seat fees, and a 90-day range owes three.
+  const cyclesBilled = Math.max(1, Math.round(usage?.cycles ?? 1));
+  const seatsMinor = seats.reduce((sum, seat) => sum + seatPriceMinor(seat), 0) * cyclesBilled;
+
+  const overCredits = Math.max(0, creditsUsed - creditsIncluded);
+  const overMinor = Math.round((overCredits / 1000) * overagePer1k("associate", currency));
+
+  // Only annually-billed seats earn the annual discount. The old code applied
+  // it to every workspace unconditionally, which quoted a discount to
+  // month-to-month customers who were never going to receive it.
+  const annualSeatShare = seats.length ? (usage?.annualSeats ?? 0) / seats.length : 0;
+  const discMinor = -Math.round(seatsMinor * annualSeatShare * ANNUAL_DISCOUNT);
+  const totalMinor = seatsMinor + overMinor + discMinor;
+
+  // Range-scoped credits per agent. Without this the seat rows report lifetime
+  // usage while the chart directly above them reports the selected range, and
+  // the two never add up.
+  const rangeCreditsByAgent = new Map((usage?.perAgent ?? []).map((a) => [a.id, a.credits]));
+
+  const buckets = usage?.buckets ?? [];
+  const peakBucket = buckets.reduce((max, b) => Math.max(max, b.credits), 0);
+  const hasUsage = peakBucket > 0;
+  const chartSpan = usage ? fmtSpan(usage.from, usage.to, locale) : "";
 
   return (
     <div data-screen-label="Billing" style={{ padding: `${r.contentPy} ${r.pagePx}` }}>
@@ -113,7 +229,7 @@ export default function BillingPage() {
         </h2>
         <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
           <span style={{ fontFamily: font.mono, fontSize: 12, color: c.faint }}>
-            {t.paymentMeta("VISA ••4242 · OVERAGE $2 / 1K CREDITS")}
+            {t.paymentMeta(`VISA ••4242 · ${t.overageRate(overageTag)}`)}
           </span>
           <Btn
             onClick={() => router.push("/payment")}
@@ -273,40 +389,76 @@ export default function BillingPage() {
                     color: c.faint,
                   }}
                 >
-                  {bd.label}
+                  {t.creditsIn(chartSpan)}
                 </span>
                 <span style={{ fontFamily: font.space, fontWeight: 700, fontSize: 22 }}>
-                  {fmtCredits(creditsUsed)}{" "}
+                  {fmtCredits(creditsUsed, locale)}{" "}
                   <span style={{ fontSize: 13, color: c.faint, fontWeight: 400 }}>
-                    {t.included(fmtCredits(creditsIncluded))}
+                    {t.included(fmtCredits(creditsIncluded, locale))}
                   </span>
                 </span>
               </div>
               <div style={{ height: 8, background: c.line, marginBottom: 20, borderRadius: 4, overflow: "hidden" }}>
                 <div style={{ height: 8, width: `${usedPct}%`, background: c.lime }} />
               </div>
-              <div style={{ display: "flex", alignItems: "flex-end", gap: 5, height: 90 }}>
-                {bd.bars.map((bar, i) => (
+              {hasUsage ? (
+                <>
+                  <div style={{ display: "flex", alignItems: "flex-end", gap: 5, height: 90 }}>
+                    {buckets.map((b) => (
+                      <div
+                        key={b.date}
+                        title={`${fmtInvoiceDate(`${b.date}T00:00:00.000Z`, locale)} · ${t.credits(fmtCredits(b.credits, locale))}`}
+                        style={{
+                          flex: 1,
+                          background: b.credits > 0 ? c.lime : c.line,
+                          // Scaled against the range's own peak, with a 2px
+                          // floor so a day with a little usage is still visible
+                          // next to a day with a lot.
+                          height: b.credits > 0 ? `${Math.max(3, (b.credits / peakBucket) * 100)}%` : 2,
+                          minHeight: 2,
+                        }}
+                      />
+                    ))}
+                  </div>
                   <div
-                    key={i}
-                    style={{ flex: 1, background: bar[1], height: `${bar[0]}%` }}
-                  />
-                ))}
-              </div>
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  fontFamily: font.mono,
-                  fontSize: 10.5,
-                  color: c.faint,
-                  marginTop: 8,
-                }}
-              >
-                <span>{bd.x[0]}</span>
-                <span>{bd.x[1]}</span>
-                <span>{bd.x[2]}</span>
-              </div>
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      fontFamily: font.mono,
+                      fontSize: 10.5,
+                      color: c.faint,
+                      marginTop: 8,
+                    }}
+                  >
+                    <span>{fmtInvoiceDate(`${buckets[0].date}T00:00:00.000Z`, locale)}</span>
+                    <span>{fmtInvoiceDate(`${buckets[buckets.length - 1].date}T00:00:00.000Z`, locale)}</span>
+                  </div>
+                </>
+              ) : (
+                <div
+                  style={{
+                    height: 90 + 8 + 14,
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: 6,
+                    textAlign: "center",
+                    border: `1px dashed ${c.line}`,
+                    borderRadius: r.radiusSm,
+                    padding: "0 16px",
+                  }}
+                >
+                  <span style={{ fontSize: 13.5, color: c.text2 }}>
+                    {usageLoading ? t.loading : t.noUsage}
+                  </span>
+                  {!usageLoading && (
+                    <span style={{ fontSize: 12, color: c.muted, maxWidth: 380 }}>
+                      {t.noUsageHint}
+                    </span>
+                  )}
+                </div>
+              )}
             </div>
 
             {/* Invoice estimate card */}
@@ -320,17 +472,29 @@ export default function BillingPage() {
                 borderRadius: r.radiusMd,
               }}
             >
-              <span
+              <div
                 style={{
-                  fontFamily: font.mono,
-                  fontSize: 11,
-                  letterSpacing: ".1em",
-                  color: c.faint,
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "baseline",
+                  gap: 10,
                   marginBottom: 14,
                 }}
               >
-                {bd.inv}
-              </span>
+                <span
+                  style={{
+                    fontFamily: font.mono,
+                    fontSize: 11,
+                    letterSpacing: ".1em",
+                    color: c.faint,
+                  }}
+                >
+                  {t.estimateLabel[billRange]}
+                </span>
+                <span style={{ fontFamily: font.mono, fontSize: 10.5, color: c.faint }}>
+                  {t.billedIn(t.currency[currency])}
+                </span>
+              </div>
               <div
                 style={{
                   display: "flex",
@@ -341,17 +505,27 @@ export default function BillingPage() {
                 }}
               >
                 <div style={{ display: "flex", justifyContent: "space-between" }}>
-                  <span style={{ color: c.muted }}>{bd.seatsLabel}</span>
-                  <span style={{ fontFamily: font.mono }}>{bd.seats}</span>
+                  <span style={{ color: c.muted }}>{t.seatsLabel(seats.length)}</span>
+                  <span style={{ fontFamily: font.mono }}>
+                    {formatMoney(seatsMinor, currency)}
+                  </span>
                 </div>
                 <div style={{ display: "flex", justifyContent: "space-between" }}>
-                  <span style={{ color: c.muted }}>{bd.overLabel}</span>
-                  <span style={{ fontFamily: font.mono }}>{bd.over}</span>
+                  <span style={{ color: c.muted }}>{t.overageLabel(fmtCredits(overCredits, locale))}</span>
+                  <span style={{ fontFamily: font.mono }}>
+                    {formatMoney(overMinor, currency)}
+                  </span>
                 </div>
-                <div style={{ display: "flex", justifyContent: "space-between" }}>
-                  <span style={{ color: c.muted }}>{t.annualDiscount}</span>
-                  <span style={{ fontFamily: font.mono, color: c.green }}>{bd.disc}</span>
-                </div>
+                {/* Only shown when a seat is actually billed annually — a
+                    "-$0.00" row implies a discount that is not being applied. */}
+                {discMinor !== 0 && (
+                  <div style={{ display: "flex", justifyContent: "space-between" }}>
+                    <span style={{ color: c.muted }}>{t.annualDiscount}</span>
+                    <span style={{ fontFamily: font.mono, color: c.green }}>
+                      {formatMoney(discMinor, currency)}
+                    </span>
+                  </div>
+                )}
               </div>
               <div
                 style={{
@@ -364,7 +538,7 @@ export default function BillingPage() {
               >
                 <span style={{ fontFamily: font.space, fontWeight: 700 }}>{t.total}</span>
                 <span style={{ fontFamily: font.space, fontWeight: 700, fontSize: 20 }}>
-                  {bd.total}
+                  {formatMoney(totalMinor, currency)}
                 </span>
               </div>
             </div>
@@ -409,10 +583,14 @@ export default function BillingPage() {
                 ) : (
                   billing!.seats.map((seat) => {
                     const hue = seat.hue ?? SEAT_FALLBACK_HUE;
+                    // A fixed role hue takes the fixed ink; the themed fallback
+                    // fill takes the themed one.
+                    const monoInk = seat.hue ? c.onBrand : c.ink;
                     // Per-row usage bar relative to the workspace allowance.
+                    const seatCredits = rangeCreditsByAgent.get(seat.id) ?? 0;
                     const w =
                       creditsIncluded > 0
-                        ? `${Math.min(100, Math.round((seat.creditsUsed / creditsIncluded) * 100))}%`
+                        ? `${Math.min(100, Math.round((seatCredits / creditsIncluded) * 100))}%`
                         : "0%";
                     return (
                       <div
@@ -430,7 +608,7 @@ export default function BillingPage() {
                             width: 28,
                             height: 28,
                             background: hue,
-                            color: c.ink,
+                            color: monoInk,
                             display: "grid",
                             placeItems: "center",
                             fontFamily: font.space,
@@ -462,7 +640,7 @@ export default function BillingPage() {
                             textAlign: "right",
                           }}
                         >
-                          {t.credits(fmtCredits(seat.creditsUsed))}
+                          {t.credits(fmtCredits(seatCredits, locale))}
                         </span>
                         <span
                           style={{
@@ -473,7 +651,7 @@ export default function BillingPage() {
                             textAlign: "right",
                           }}
                         >
-                          {fmtMoney(seat.priceCents)}
+                          {formatMoney(seatPriceMinor(seat), currency)}
                         </span>
                       </div>
                     );
@@ -496,8 +674,9 @@ export default function BillingPage() {
               >
                 {t.invoices}
               </div>
+              {/* Wider than the 360 it was: each row now carries a provider chip. */}
               <div className="ark-scroll" style={{ overflowX: "auto" }}>
-              <div style={{ minWidth: 360 }}>
+              <div style={{ minWidth: 420 }}>
               <div style={{ border: `1px solid ${c.border}`, background: c.panel }}>
                 {(billing?.invoices.length ?? 0) === 0 ? (
                   <div
@@ -524,10 +703,13 @@ export default function BillingPage() {
                       }}
                     >
                       <span style={{ fontSize: 14, color: c.text2 }}>
-                        {fmtInvoiceDate(v.issuedAt)}
+                        {fmtInvoiceDate(v.issuedAt, locale)}
                       </span>
-                      <span style={{ fontFamily: font.mono, fontSize: 13 }}>
-                        {fmtMoney(v.amountCents)}
+                      <span
+                        title={t.billedIn(invoiceCurrencyName(v, t))}
+                        style={{ fontFamily: font.mono, fontSize: 13 }}
+                      >
+                        {invoiceAmount(v, t)}
                       </span>
                       <span
                         style={{
@@ -542,6 +724,22 @@ export default function BillingPage() {
                             ? t.status.due
                             : t.statusFallback(v.status)}
                       </span>
+                      {v.provider && (
+                        <span
+                          title={t.paidVia(providerName(v.provider, t))}
+                          style={{
+                            fontFamily: font.mono,
+                            fontSize: 10,
+                            letterSpacing: ".06em",
+                            color: PROVIDER_HUE[v.provider] ?? c.faint,
+                            border: `1px solid ${PROVIDER_HUE[v.provider] ?? c.border}`,
+                            padding: "2px 7px",
+                            whiteSpace: "nowrap",
+                          }}
+                        >
+                          {providerName(v.provider, t)}
+                        </span>
+                      )}
                       <span
                         style={{
                           fontFamily: font.mono,

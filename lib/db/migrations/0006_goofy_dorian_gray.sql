@@ -1,0 +1,2 @@
+ALTER TABLE "user_identities" ADD COLUMN "provider_key" varchar(200);--> statement-breakpoint
+CREATE UNIQUE INDEX "user_identities_provider_key_uniq" ON "user_identities" USING btree ("provider","provider_key") WHERE provider_key is not null;

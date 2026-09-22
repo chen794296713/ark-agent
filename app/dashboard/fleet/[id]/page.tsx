@@ -4,10 +4,20 @@ import { Suspense, useCallback, useEffect, useRef, useState } from "react";
 import type { CSSProperties, ReactNode } from "react";
 import Image from "next/image";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import { c, font, r } from "@/lib/theme";
+import { isHarness, type Harness } from "@/lib/harness";
+import { selectableHarnesses, useHarnessOptions } from "@/lib/harness/client";
 import { Btn } from "@/components/ui";
 import { api, ApiError } from "@/lib/client-api";
-import type { AgentDetailDTO, AgentManagerProviderInfo, MessageDTO, TokenReportDTO } from "@/lib/client-api";
+import type {
+  AgentDetailDTO,
+  AgentManagerProviderInfo,
+  MessageDTO,
+  SessionDTO,
+  TokenReportDTO,
+} from "@/lib/client-api";
 import {
   statusDisplay,
   ENGINE_LABEL,
@@ -30,6 +40,7 @@ import {
   TIMEZONES,
   WEEKDAYS,
   type AgentSettings,
+  APPROVAL_CURRENCY,
 } from "@/lib/agent-settings";
 import { useApp } from "@/lib/store";
 import { fleetDetail, type FleetDetailDict } from "@/lib/i18n/fleet-detail";
@@ -102,7 +113,10 @@ function ActivityTab({ cur }: { cur: AgentDetailDTO }) {
 function TasksTab({ cur }: { cur: AgentDetailDTO }) {
   const { lang } = useApp();
   const t = fleetDetail[lang];
-  if (cur.tasks.length === 0) {
+  const [selectedTask, setSelectedTask] = useState<AgentDetailDTO["tasks"][number] | null>(null);
+  const tasks = cur.tasks;
+
+  if (tasks.length === 0) {
     return (
       <div
         style={{
@@ -119,11 +133,15 @@ function TasksTab({ cur }: { cur: AgentDetailDTO }) {
       </div>
     );
   }
-  return (
+  const taskList = (
     <div style={{ border: `1px solid ${c.border}`, background: c.panel, borderRadius: r.radiusMd, overflow: "hidden" }}>
-      {cur.tasks.map((k) => {
-        const sym = TASK_SYMBOL[k.status] ?? TASK_SYMBOL.queued;
-        const done = k.status === "done";
+      {tasks.map((k) => {
+        const normalizedStatus = k.status === "completed" ? "done" : k.status;
+        const sym = TASK_SYMBOL[normalizedStatus] ?? {
+          sym: normalizedStatus === "failed" || normalizedStatus === "error" ? "!" : "◌",
+          color: normalizedStatus === "failed" || normalizedStatus === "error" ? c.red : c.accent,
+        };
+        const done = normalizedStatus === "done" || normalizedStatus === "completed";
         return (
           <div
             key={k.id}
@@ -138,12 +156,110 @@ function TasksTab({ cur }: { cur: AgentDetailDTO }) {
             <span style={{ fontFamily: font.mono, fontSize: 13, color: sym.color, width: 18 }}>
               {sym.sym}
             </span>
-            <span style={{ fontSize: 14.5, color: done ? c.faint : c.text2, flex: 1 }}>{k.text}</span>
-            <span style={{ fontFamily: font.mono, fontSize: 11, color: c.faint }}>{k.meta}</span>
+            <span style={{ fontSize: 14.5, color: done ? c.faint : c.text2, flex: 1, whiteSpace: "pre-wrap" }}>{k.text}</span>
+            <span style={{ fontFamily: font.mono, fontSize: 10.5, color: sym.color, textTransform: "uppercase" }}>
+              {k.status}
+            </span>
+            {k.result ? (
+              <button
+                type="button"
+                onClick={() => setSelectedTask(k)}
+                style={{
+                  border: `1px solid ${c.borderStrong}`,
+                  background: "transparent",
+                  color: c.accent,
+                  padding: "6px 9px",
+                  fontFamily: font.mono,
+                  fontSize: 10.5,
+                  cursor: "pointer",
+                  borderRadius: r.radiusSm,
+                  flexShrink: 0,
+                }}
+              >
+                {t.taskViewResult}
+              </button>
+            ) : null}
           </div>
         );
       })}
     </div>
+  );
+
+  const resultTask = selectedTask;
+  return (
+    <>
+      {taskList}
+      {resultTask && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          onClick={() => setSelectedTask(null)}
+          style={{
+            position: "fixed",
+            inset: 0,
+            zIndex: 100,
+            background: "rgba(8, 10, 14, 0.62)",
+            display: "grid",
+            placeItems: "center",
+            padding: 20,
+          }}
+        >
+          <div
+            onClick={(event) => event.stopPropagation()}
+            style={{
+              width: "min(720px, 100%)",
+              maxHeight: "min(80vh, 680px)",
+              overflow: "auto",
+              border: `1px solid ${c.borderStrong}`,
+              background: c.panel,
+              padding: 22,
+              borderRadius: r.radiusMd,
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16 }}>
+              <div style={{ fontFamily: font.space, fontWeight: 700, fontSize: 16, flex: 1 }}>
+                {t.taskResultTitle}
+              </div>
+              <button
+                type="button"
+                aria-label={t.taskCloseResult}
+                onClick={() => setSelectedTask(null)}
+                style={{
+                  border: `1px solid ${c.borderStrong}`,
+                  background: "transparent",
+                  color: c.muted,
+                  width: 30,
+                  height: 30,
+                  cursor: "pointer",
+                  borderRadius: r.radiusSm,
+                }}
+              >
+                ×
+              </button>
+            </div>
+            <div style={{ color: c.muted, fontSize: 13.5, marginBottom: 14, whiteSpace: "pre-wrap" }}>
+              {resultTask.text}
+            </div>
+            <pre
+              style={{
+                margin: 0,
+                padding: 16,
+                border: `1px solid ${c.line}`,
+                background: c.bg,
+                color: c.text2,
+                fontFamily: font.mono,
+                fontSize: 12.5,
+                lineHeight: 1.65,
+                whiteSpace: "pre-wrap",
+                overflowWrap: "anywhere",
+              }}
+            >
+              {resultTask.result}
+            </pre>
+          </div>
+        </div>
+      )}
+    </>
   );
 }
 
@@ -151,6 +267,9 @@ function ChatTab({ cur }: { cur: AgentDetailDTO }) {
   const { lang } = useApp();
   const t = fleetDetail[lang];
   const [messages, setMessages] = useState<MessageDTO[]>([]);
+  const [sessions, setSessions] = useState<SessionDTO[]>([]);
+  const [selectedSessionKey, setSelectedSessionKey] = useState("");
+  const [sessionsLoading, setSessionsLoading] = useState(true);
   const [draft, setDraft] = useState("");
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
@@ -160,19 +279,59 @@ function ChatTab({ cur }: { cur: AgentDetailDTO }) {
   useEffect(() => {
     let alive = true;
     (async () => {
+      setSessionsLoading(true);
+      setLoading(true);
+      setError(null);
       try {
-        const res = await api.messages(cur.id);
-        if (alive) setMessages(res.messages);
+        const sessionRes = await api.sessions(cur.id);
+        if (!alive) return;
+
+        setSessions(sessionRes.sessions);
+        const firstSession = sessionRes.sessions[0];
+        if (firstSession) {
+          setSelectedSessionKey(firstSession.key);
+          const history = await api.sessionHistory(cur.id, firstSession.historyId);
+          if (alive) setMessages(history.messages);
+        } else {
+          const res = await api.messages(cur.id);
+          if (alive) setMessages(res.messages);
+        }
       } catch (e) {
-        if (alive) setError(e instanceof ApiError ? e.message : t.chatLoadError);
+        try {
+          const res = await api.messages(cur.id);
+          if (alive) setMessages(res.messages);
+        } catch {
+          if (alive) setError(e instanceof ApiError ? e.message : t.chatLoadError);
+        }
       } finally {
-        if (alive) setLoading(false);
+        if (alive) {
+          setSessionsLoading(false);
+          setLoading(false);
+        }
       }
     })();
     return () => {
       alive = false;
     };
   }, [cur.id]);
+
+  const selectSession = async (sessionKey: string) => {
+    if (sessionKey === selectedSessionKey || sending) return;
+    const session = sessions.find((item) => item.key === sessionKey);
+    if (!session) return;
+
+    setSelectedSessionKey(sessionKey);
+    setLoading(true);
+    setError(null);
+    try {
+      const history = await api.sessionHistory(cur.id, session.historyId);
+      setMessages(history.messages);
+    } catch (e) {
+      setError(e instanceof ApiError ? e.message : t.chatLoadError);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
     if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
@@ -217,7 +376,10 @@ function ChatTab({ cur }: { cur: AgentDetailDTO }) {
     };
 
     try {
-      const res = await api.streamMessage(cur.id, body, { onDelta: applyDelta });
+      const res = await api.streamMessage(cur.id, body, {
+        onDelta: applyDelta,
+        sessionKey: selectedSessionKey || undefined,
+      });
       setMessages((prev) => {
         // Replace both temp entries: use server-persisted user message (if any)
         // and the final assistant reply.
@@ -264,6 +426,62 @@ function ChatTab({ cur }: { cur: AgentDetailDTO }) {
         {t.chatWebConsole}{channelsText(cur.channels) ? t.chatAlsoOn(channelsText(cur.channels)) : ""}
       </div>
       <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 12,
+          padding: "10px 16px",
+          borderBottom: `1px solid ${c.line}`,
+          background: c.bg,
+        }}
+      >
+        <label
+          htmlFor={`chat-session-${cur.id}`}
+          style={{
+            fontFamily: font.mono,
+            fontSize: 10.5,
+            color: c.faint,
+            flexShrink: 0,
+          }}
+        >
+          {t.chatSession}
+        </label>
+        <select
+          id={`chat-session-${cur.id}`}
+          value={selectedSessionKey}
+          onChange={(e) => void selectSession(e.target.value)}
+          disabled={sessionsLoading || sending || sessions.length === 0}
+          aria-label={t.chatSession}
+          style={{
+            minWidth: 0,
+            flex: 1,
+            background: c.panel,
+            border: `1px solid ${c.border}`,
+            color: c.text,
+            padding: "8px 10px",
+            fontSize: 12.5,
+            fontFamily: font.sans,
+            outline: "none",
+            cursor: sessionsLoading || sending || sessions.length === 0 ? "default" : "pointer",
+            opacity: sessionsLoading ? 0.65 : 1,
+            borderRadius: r.radiusSm,
+          }}
+        >
+          {sessionsLoading ? (
+            <option value="">{t.chatSessionLoading}</option>
+          ) : sessions.length === 0 ? (
+            <option value="">{t.chatSessionDefault}</option>
+          ) : (
+            sessions.map((session) => (
+              <option key={session.key} value={session.key}>
+                {session.label}
+                {session.label !== session.key ? ` · ${session.key}` : ""}
+              </option>
+            ))
+          )}
+        </select>
+      </div>
+      <div
         ref={scrollRef}
         style={{
           flex: 1,
@@ -293,8 +511,10 @@ function ChatTab({ cur }: { cur: AgentDetailDTO }) {
                 }}
               >
                 <div
+                  className={`ark-chat-markdown${me ? " ark-chat-markdown-user" : ""}`}
                   style={{
                     maxWidth: "72%",
+                    minWidth: 0,
                     background: me ? c.lime : c.panel,
                     color: me ? c.ink : c.text,
                     padding: "11px 15px",
@@ -303,7 +523,18 @@ function ChatTab({ cur }: { cur: AgentDetailDTO }) {
                     borderRadius: r.radiusMd,
                   }}
                 >
-                  {m.body}
+                  <ReactMarkdown
+                    remarkPlugins={[remarkGfm]}
+                    components={{
+                      a: ({ href, children }) => (
+                        <a href={href} target="_blank" rel="noreferrer">
+                          {children}
+                        </a>
+                      ),
+                    }}
+                  >
+                    {m.body}
+                  </ReactMarkdown>
                 </div>
                 <div
                   style={{
@@ -389,9 +620,27 @@ function PerformanceTab({ cur, onRefresh }: { cur: AgentDetailDTO; onRefresh: ()
   const t = fleetDetail[lang];
   const [busy, setBusy] = useState<Record<string, boolean>>({});
   const [error, setError] = useState<string | null>(null);
+  const [reviewing, setReviewing] = useState(false);
+  const [notice, setNotice] = useState<string | null>(null);
 
   const pending = cur.improvements.filter((q) => q.status === "pending" || q.status === "proposed");
   const queue = pending.length > 0 ? pending : cur.improvements;
+
+  const runSelfReview = async () => {
+    if (reviewing) return;
+    setReviewing(true);
+    setError(null);
+    setNotice(null);
+    try {
+      const { created } = await api.runSelfReview(cur.id, { locale: lang });
+      if (created === 0) setNotice(t.perfSelfReviewNone);
+      await onRefresh();
+    } catch (e) {
+      setError(e instanceof ApiError ? e.message : t.perfSelfReviewError);
+    } finally {
+      setReviewing(false);
+    }
+  };
 
   const resolve = async (improvementId: string, action: "approve" | "dismiss") => {
     setBusy((s) => ({ ...s, [improvementId]: true }));
@@ -458,16 +707,46 @@ function PerformanceTab({ cur, onRefresh }: { cur: AgentDetailDTO; onRefresh: ()
       <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
         <div
           style={{
-            fontFamily: font.mono,
-            fontSize: 11,
-            letterSpacing: ".1em",
-            color: c.muted,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: 12,
           }}
         >
-          {t.perfImprovementQueue}
+          <span
+            style={{
+              fontFamily: font.mono,
+              fontSize: 11,
+              letterSpacing: ".1em",
+              color: c.muted,
+            }}
+          >
+            {t.perfImprovementQueue}
+          </span>
+          <Btn
+            onClick={runSelfReview}
+            disabled={reviewing}
+            style={{
+              background: "none",
+              border: `1px solid ${c.limeBorder}`,
+              color: c.accent,
+              fontFamily: font.mono,
+              fontSize: 11,
+              letterSpacing: ".06em",
+              padding: "5px 10px",
+              cursor: reviewing ? "default" : "pointer",
+              opacity: reviewing ? 0.6 : 1,
+            }}
+            hoverStyle={{ background: c.limeWash }}
+          >
+            {reviewing ? t.perfRunningSelfReview : t.perfRunSelfReview}
+          </Btn>
         </div>
         {error && (
           <div style={{ fontFamily: font.mono, fontSize: 11, color: c.red }}>{error}</div>
+        )}
+        {notice && (
+          <div style={{ fontFamily: font.mono, fontSize: 11, color: c.muted }}>{notice}</div>
         )}
         {queue.length === 0 ? (
           <div
@@ -1193,7 +1472,7 @@ function SettingCard({
             <span
               style={{
                 fontFamily: font.mono,
-                fontSize: 9.5,
+                fontSize: 10.5,
                 letterSpacing: ".08em",
                 color: badgeColor ?? c.faint,
                 border: `1px solid ${badgeColor ?? c.border}`,
@@ -1366,9 +1645,10 @@ function SettingsTab({ cur, onRefresh }: { cur: AgentDetailDTO; onRefresh: () =>
   const t = fleetDetail[lang];
   const router = useRouter();
   const [name, setName] = useState(cur.name);
-  const [engine, setEngine] = useState<"openclaw" | "hermes">(
-    cur.engine === "hermes" ? "hermes" : "openclaw",
+  const [engine, setEngine] = useState<Harness>(
+    isHarness(cur.engine) ? cur.engine : "openclaw",
   );
+  const { options: harnessOptions } = useHarnessOptions();
   const [planTier, setPlanTier] = useState<"associate" | "professional" | "director">(
     cur.planTier as "associate" | "professional" | "director",
   );
@@ -1380,6 +1660,9 @@ function SettingsTab({ cur, onRefresh }: { cur: AgentDetailDTO; onRefresh: () =>
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [lifeBusy, setLifeBusy] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deleteBusy, setDeleteBusy] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [channelState, setChannelState] = useState<ChannelState>({
@@ -1393,7 +1676,7 @@ function SettingsTab({ cur, onRefresh }: { cur: AgentDetailDTO; onRefresh: () =>
   const [channelBusyToggle, setChannelBusyToggle] = useState<Record<ChannelType, boolean>>({ feishu: false, dingtalk: false, wechat: false, wecom: false });
   const [channelError, setChannelError] = useState<string | null>(null);
   const [channelSuccessMsg, setChannelSuccessMsg] = useState<string | null>(null);
-  const [qrcode, setQrcode] = useState<{ qrcodeUrl: string | null; qrcodeImage: string | null; expiresIn: number; message: string; status: string; rawOutput?: string | null } | null>(null);
+  const [qrcode, setQrcode] = useState<{ qrcodeUrl: string | null; qrcodeImage: string | null; expiresIn: number; message: string; status: string; rawOutput?: string | null; connected?: boolean; sessionId?: string | null; finalStdout?: string | null; exitCode?: number | null } | null>(null);
   const [qrcodeLoading, setQrcodeLoading] = useState(false);
   const [editingChannel, setEditingChannel] = useState<ChannelType | null>(null);
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -1548,8 +1831,34 @@ function SettingsTab({ cur, onRefresh }: { cur: AgentDetailDTO; onRefresh: () =>
     setQrcodeLoading(true);
     setQrcode(null);
     try {
-      const res = await api.getWechatLoginQrcode(instanceUuid ?? cur.id);
-      setQrcode(res);
+      const res = await api.getWechatLoginQrcode(instanceUuid ?? cur.id, {
+        // 仅用 wait_matched 来即时渲染 QR;其它事件 (heartbeat / step_completed
+        // / session_completed) 直接忽略,最终结果走 `done` 的聚合响应.
+        onEvent: (e) => {
+          if (e.event !== "wait_matched") return;
+          const inner = (e.data?.data as { stdout?: string; matched_text?: string } | undefined) ?? {};
+          const stdout = typeof inner.stdout === "string" ? inner.stdout : null;
+          if (!stdout) return;
+          const fallbackUrl = (stdout.match(/https?:\/\/\S+/) ?? [""])[0]
+            .replace(/[)\]】。.,;]+$/, "");
+          setQrcode({
+            qrcodeUrl: fallbackUrl || null,
+            qrcodeImage: stdout,
+            expiresIn: 120,
+            message: inner.matched_text || "waiting for scan…",
+            status: "pending",
+            rawOutput: stdout,
+          });
+          setQrcodeLoading(false);
+        },
+      });
+      // 流结束:用聚合结果合并最终状态 (connected / expired / error).
+      setQrcode((prev) => ({
+        ...(res as NonNullable<typeof prev>),
+        rawOutput: prev?.rawOutput ?? res.rawOutput ?? null,
+        qrcodeImage: prev?.qrcodeImage ?? res.qrcodeImage ?? null,
+        qrcodeUrl: prev?.qrcodeUrl ?? res.qrcodeUrl ?? null,
+      }));
     } catch (e) {
       setChannelError(e instanceof ApiError ? e.message : t.channelToggleError);
     } finally {
@@ -1637,10 +1946,24 @@ function SettingsTab({ cur, onRefresh }: { cur: AgentDetailDTO; onRefresh: () =>
     }
   };
 
+  const removeAgent = async () => {
+    if (deleteBusy) return;
+    setDeleteBusy(true);
+    setDeleteError(null);
+    try {
+      await api.deleteAgent(cur.id);
+      router.push("/dashboard/fleet");
+    } catch (e) {
+      setDeleteError(e instanceof ApiError ? e.message : t.deleteError);
+      setDeleteBusy(false);
+    }
+  };
+
   const autonomyDesc = AUTONOMY_LEVELS.find((a) => a.id === s.autonomy)?.desc;
 
   return (
-    <div style={{ display: "grid", gridTemplateColumns: r.detailSettings, gap: 20, alignItems: "start" }}>
+    <>
+      <div style={{ display: "grid", gridTemplateColumns: r.detailSettings, gap: 20, alignItems: "start" }}>
       {/* ---- Form column ---- */}
       <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
         <SettingCard title={t.identityTitle} desc={t.identityDesc}>
@@ -1654,11 +1977,12 @@ function SettingsTab({ cur, onRefresh }: { cur: AgentDetailDTO; onRefresh: () =>
             <Field label={t.fieldEngine} hint={t.fieldEngineHint}>
               <SelectField
                 value={engine}
-                onChange={(v) => setEngine(v as "openclaw" | "hermes")}
-                options={[
-                  { id: "openclaw", label: t.engineOpenclaw },
-                  { id: "hermes", label: t.engineHermes },
-                ]}
+                onChange={(v) => setEngine(v as Harness)}
+                // Narrowed to what this deployment can actually provision, and
+                // always including the agent's CURRENT harness even if that has
+                // since been disabled — otherwise the select renders blank and
+                // the next save silently moves the agent.
+                options={selectableHarnesses(harnessOptions, cur.engine as Harness)}
               />
             </Field>
             <Field label={t.fieldPlan}>
@@ -1709,7 +2033,7 @@ function SettingsTab({ cur, onRefresh }: { cur: AgentDetailDTO; onRefresh: () =>
             <Seg value={s.autonomy} onChange={(v) => set("autonomy", v)} options={AUTONOMY_LEVELS} />
           </Field>
           <div style={{ display: "grid", gridTemplateColumns: r.split, gap: 14 }}>
-            <Field label={t.fieldApprovalOver} hint={t.fieldApprovalOverHint}>
+            <Field label={t.fieldApprovalOver(APPROVAL_CURRENCY)} hint={t.fieldApprovalOverHint}>
               <input
                 type="number"
                 min={0}
@@ -1820,7 +2144,7 @@ function SettingsTab({ cur, onRefresh }: { cur: AgentDetailDTO; onRefresh: () =>
         <SettingCard
           title={t.skillsTitle}
           badge="OPENCLAW"
-          badgeColor="#E8804F"
+          badgeColor={c.orange}
           desc={t.skillsDesc}
         >
           <Field label={t.fieldSkills}>
@@ -2173,6 +2497,27 @@ function SettingsTab({ cur, onRefresh }: { cur: AgentDetailDTO; onRefresh: () =>
         >
           {t.terminateAgent}
         </Btn>
+        <Btn
+          onClick={() => {
+            setDeleteError(null);
+            setDeleteOpen(true);
+          }}
+          disabled={lifeBusy || deleteBusy}
+          hoverStyle={{ background: c.red, color: c.ink }}
+          style={{
+            border: `1px solid ${c.redBorder}`,
+            background: "transparent",
+            color: c.red,
+            padding: 12,
+            borderRadius: r.radiusSm,
+            fontFamily: font.space,
+            fontSize: 14,
+            cursor: lifeBusy || deleteBusy ? "default" : "pointer",
+            opacity: lifeBusy || deleteBusy ? 0.6 : 1,
+          }}
+        >
+          {t.deleteAgent}
+        </Btn>
         <div style={{ border: `1px dashed ${c.border}`, padding: "12px 14px", fontSize: 12.5, color: c.faint, borderRadius: r.radiusSm }}>
           {t.dangerNote}
         </div>
@@ -2200,7 +2545,79 @@ function SettingsTab({ cur, onRefresh }: { cur: AgentDetailDTO; onRefresh: () =>
           />
         )}
       </div>
-    </div>
+      </div>
+      {deleteOpen && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          onClick={() => {
+            if (!deleteBusy) setDeleteOpen(false);
+          }}
+          style={{
+            position: "fixed",
+            inset: 0,
+            zIndex: 100,
+            background: "rgba(8, 10, 14, 0.62)",
+            display: "grid",
+            placeItems: "center",
+            padding: 20,
+          }}
+        >
+          <div
+            onClick={(event) => event.stopPropagation()}
+            style={{
+              width: "min(440px, 100%)",
+              border: `1px solid ${c.redBorder}`,
+              background: c.panel,
+              padding: 22,
+              borderRadius: r.radiusMd,
+            }}
+          >
+            <div style={{ fontFamily: font.space, fontWeight: 700, fontSize: 18, marginBottom: 10 }}>
+              {t.deleteConfirmTitle}
+            </div>
+            <div style={{ color: c.muted, fontSize: 13.5, lineHeight: 1.55, marginBottom: 20 }}>
+              {t.deleteConfirmBody}
+            </div>
+            {deleteError && <div style={{ color: c.red, fontSize: 13, marginBottom: 14 }}>{deleteError}</div>}
+            <div style={{ display: "flex", justifyContent: "flex-end", gap: 10 }}>
+              <button
+                type="button"
+                onClick={() => setDeleteOpen(false)}
+                disabled={deleteBusy}
+                style={{
+                  border: `1px solid ${c.borderStrong}`,
+                  background: "transparent",
+                  color: c.text,
+                  padding: "9px 14px",
+                  cursor: deleteBusy ? "default" : "pointer",
+                  borderRadius: r.radiusSm,
+                }}
+              >
+                {t.cancelDelete}
+              </button>
+              <button
+                type="button"
+                onClick={removeAgent}
+                disabled={deleteBusy}
+                style={{
+                  border: `1px solid ${c.redBorder}`,
+                  background: c.red,
+                  color: c.ink,
+                  padding: "9px 14px",
+                  cursor: deleteBusy ? "default" : "pointer",
+                  opacity: deleteBusy ? 0.6 : 1,
+                  fontWeight: 600,
+                  borderRadius: r.radiusSm,
+                }}
+              >
+                {deleteBusy ? t.deletingAgent : t.deleteConfirm}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 }
 
@@ -2247,7 +2664,9 @@ function InstanceInfoDrawer({ agentId, onClose, onAfterSync }: { agentId: string
         style={{
           position: "fixed",
           inset: 0,
-          background: "rgba(8, 10, 14, 0.55)",
+          // Tokenized: a literal near-black scrim reads as a bruise over the
+          // warm and light palettes. --c-scrim is tinted per theme.
+          background: c.scrim,
           zIndex: 50,
         }}
       />
@@ -2760,21 +3179,35 @@ interface ChannelModalProps {
   onCancel: () => void;
   saving: boolean;
   t: FleetDetailDict;
-  qrcode?: { qrcodeUrl: string | null; qrcodeImage: string | null; expiresIn: number; message: string; status: string; rawOutput?: string | null } | null;
+  qrcode?: { qrcodeUrl: string | null; qrcodeImage: string | null; expiresIn: number; message: string; status: string; rawOutput?: string | null; connected?: boolean; sessionId?: string | null; finalStdout?: string | null; exitCode?: number | null } | null;
   qrcodeLoading: boolean;
   onFetchQrcode: () => void;
 }
 
 function ChannelModal({ type, channel, onChange, onSave, onCancel, saving, t, qrcode, qrcodeLoading, onFetchQrcode }: ChannelModalProps) {
+  /**
+   * The draft follows the prop when it changes underneath us — a save that
+   * refetches, or the modal reopening on a different channel.
+   *
+   * Adjusted during render rather than in an effect: the effect version ran a
+   * whole extra render with the stale draft still on screen every time the
+   * parent's channel object changed, which for this component is on every
+   * keystroke (each `set()` round-trips through `onChange`).
+   */
   const [draft, setDraft] = useState(channel);
-
-  // Sync draft when channel changes externally
-  useEffect(() => { setDraft(channel); }, [channel]);
+  const [syncedFrom, setSyncedFrom] = useState(channel);
+  if (channel !== syncedFrom) {
+    setSyncedFrom(channel);
+    setDraft(channel);
+  }
 
   const set = (patch: Partial<ChannelState[typeof type]>) => {
     setDraft(prev => ({ ...prev, ...patch }));
     onChange(type, patch);
   };
+
+  // Keep terminal QR output compact without changing the QR rows themselves.
+  const qrOutput = qrcode?.rawOutput?.trim();
 
   const label: Record<ChannelType, string> = {
     feishu: t.channelFeishu,
@@ -2835,18 +3268,18 @@ function ChannelModal({ type, channel, onChange, onSave, onCancel, saving, t, qr
               <input type="password" value={d.appSecret} onChange={e => set({ appSecret: e.target.value })} style={sInput} />
             </Field>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
-              <Field label={t.channelFeishuDmPolicy}>
+              {/* <Field label={t.channelFeishuDmPolicy}>
                 <SelectField value={d.dmPolicy} onChange={v => set({ dmPolicy: v })} options={[
                   { id: "open", label: t.channelFeishuDmPolicyOpen },
                   { id: "close", label: "Close" },
                 ]} />
-              </Field>
-              <Field label={t.channelFeishuGroupPolicy}>
+              </Field> */}
+              {/* <Field label={t.channelFeishuGroupPolicy}>
                 <SelectField value={d.groupPolicy} onChange={v => set({ groupPolicy: v })} options={[
                   { id: "open", label: t.channelFeishuGroupPolicyOpen },
                   { id: "close", label: "Close" },
                 ]} />
-              </Field>
+              </Field> */}
             </div>
           </>
           );
@@ -2866,32 +3299,33 @@ function ChannelModal({ type, channel, onChange, onSave, onCancel, saving, t, qr
               </Field>
             </div>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
-              <Field label={t.channelDingtalkRobotCode}>
+              {/* <Field label={t.channelDingtalkRobotCode}>
                 <input value={d.robotCode} onChange={e => set({ robotCode: e.target.value })} style={sInput} />
-              </Field>
+              </Field> */}
               <Field label={t.channelDingtalkCorpId}>
                 <input value={d.corpId} onChange={e => set({ corpId: e.target.value })} style={sInput} />
               </Field>
-            </div>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
               <Field label={t.channelDingtalkAgentId}>
                 <input value={d.agentId} onChange={e => set({ agentId: e.target.value })} style={sInput} />
               </Field>
-              <Field label={t.channelDingtalkMessageType}>
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+           
+              {/* <Field label={t.channelDingtalkMessageType}>
                 <SelectField value={d.messageType} onChange={v => set({ messageType: v })} options={[
                   { id: "markdown", label: "Markdown" },
                   { id: "text", label: "Text" },
                 ]} />
-              </Field>
+              </Field> */}
             </div>
-            <Field label={t.channelDingtalkAllowFrom} hint="Comma-separated, e.g. * or @user">
+            {/* <Field label={t.channelDingtalkAllowFrom} hint="Comma-separated, e.g. * or @user">
               <input value={d.allowFrom} onChange={e => set({ allowFrom: e.target.value })} style={sInput} placeholder="*" />
-            </Field>
+            </Field> */}
           </>
           );
         })()}
 
-        {/* WeChat — QR code login */}
+        {/* WeChat — QR code login (SSE driven) */}
         {type === "wechat" && (
           <div style={{ display: "flex", flexDirection: "column", gap: 16, alignItems: "center" }}>
             <div style={{ fontFamily: font.mono, fontSize: 13, color: c.faint, textAlign: "center", lineHeight: 1.6 }}>
@@ -2909,25 +3343,48 @@ function ChannelModal({ type, channel, onChange, onSave, onCancel, saving, t, qr
                 borderRadius: r.radiusSm, width: "100%",
               }}
             >
-              {qrcodeLoading ? "…" : t.channelWechatScanLogin}
+              {qrcodeLoading
+                ? "…"
+                : qrcode?.connected
+                ? "Connected"
+                : qrcode?.status === "expired"
+                ? "Expired — retry"
+                : t.channelWechatScanLogin}
             </button>
             {qrcode && (
-              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 10 }}>
-                {qrcode.rawOutput ? (
+              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 10, width: "100%" }}>
+                {qrcode.connected ? (
+                  <div style={{
+                    fontFamily: font.mono, fontSize: 12.5, color: c.green,
+                    padding: "10px 14px", border: `1px solid ${c.greenBorder ?? c.border}`,
+                    borderRadius: r.radiusSm, textAlign: "center",
+                  }}>
+                    WeChat login successful
+                  </div>
+                ) : qrcode.status === "error" ? (
+                  <div style={{
+                    fontFamily: font.mono, fontSize: 12, color: c.red,
+                    padding: "10px 14px", border: `1px solid ${c.redBorder}`,
+                    borderRadius: r.radiusSm, textAlign: "center",
+                  }}>
+                    {qrcode.message || "Login failed"}
+                  </div>
+                ) : qrOutput ? (
                   <pre style={{
                     background: "#111",
-                    padding: "14px 18px",
+                    padding: "8px 12px",
                     borderRadius: r.radiusSm,
                     border: `1px solid ${c.border}`,
                     fontFamily: "monospace",
-                    fontSize: 9.5,
-                    lineHeight: 1.25,
+                    fontSize: 9,
+                    lineHeight: 1,
                     color: "#00ff88",
                     textAlign: "left",
                     overflowX: "auto",
                     margin: 0,
+                    maxWidth: "100%",
                   }}>
-                    {qrcode.rawOutput}
+                    {qrOutput}
                   </pre>
                 ) : qrcode.qrcodeUrl ? (
                   <img
@@ -2936,11 +3393,23 @@ function ChannelModal({ type, channel, onChange, onSave, onCancel, saving, t, qr
                     style={{ width: 180, height: 180, border: `1px solid ${c.border}`, borderRadius: r.radiusSm, display: "block", margin: "0 auto" }}
                   />
                 ) : null}
+                {qrcode.qrcodeUrl && qrcode.rawOutput && (
+                  <a
+                    href={qrcode.qrcodeUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    style={{ fontFamily: font.mono, fontSize: 10.5, color: c.muted, textAlign: "center", wordBreak: "break-all" }}
+                  >
+                    {qrcode.qrcodeUrl}
+                  </a>
+                )}
                 <div style={{ fontFamily: font.mono, fontSize: 11, color: c.faint, textAlign: "center" }}>
                   {qrcode.message}
                 </div>
                 <div style={{ fontFamily: font.mono, fontSize: 10.5, color: c.muted, textAlign: "center" }}>
-                  {qrcode.expiresIn > 0 ? `${qrcode.expiresIn}s` : t.channelLoginExpired}
+                  {qrcode.expiresIn > 0 && !qrcode.connected && qrcode.status !== "error"
+                    ? `${qrcode.expiresIn}s`
+                    : t.channelLoginExpired}
                 </div>
               </div>
             )}
@@ -3154,8 +3623,8 @@ function AgentDetailInner() {
           style={{
             width: 56,
             height: 56,
-            background: cur.hue ?? c.accent,
-            color: c.ink,
+            background: cur.hue ?? c.lime,
+            color: cur.hue ? c.onBrand : c.ink,
             display: "grid",
             placeItems: "center",
             fontFamily: font.space,

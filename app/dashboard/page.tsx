@@ -220,8 +220,11 @@ export default function OverviewPage() {
                       style={{
                         width: 38,
                         height: 38,
-                        background: a.hue ?? c.accent,
-                        color: c.ink,
+                        background: a.hue ?? c.lime,
+                        // Ink follows the fill: c.onBrand is fixed dark and only
+                        // correct on a fixed role hue. The fallback is a themed
+                        // fill, so it takes the themed ink.
+                        color: a.hue ? c.onBrand : c.ink,
                         display: "grid",
                         placeItems: "center",
                         fontFamily: font.space,
@@ -330,7 +333,21 @@ export default function OverviewPage() {
                     {clock(f.occurredAt)}
                   </span>
                   <span style={{ fontSize: 13.5, color: c.text2 }}>
-                    <span style={{ color: f.hue ?? c.accent }}>{f.who}</span> {f.text}
+                    <span
+                        // The role hue is a fixed brand FILL, not a text color:
+                        // at 13.5px it reads 1.06:1 on light --c-panel. Show it
+                        // as a swatch and give the name a themed ink instead.
+                        aria-hidden
+                        style={{
+                          display: "inline-block",
+                          width: 7,
+                          height: 7,
+                          marginRight: 6,
+                          background: f.hue ?? c.accent,
+                          verticalAlign: "middle",
+                        }}
+                      />
+                      <span style={{ color: c.accent }}>{f.who}</span> {f.text}
                   </span>
                 </div>
               ))}

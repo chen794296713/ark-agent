@@ -1,7 +1,7 @@
 import { eq } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { users, workspaces } from "@/lib/db/schema";
-import { verifyPassword, createSession } from "@/lib/auth";
+import { verifyPassword, createSession, loginBlockedReason } from "@/lib/auth";
 import { parseBody, apiError, json } from "@/lib/api";
 import { loginSchema } from "@/lib/validation";
 import { publicUser, publicWorkspace } from "@/lib/serializers";
@@ -18,6 +18,9 @@ export async function POST(req: Request) {
   // Constant-ish work whether or not the user exists.
   const ok = user ? verifyPassword(parsed.data.password, user.passwordHash) : false;
   if (!user || !ok) return apiError("Invalid email or password", 401);
+
+  const blocked = loginBlockedReason(user);
+  if (blocked) return apiError(blocked, 403);
 
   await createSession(user.id);
   const [ws] = await db

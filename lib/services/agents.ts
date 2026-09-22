@@ -15,7 +15,10 @@ import {
   plans,
 } from "@/lib/db/schema";
 import type { Agent } from "@/lib/db/schema";
+import type { StoredAgentSettings } from "@/lib/agent-settings";
 import { getAgentManager } from "@/lib/agent-manager";
+import type { Harness } from "@/lib/harness";
+import { categoryIdFor } from "@/lib/harness/provisioning";
 import type { AuthContext } from "@/lib/auth";
 import {
   serializeAgent,
@@ -164,12 +167,14 @@ export async function getAgentDetail(agentId: string, workspaceId: string) {
 export interface CreateAgentInput {
   name: string;
   roleId: string;
-  engine: "openclaw" | "hermes";
+  managerAgentId?: number;
+  engine: Harness;
   planTier: PlanTier;
   instructions: string;
   rules: string;
   channels: ChannelType[];
   tasks: string[];
+  settings?: StoredAgentSettings;
 }
 
 export async function createAgent(ctx: AuthContext, input: CreateAgentInput) {
@@ -189,6 +194,7 @@ export async function createAgent(ctx: AuthContext, input: CreateAgentInput) {
       instructions: input.instructions,
       rules: input.rules,
       hue: role.hue,
+      settings: input.settings ?? {},
     })
     .returning();
 
@@ -208,12 +214,19 @@ export async function createAgent(ctx: AuthContext, input: CreateAgentInput) {
 
   // Call OpenClaw Manager API to create the instance
   try {
-    const categoryId = input.engine === "openclaw" ? 2 : 4;
+    // Exhaustive, and throws on a harness the Manager has no id for. The old
+    // `input.engine === "openclaw" ? 2 : 4` was a two-way branch on what is now
+    // a four-value enum: hiring a Codex agent silently provisioned a Hermes VM.
+    const categoryId = categoryIdFor(input.engine);
     const { config, preprocessed } = await createOpenclawInstance({
       agentId: agent.id,
+      managerAgentId: input.roleId === "custom" ? undefined : input.managerAgentId,
       name: input.name,
       categoryId,
       targetUserId: ctx.user.id,
+      instructions: input.instructions,
+      rules: input.rules,
+      tasks: input.tasks,
     });
     const dockerContainerName =
       typeof config.config.docker_container_name === "string"
@@ -276,22 +289,29 @@ export async function setLifecycle(
 ) {
   const row = await getAgentRow(agentId, workspaceId);
   if (!row) return null;
-  const am = getAgentManager();
   let status: Agent["status"] = row.status;
 
   try {
-    if (row.agentManagerId) {
-      // OpenClaw agents: also call the /stop or /start API
-      if (row.engine === "openclaw") {
-        const openclawConfig = await getOpenclawConfigByAgentId(agentId);
-        if (openclawConfig) {
-          if (action === "pause") {
-            await stopOpenclawInstance(openclawConfig.externalId);
-          } else if (action === "resume") {
-            await startOpenclawInstance(openclawConfig.externalId);
-          }
+    // Resolved inside the try: `getAgentManager()` throws when the runtime is
+    // unconfigured, and an operator must still be able to pause or delete an
+    // agent whose runtime we can no longer reach. The catch below records the
+    // intended local status either way.
+    const am = getAgentManager();
+    // OpenClaw agents use the instance API for runtime lifecycle changes.
+    // Termination is also a stop operation here because the Manager client
+    // currently exposes no instance-delete endpoint. Do not require the
+    // denormalized agentManagerId field: the provider config is authoritative.
+    if (row.engine === "openclaw") {
+      const openclawConfig = await getOpenclawConfigByAgentId(agentId);
+      if (openclawConfig) {
+        if (action === "pause" || action === "terminate") {
+          await stopOpenclawInstance(openclawConfig.externalId);
+        } else if (action === "resume") {
+          await startOpenclawInstance(openclawConfig.externalId);
         }
       }
+    }
+    if (row.agentManagerId) {
       const res = await am.setLifecycle(row.agentManagerId, action);
       status = res.status as Agent["status"];
     } else {
@@ -307,4 +327,49 @@ export async function setLifecycle(
     tag: "system",
   });
   return getAgentDetail(agentId, workspaceId);
+}
+
+/** Stop the runtime first, then permanently remove the agent and its seat. */
+export async function deleteAgent(agentId: string, workspaceId: string): Promise<boolean> {
+  const row = await getAgentRow(agentId, workspaceId);
+  if (!row) return false;
+
+  // setLifecycle intentionally treats a manager outage as a terminated local
+  // state, so deletion cannot leave the dashboard record behind indefinitely.
+  await setLifecycle(agentId, workspaceId, "terminate");
+
+  const seatRows = await db
+    .select({ planId: subscriptions.planId })
+    .from(subscriptions)
+    .where(eq(subscriptions.agentId, agentId));
+  const seatPlanIds = Array.from(new Set(seatRows.map((seat) => seat.planId)));
+  const seatPlans = seatPlanIds.length
+    ? await db
+        .select({ id: plans.id, includedCredits: plans.includedCredits })
+        .from(plans)
+        .where(inArray(plans.id, seatPlanIds))
+    : [];
+  const planCredits = new Map(seatPlans.map((plan) => [plan.id, plan.includedCredits]));
+  const creditReduction = seatRows.reduce(
+    (total, seat) => total + (planCredits.get(seat.planId) ?? 0),
+    0,
+  );
+
+  const deleted = await db.transaction(async (tx) => {
+    await tx.delete(subscriptions).where(eq(subscriptions.agentId, agentId));
+    const removed = await tx
+      .delete(agents)
+      .where(and(eq(agents.id, agentId), eq(agents.workspaceId, workspaceId)))
+      .returning({ id: agents.id });
+    if (removed.length > 0 && creditReduction > 0) {
+      await tx
+        .update(workspaces)
+        .set({
+          creditsIncluded: sql`greatest(0, ${workspaces.creditsIncluded} - ${creditReduction})`,
+        })
+        .where(eq(workspaces.id, workspaceId));
+    }
+    return removed;
+  });
+  return deleted.length > 0;
 }

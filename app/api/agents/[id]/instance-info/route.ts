@@ -13,6 +13,29 @@ export const dynamic = "force-dynamic";
 
 type Ctx = { params: Promise<{ id: string }> };
 
+function serializeInstanceTasks(config: unknown) {
+  const rawTasks: unknown[] =
+    config && typeof config === "object" && Array.isArray((config as Record<string, unknown>).tasks)
+      ? ((config as Record<string, unknown>).tasks as unknown[])
+      : [];
+  return rawTasks
+    .filter((task): task is Record<string, unknown> => !!task && typeof task === "object")
+    .map((task) => ({
+      id: task.id,
+      content: task.content ?? "",
+      sortOrder: task.sortOrder ?? task.sort_order ?? 0,
+      sessionKey: task.sessionKey ?? task.session_key ?? null,
+      result: task.result ?? null,
+      status: task.status ?? "pending",
+      createdAt: task.createdAt ?? task.created_at ?? null,
+      updatedAt: task.updatedAt ?? task.updated_at ?? null,
+    }))
+    .sort((a, b) => Number(a.sortOrder) - Number(b.sortOrder))
+    // The first upstream task is the internal brief (instructions + rules).
+    // It is never a user-visible task or result.
+    .slice(1);
+}
+
 /**
  * GET /api/agents/:id/instance-info
  *
@@ -46,15 +69,23 @@ export async function GET(_req: Request, { params }: Ctx) {
     .where(eq(agentManagerConfig.agentId, id));
 
   return json({
-    providers: rows.map((r) => ({
-      provider: r.provider,
-      externalId: r.externalId,
-      status: r.status,
-      lastError: r.lastError,
-      config: r.config,
-      createdAt: r.createdAt.toISOString(),
-      updatedAt: r.updatedAt.toISOString(),
-    })),
+    providers: rows.map((r) => {
+      const tasks = serializeInstanceTasks(r.config);
+      const config =
+        r.config && typeof r.config === "object"
+          ? { ...(r.config as Record<string, unknown>), tasks }
+          : r.config;
+      return {
+        provider: r.provider,
+        externalId: r.externalId,
+        status: r.status,
+        lastError: r.lastError,
+        config,
+        createdAt: r.createdAt.toISOString(),
+        updatedAt: r.updatedAt.toISOString(),
+        tasks,
+      };
+    }),
     autoStopped,
   });
 }

@@ -1,0 +1,22 @@
+-- Enum values ONLY. Nothing else may go in this file.
+--
+-- drizzle wraps every PENDING migration in a SINGLE transaction (verified in
+-- node_modules/drizzle-orm/pg-core/dialect.js), and Postgres refuses to USE an
+-- enum value that was added in the current transaction:
+--   ERROR: unsafe use of new value "codex" of enum type engine
+--
+-- The exception is what makes this subtle. If the enum TYPE was created in the
+-- same transaction, using a new value is allowed — so a fresh replay from empty
+-- is always fine, and CI never sees this. It is the INCREMENTAL path, against a
+-- database where `engine` was committed months ago, that fails and rolls the
+-- whole batch back. This breaks production, not CI.
+--
+-- Hence: this file adds values and does nothing else, so they are committed
+-- before any later migration names one. `npm run db:check` replays every
+-- deployed state to prove it.
+--
+-- IF NOT EXISTS is hand-added: drizzle-kit emits a bare ADD VALUE (see
+-- 0003_worthless_ultron.sql for the precedent), which errors on a database that
+-- already has the value from a `db:push`.
+ALTER TYPE "public"."engine" ADD VALUE IF NOT EXISTS 'codex';--> statement-breakpoint
+ALTER TYPE "public"."engine" ADD VALUE IF NOT EXISTS 'deepseek';

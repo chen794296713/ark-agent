@@ -16,11 +16,17 @@ export interface FleetDetailDict {
 
   // Tasks tab
   tasksEmpty: string;
+  taskViewResult: string;
+  taskResultTitle: string;
+  taskCloseResult: string;
 
   // Chat tab
   chatLoadError: string;
   chatSendError: string;
   chatWebConsole: string;
+  chatSession: string;
+  chatSessionLoading: string;
+  chatSessionDefault: string;
   chatAlsoOn: (channels: string) => string;
   chatLoading: string;
   chatEmpty: (name: string) => string;
@@ -34,6 +40,10 @@ export interface FleetDetailDict {
   perfSelfReview: string;
   perfNoMetrics: string;
   perfImprovementQueue: string;
+  perfRunSelfReview: string;
+  perfRunningSelfReview: string;
+  perfSelfReviewNone: string;
+  perfSelfReviewError: string;
   perfNoImprovements: string;
   perfApproved: string;
   perfDismissed: string;
@@ -91,7 +101,13 @@ export interface FleetDetailDict {
   autonomyTitle: string;
   autonomyDesc: string;
   fieldAutonomy: string;
-  fieldApprovalOver: string;
+  /**
+   * Approval threshold label. Takes the ISO code rather than a symbol: the
+   * stored value is a fixed USD-denominated policy threshold, so painting it
+   * with whatever currency the visitor is browsing in would silently change
+   * what the agent escalates. See AgentSettings.approvalAmount.
+   */
+  fieldApprovalOver: (iso: string) => string;
   fieldApprovalOverHint: string;
   fieldDailyActionLimit: string;
   fieldDailyActionLimitHint: string;
@@ -184,6 +200,13 @@ export interface FleetDetailDict {
   terminateAgent: string;
   dangerNote: string;
   lifecycleError: string;
+  deleteAgent: string;
+  deleteConfirmTitle: string;
+  deleteConfirmBody: string;
+  deleteConfirm: string;
+  cancelDelete: string;
+  deletingAgent: string;
+  deleteError: string;
   viewInstanceInfo: string;
   instanceInfoTitle: string;
   instanceInfoSubtitle: string;
@@ -280,10 +303,16 @@ const en: FleetDetailDict = {
   activityEmpty: "No activity yet — this agent hasn’t logged anything.",
 
   tasksEmpty: "No tasks queued for this agent.",
+  taskViewResult: "VIEW RESULT",
+  taskResultTitle: "Task result",
+  taskCloseResult: "Close result",
 
   chatLoadError: "Couldn’t load chat history.",
   chatSendError: "Message failed to send.",
   chatWebConsole: "WEB CONSOLE",
+  chatSession: "SESSION",
+  chatSessionLoading: "Loading sessions…",
+  chatSessionDefault: "Select a session",
   chatAlsoOn: (channels) => ` · ALSO ON ${channels}`,
   chatLoading: "Loading conversation…",
   chatEmpty: (name) => `No messages yet. Say hello to ${name}.`,
@@ -296,6 +325,10 @@ const en: FleetDetailDict = {
   perfSelfReview: "SELF-REVIEW",
   perfNoMetrics: "No metrics recorded yet.",
   perfImprovementQueue: "IMPROVEMENT QUEUE",
+  perfRunSelfReview: "Run self-review",
+  perfRunningSelfReview: "Reviewing…",
+  perfSelfReviewNone: "The self-review found nothing new to suggest.",
+  perfSelfReviewError: "Couldn’t run the self-review.",
   perfNoImprovements: "The agent has no proposed improvements right now.",
   perfApproved: "✓ Approved",
   perfDismissed: "Dismissed",
@@ -349,7 +382,7 @@ const en: FleetDetailDict = {
   autonomyTitle: "AUTONOMY & APPROVALS",
   autonomyDesc: "How much the agent can do on its own.",
   fieldAutonomy: "AUTONOMY",
-  fieldApprovalOver: "APPROVAL OVER ($)",
+  fieldApprovalOver: (iso) => `APPROVAL OVER (${iso})`,
   fieldApprovalOverHint: "Require sign-off for money/commitments at or above this.",
   fieldDailyActionLimit: "DAILY ACTION LIMIT",
   fieldDailyActionLimitHint: "0 = unlimited.",
@@ -433,6 +466,13 @@ const en: FleetDetailDict = {
   terminateAgent: "Terminate agent",
   dangerNote: "Pausing keeps memory and state. Terminating archives the agent and its VM after 30 days.",
   lifecycleError: "Lifecycle action failed.",
+  deleteAgent: "Delete agent",
+  deleteConfirmTitle: "Delete this agent?",
+  deleteConfirmBody: "The agent will be terminated first, then permanently deleted.",
+  deleteConfirm: "Delete permanently",
+  cancelDelete: "Cancel",
+  deletingAgent: "Deleting...",
+  deleteError: "Could not delete the agent.",
   viewInstanceInfo: "View instance info",
   instanceInfoTitle: "Instance info",
   instanceInfoSubtitle: "Raw data returned by the Agent Manager at provision time.",
@@ -528,10 +568,16 @@ const zh: FleetDetailDict = {
   activityEmpty: "暂无动态——这位智能体还没有记录任何内容。",
 
   tasksEmpty: "该智能体暂无排队任务。",
+  taskViewResult: "查看结果",
+  taskResultTitle: "任务执行结果",
+  taskCloseResult: "关闭结果",
 
   chatLoadError: "无法加载聊天记录。",
   chatSendError: "消息发送失败。",
   chatWebConsole: "网页控制台",
+  chatSession: "会话",
+  chatSessionLoading: "正在加载会话…",
+  chatSessionDefault: "选择会话",
   chatAlsoOn: (channels) => ` · 同时接入 ${channels}`,
   chatLoading: "正在加载对话…",
   chatEmpty: (name) => `还没有消息，跟 ${name} 打个招呼吧。`,
@@ -544,6 +590,10 @@ const zh: FleetDetailDict = {
   perfSelfReview: "自我复盘",
   perfNoMetrics: "暂无记录的指标。",
   perfImprovementQueue: "优化队列",
+  perfRunSelfReview: "运行自查",
+  perfRunningSelfReview: "自查中…",
+  perfSelfReviewNone: "本次自查没有发现新的改进建议。",
+  perfSelfReviewError: "自查未能完成。",
   perfNoImprovements: "智能体目前没有提出任何优化建议。",
   perfApproved: "✓ 已批准",
   perfDismissed: "已忽略",
@@ -597,7 +647,7 @@ const zh: FleetDetailDict = {
   autonomyTitle: "自主权与审批",
   autonomyDesc: "智能体能自行决定多少事情。",
   fieldAutonomy: "自主程度",
-  fieldApprovalOver: "审批阈值（$）",
+  fieldApprovalOver: (iso) => `审批阈值（${iso}）`,
   fieldApprovalOverHint: "达到或超过此金额的资金/承诺需经你确认。",
   fieldDailyActionLimit: "每日操作上限",
   fieldDailyActionLimitHint: "0 = 不限。",
@@ -681,6 +731,13 @@ const zh: FleetDetailDict = {
   terminateAgent: "终止智能体",
   dangerNote: "暂停会保留记忆与状态。终止将在 30 天后归档智能体及其虚拟机。",
   lifecycleError: "生命周期操作失败。",
+  deleteAgent: "删除智能体",
+  deleteConfirmTitle: "确认删除智能体？",
+  deleteConfirmBody: "系统会先终止智能体，然后永久删除。",
+  deleteConfirm: "永久删除",
+  cancelDelete: "取消",
+  deletingAgent: "删除中...",
+  deleteError: "无法删除智能体，请重试。",
   viewInstanceInfo: "查看智能体信息",
   instanceInfoTitle: "智能体信息",
   instanceInfoSubtitle: "Agent Manager 在创建时返回的原始数据。",
@@ -776,10 +833,16 @@ const zht: FleetDetailDict = {
   activityEmpty: "尚無動態——這位智能體還沒有記錄任何內容。",
 
   tasksEmpty: "該智能體目前沒有排隊任務。",
+  taskViewResult: "查看結果",
+  taskResultTitle: "任務執行結果",
+  taskCloseResult: "關閉結果",
 
   chatLoadError: "無法載入聊天記錄。",
   chatSendError: "訊息傳送失敗。",
   chatWebConsole: "網頁主控台",
+  chatSession: "工作階段",
+  chatSessionLoading: "正在載入工作階段…",
+  chatSessionDefault: "選擇工作階段",
   chatAlsoOn: (channels) => ` · 同時接入 ${channels}`,
   chatLoading: "正在載入對話…",
   chatEmpty: (name) => `還沒有訊息，跟 ${name} 打個招呼吧。`,
@@ -792,6 +855,10 @@ const zht: FleetDetailDict = {
   perfSelfReview: "自我檢視",
   perfNoMetrics: "尚無記錄的指標。",
   perfImprovementQueue: "優化佇列",
+  perfRunSelfReview: "執行自我檢視",
+  perfRunningSelfReview: "檢視中…",
+  perfSelfReviewNone: "本次自我檢視沒有發現新的改進建議。",
+  perfSelfReviewError: "自我檢視未能完成。",
   perfNoImprovements: "智能體目前沒有提出任何優化建議。",
   perfApproved: "✓ 已核准",
   perfDismissed: "已忽略",
@@ -845,7 +912,7 @@ const zht: FleetDetailDict = {
   autonomyTitle: "自主權與審批",
   autonomyDesc: "智能體能自行決定多少事情。",
   fieldAutonomy: "自主程度",
-  fieldApprovalOver: "審批門檻（$）",
+  fieldApprovalOver: (iso) => `審批門檻（${iso}）`,
   fieldApprovalOverHint: "達到或超過此金額的資金/承諾需經你確認。",
   fieldDailyActionLimit: "每日操作上限",
   fieldDailyActionLimitHint: "0 = 不限。",
@@ -929,6 +996,13 @@ const zht: FleetDetailDict = {
   terminateAgent: "終止智能體",
   dangerNote: "暫停會保留記憶與狀態。終止將在 30 天後封存智能體及其虛擬機。",
   lifecycleError: "生命週期操作失敗。",
+  deleteAgent: "刪除智能體",
+  deleteConfirmTitle: "確認刪除智能體？",
+  deleteConfirmBody: "系統會先終止智能體，然後永久刪除。",
+  deleteConfirm: "永久刪除",
+  cancelDelete: "取消",
+  deletingAgent: "刪除中...",
+  deleteError: "無法刪除智能體，請重試。",
   viewInstanceInfo: "檢視實例資訊",
   instanceInfoTitle: "實例資訊",
   instanceInfoSubtitle: "Agent Manager 在建立時回傳的原始資料。",
@@ -1024,10 +1098,16 @@ const ja: FleetDetailDict = {
   activityEmpty: "アクティビティはまだありません。このエージェントは何も記録していません。",
 
   tasksEmpty: "このエージェントに待機中のタスクはありません。",
+  taskViewResult: "結果を見る",
+  taskResultTitle: "タスク実行結果",
+  taskCloseResult: "結果を閉じる",
 
   chatLoadError: "チャット履歴を読み込めませんでした。",
   chatSendError: "メッセージの送信に失敗しました。",
   chatWebConsole: "ウェブコンソール",
+  chatSession: "セッション",
+  chatSessionLoading: "セッションを読み込み中…",
+  chatSessionDefault: "セッションを選択",
   chatAlsoOn: (channels) => ` · 連携中: ${channels}`,
   chatLoading: "会話を読み込み中…",
   chatEmpty: (name) => `まだメッセージがありません。${name} に挨拶してみましょう。`,
@@ -1040,6 +1120,10 @@ const ja: FleetDetailDict = {
   perfSelfReview: "セルフレビュー",
   perfNoMetrics: "記録された指標はまだありません。",
   perfImprovementQueue: "改善キュー",
+  perfRunSelfReview: "セルフレビューを実行",
+  perfRunningSelfReview: "レビュー中…",
+  perfSelfReviewNone: "今回のセルフレビューでは新しい提案はありませんでした。",
+  perfSelfReviewError: "セルフレビューを実行できませんでした。",
   perfNoImprovements: "現在、エージェントからの改善提案はありません。",
   perfApproved: "✓ 承認済み",
   perfDismissed: "却下済み",
@@ -1093,7 +1177,7 @@ const ja: FleetDetailDict = {
   autonomyTitle: "自律性と承認",
   autonomyDesc: "エージェントが自分で行える範囲。",
   fieldAutonomy: "自律性",
-  fieldApprovalOver: "承認しきい値（$）",
+  fieldApprovalOver: (iso) => `承認しきい値（${iso}）`,
   fieldApprovalOverHint: "この金額以上の支出・コミットには承認を必須にします。",
   fieldDailyActionLimit: "1日のアクション上限",
   fieldDailyActionLimitHint: "0 = 無制限。",
@@ -1177,6 +1261,13 @@ const ja: FleetDetailDict = {
   terminateAgent: "エージェントを終了",
   dangerNote: "一時停止してもメモリーと状態は保持されます。終了すると30日後にエージェントとそのVMがアーカイブされます。",
   lifecycleError: "ライフサイクル操作に失敗しました。",
+  deleteAgent: "エージェントを削除",
+  deleteConfirmTitle: "このエージェントを削除しますか？",
+  deleteConfirmBody: "先にエージェントを終了してから、完全に削除します。",
+  deleteConfirm: "完全に削除",
+  cancelDelete: "キャンセル",
+  deletingAgent: "削除中...",
+  deleteError: "エージェントを削除できませんでした。",
   viewInstanceInfo: "インスタンス情報を表示",
   instanceInfoTitle: "インスタンス情報",
   instanceInfoSubtitle: "Agent Manager が作成時に返した生のデータです。",

@@ -8,7 +8,10 @@ export interface DirectionsDict {
 
   // A — TERMINAL LIME
   aLabel: string;
-  aBadge: string;
+  /** Chip on whichever direction is currently applied. */
+  badgeLive: string;
+  /** Button that switches the whole app to that direction. */
+  apply: string;
   aEyebrow: string;
   aHeadline1: string;
   aHeadline2: string;
@@ -53,7 +56,8 @@ const en: DirectionsDict = {
     "Three brand directions for the same hero. Direction A is built out as the live prototype; B and C are sketches we can switch to — say the word and I'll re-skin everything.",
 
   aLabel: "A — TERMINAL LIME",
-  aBadge: "LIVE / SELECTED",
+  badgeLive: "LIVE",
+  apply: "APPLY →",
   aEyebrow: "THE AUTONOMOUS WORKFORCE",
   aHeadline1: "Hire an AI employee,",
   aHeadline2: "not another app.",
@@ -99,7 +103,8 @@ const zh: DirectionsDict = {
     "同一个首屏的三套品牌方向。方向 A 已落地为可交互的原型；B 和 C 是可随时切换的草案——你只要一句话，我就能把整体风格重做一遍。",
 
   aLabel: "A — TERMINAL LIME",
-  aBadge: "已上线 / 已选定",
+  badgeLive: "已上线",
+  apply: "应用 →",
   aEyebrow: "自主运转的劳动力",
   aHeadline1: "雇一名 AI 员工，",
   aHeadline2: "而不是再装一个 App。",
@@ -145,7 +150,8 @@ const zht: DirectionsDict = {
     "同一個主視覺的三套品牌方向。方向 A 已落地為可互動的原型；B 與 C 是可隨時切換的草案——你只要一句話，我就能把整體風格重做一遍。",
 
   aLabel: "A — TERMINAL LIME",
-  aBadge: "已上線 / 已選定",
+  badgeLive: "已上線",
+  apply: "套用 →",
   aEyebrow: "自主運轉的勞動力",
   aHeadline1: "僱一名 AI 員工，",
   aHeadline2: "而不是再裝一個 App。",
@@ -191,7 +197,8 @@ const ja: DirectionsDict = {
     "同じヒーローに対する3つのブランドの方向性です。方向性 A はライブのプロトタイプとして作り込み済み。B と C はいつでも切り替えられるスケッチで——ひと言いただければ、全体を作り直します。",
 
   aLabel: "A — TERMINAL LIME",
-  aBadge: "ライブ / 採用中",
+  badgeLive: "採用中",
+  apply: "適用 →",
   aEyebrow: "自律して働く労働力",
   aHeadline1: "AI社員を雇おう、",
   aHeadline2: "アプリではなく。",

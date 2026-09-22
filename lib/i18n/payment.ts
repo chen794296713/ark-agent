@@ -1,4 +1,11 @@
-/** Copy for the checkout / payment screen (order summary + Stripe / Alipay). */
+/**
+ * Copy for the checkout screen and the post-payment return screen.
+ *
+ * Checkout is a *handoff*: the seat is paid for on Stripe's or Alipay's own
+ * hosted page, never here, so the copy below talks about leaving and coming
+ * back rather than about a form. The confirmation wording is deliberately
+ * cautious — the browser returning proves nothing, the provider's webhook does.
+ */
 import type { Lang } from "@/lib/types";
 
 export interface PaymentDict {
@@ -10,7 +17,10 @@ export interface PaymentDict {
   // headings
   eyebrow: string;
   title: string;
-  sub: string;
+  /** Sub-heading on the international pane — names Stripe as the processor. */
+  subStripe: string;
+  /** Sub-heading on the China pane — names Alipay as the processor. */
+  subAlipay: string;
 
   // billing cycle toggle
   cycleMonthly: string;
@@ -27,6 +37,7 @@ export interface PaymentDict {
   creditsPerMonth: string;
   included: string;
   taxLabel: string;
+  /** Tax value in markets where the listed price is already tax-inclusive. */
   taxIncluded: string;
 
   // totals
@@ -40,45 +51,51 @@ export interface PaymentDict {
   regionCN: string;
   regionNote: string;
 
-  // stripe form
-  applePay: string;
-  googlePay: string;
-  orPayWithCard: string;
-  email: string;
-  cardNumber: string;
-  expiry: string;
-  cvc: string;
-  nameOnCard: string;
-  country: string;
-  /** Default country value prefilled in the card form. */
-  countryDefault: string;
-  processing: string;
-  /** Pay button label, e.g. "Pay $149.00". */
-  payAmount: (amt: string) => string;
-  paymentFailed: string;
+  // stripe handoff
+  continueToStripe: string;
+  redirectingStripe: string;
+  /** Explains that the wallets live on Stripe's page — we offer no card form. */
+  stripeWallets: string;
   stripeFootnote: string;
 
-  // stripe success
+  // alipay handoff
+  alipayTitle: string;
+  openAlipayApp: string;
+  redirectingAlipay: string;
+  completeOnPhone: string;
+  alipaySecured: string;
+
+  // errors
+  paymentFailed: string;
+  /** Shown when the checkout call itself fails (5xx / provider unreachable). */
+  checkoutUnavailable: string;
+  /** e.g. "Payment failed — card declined". */
+  paymentFailedReason: (reason: string) => string;
+  retryPayment: string;
+  orderLookupFailed: string;
+
+  // return screen — confirmation states
+  statusEyebrow: string;
+  confirmingPay: string;
+  awaitingConfirmationNote: string;
   paymentSuccessful: string;
   /** e.g. "$149.00 /mo charged. Receipt sent to wei@company.com." */
   chargedReceipt: (total: string, email: string) => string;
-  /** e.g. "INVOICE INV-123" / "REF ch_..." */
-  invoiceRef: (no: string | null) => string;
+  /** Future tense, for states where the money has not settled yet. */
+  receiptWillEmail: (email: string) => string;
+  paymentPending: string;
+  paymentPendingNote: string;
+  paymentCancelled: string;
+  paymentCancelledNote: string;
+  /** e.g. "INVOICE INV-2026-0042" */
+  invoiceRef: (no: string) => string;
+  /** e.g. "ORDER ARK-20260613-0042" — shown before an invoice exists. */
+  orderRef: (no: string) => string;
+  eInvoiceNote: string;
   backToBilling: string;
 
-  // alipay
-  alipayTitle: string;
-  scanToPay: string;
-  qrExpires: string;
-  simulatePay: string;
-  confirmingPay: string;
-  completeOnPhone: string;
-  alipaySuccess: string;
-  /** e.g. "Activated: Professional seat × 1 · ¥1,068.00" */
-  alipayActivated: (amt: string) => string;
-  /** e.g. "ORDER ARK-... · e-invoice available on the billing page" */
-  alipayInvoiceRef: (no: string | null) => string;
-  alipaySecured: string;
+  /** Disclosure shown when no provider is configured and checkout was simulated. */
+  mockNotice: string;
 }
 
 const en: PaymentDict = {
@@ -88,7 +105,8 @@ const en: PaymentDict = {
 
   eyebrow: "SECURE CHECKOUT",
   title: "Complete your order",
-  sub: "Professional seat for Nova — Sales Prospector. Processed securely by Stripe.",
+  subStripe: "Professional seat for Nova — Sales Prospector. Processed securely by Stripe.",
+  subAlipay: "Professional seat for Nova — Sales Prospector. Processed securely by Alipay.",
 
   cycleMonthly: "MONTHLY",
   cycleAnnual: "ANNUAL −20%",
@@ -102,7 +120,7 @@ const en: PaymentDict = {
   creditsPerMonth: "25,000 credits / mo",
   included: "Included",
   taxLabel: "Tax",
-  taxIncluded: "$0.00",
+  taxIncluded: "Included",
 
   dueToday: "Due today",
   perCycle: (yearly) => (yearly ? " /yr" : " /mo"),
@@ -112,38 +130,44 @@ const en: PaymentDict = {
   regionCN: "中国大陆 · 支付宝",
   regionNote: "Detected from your language setting — switch anytime.",
 
-  applePay: "Apple Pay",
-  googlePay: "Google Pay",
-  orPayWithCard: "OR PAY WITH CARD",
-  email: "EMAIL",
-  cardNumber: "CARD NUMBER",
-  expiry: "EXPIRY",
-  cvc: "CVC",
-  nameOnCard: "NAME ON CARD",
-  country: "COUNTRY",
-  countryDefault: "Singapore",
-  processing: "Processing…",
-  payAmount: (amt) => "Pay " + amt,
-  paymentFailed: "Payment failed. Please try again.",
+  continueToStripe: "Continue to Stripe",
+  redirectingStripe: "Redirecting to Stripe…",
+  stripeWallets:
+    "Apple Pay, Google Pay and cards are all offered on Stripe’s hosted page. Your card details never reach us.",
   stripeFootnote: "POWERED BY STRIPE · PCI DSS LEVEL 1 · 3-D SECURE",
 
+  alipayTitle: "支付宝 · Alipay",
+  openAlipayApp: "Open Alipay to complete payment",
+  redirectingAlipay: "Redirecting to Alipay…",
+  completeOnPhone:
+    "You’ll finish paying on Alipay — in the app, or by scanning the QR on their page.",
+  alipaySecured: "SECURED BY ALIPAY",
+
+  paymentFailed: "Payment failed. Please try again.",
+  checkoutUnavailable:
+    "Couldn’t start checkout — the payment provider is unreachable. Please try again in a moment.",
+  paymentFailedReason: (reason) => `Payment failed — ${reason}`,
+  retryPayment: "Try again",
+  orderLookupFailed: "We couldn’t load that order.",
+
+  statusEyebrow: "PAYMENT STATUS",
+  confirmingPay: "Confirming payment…",
+  awaitingConfirmationNote: "Keep this page open — we’re confirming with your payment provider.",
   paymentSuccessful: "Payment successful",
   chargedReceipt: (total, email) => `${total} charged. Receipt sent to ${email}.`,
-  invoiceRef: (no) => (no ? `INVOICE ${no}` : "REF ch_3PqXk2LkdIwHu7ix"),
+  receiptWillEmail: (email) => `We’ll email your receipt to ${email}.`,
+  paymentPending: "Payment pending",
+  paymentPendingNote:
+    "Your bank is still processing this. We’ll activate the seat the moment it clears.",
+  paymentCancelled: "Payment cancelled",
+  paymentCancelledNote: "Nothing was charged. Your order is still here when you’re ready.",
+  invoiceRef: (no) => `INVOICE ${no}`,
+  orderRef: (no) => `ORDER ${no}`,
+  eInvoiceNote: "E-invoice available on the billing page",
   backToBilling: "Back to billing →",
 
-  alipayTitle: "支付宝 · Alipay",
-  scanToPay: "Open the Alipay app and scan to pay",
-  qrExpires: "QR expires in 04:32 · Order ARK-20260613-0042",
-  simulatePay: "Simulate scan & pay (demo)",
-  confirmingPay: "Confirming payment…",
-  completeOnPhone: "Complete the payment on your phone",
-  alipaySuccess: "Payment successful",
-  alipayActivated: (amt) => `Activated: Professional seat × 1 · ${amt}`,
-  alipayInvoiceRef: (no) =>
-    (no ? `ORDER ${no}` : "ORDER ARK-20260613-0042") +
-    " · e-invoice available on the billing page",
-  alipaySecured: "Secured by Alipay · SECURED BY ALIPAY",
+  mockNotice:
+    "Simulated payment — no payment provider is configured here, so nothing was actually charged.",
 };
 
 const zh: PaymentDict = {
@@ -153,7 +177,8 @@ const zh: PaymentDict = {
 
   eyebrow: "安全收银台",
   title: "确认订单",
-  sub: "为 Nova（销售开拓）开通专业版坐席，通过支付宝安全付款。",
+  subStripe: "为 Nova（销售开拓）开通专业版坐席，通过 Stripe 安全付款。",
+  subAlipay: "为 Nova（销售开拓）开通专业版坐席，通过支付宝安全付款。",
 
   cycleMonthly: "月付",
   cycleAnnual: "年付 −20%",
@@ -177,37 +202,40 @@ const zh: PaymentDict = {
   regionCN: "中国大陆 · 支付宝",
   regionNote: "已根据您的语言设置自动选择，可随时切换。",
 
-  applePay: "Apple Pay",
-  googlePay: "Google Pay",
-  orPayWithCard: "或使用银行卡支付",
-  email: "邮箱",
-  cardNumber: "卡号",
-  expiry: "有效期",
-  cvc: "安全码",
-  nameOnCard: "持卡人姓名",
-  country: "国家/地区",
-  countryDefault: "Singapore",
-  processing: "处理中…",
-  payAmount: (amt) => "支付 " + amt,
-  paymentFailed: "支付失败，请重试。",
+  continueToStripe: "继续前往 Stripe",
+  redirectingStripe: "正在跳转至 Stripe…",
+  stripeWallets:
+    "Apple Pay、Google Pay 与银行卡均可在 Stripe 的收银页面选择，我们不会接触您的卡片信息。",
   stripeFootnote: "由 STRIPE 提供 · PCI DSS 一级 · 3-D SECURE",
 
+  alipayTitle: "支付宝 · Alipay",
+  openAlipayApp: "打开支付宝完成付款",
+  redirectingAlipay: "正在跳转至支付宝…",
+  completeOnPhone: "您将在支付宝完成付款：可在 App 内支付，或扫描收银页上的二维码。",
+  alipaySecured: "由支付宝提供安全支付 · SECURED BY ALIPAY",
+
+  paymentFailed: "支付失败，请重试。",
+  checkoutUnavailable: "无法发起支付：暂时无法连接支付渠道，请稍后重试。",
+  paymentFailedReason: (reason) => `支付失败：${reason}`,
+  retryPayment: "重新支付",
+  orderLookupFailed: "无法加载该订单。",
+
+  statusEyebrow: "支付状态",
+  confirmingPay: "正在确认支付…",
+  awaitingConfirmationNote: "请勿关闭本页，我们正在与支付渠道确认结果。",
   paymentSuccessful: "支付成功",
   chargedReceipt: (total, email) => `已扣款 ${total}，收据已发送至 ${email}。`,
-  invoiceRef: (no) => (no ? `发票 ${no}` : "凭证号 ch_3PqXk2LkdIwHu7ix"),
+  receiptWillEmail: (email) => `收据将发送至 ${email}。`,
+  paymentPending: "支付处理中",
+  paymentPendingNote: "银行仍在处理这笔支付，到账后我们会立即开通坐席。",
+  paymentCancelled: "支付已取消",
+  paymentCancelledNote: "未产生任何扣款，订单已为您保留。",
+  invoiceRef: (no) => `发票 ${no}`,
+  orderRef: (no) => `订单号 ${no}`,
+  eInvoiceNote: "电子发票可在账单页申请",
   backToBilling: "返回账单 →",
 
-  alipayTitle: "支付宝 · Alipay",
-  scanToPay: "请使用支付宝 App 扫一扫付款",
-  qrExpires: "二维码将于 04:32 后失效 · 订单号 ARK-20260613-0042",
-  simulatePay: "模拟扫码支付（演示）",
-  confirmingPay: "正在确认支付…",
-  completeOnPhone: "请在手机上完成支付验证",
-  alipaySuccess: "支付成功",
-  alipayActivated: (amt) => `已开通：专业版坐席 × 1 · ${amt}`,
-  alipayInvoiceRef: (no) =>
-    (no ? `订单号 ${no}` : "订单号 ARK-20260613-0042") + " · 电子发票可在账单页申请",
-  alipaySecured: "由支付宝提供安全支付 · SECURED BY ALIPAY",
+  mockNotice: "模拟支付：当前环境未配置支付渠道，未产生任何实际扣款。",
 };
 
 const zht: PaymentDict = {
@@ -217,7 +245,8 @@ const zht: PaymentDict = {
 
   eyebrow: "安全收銀台",
   title: "確認訂單",
-  sub: "為 Nova（銷售開拓）開通專業版席位，透過支付寶安全付款。",
+  subStripe: "為 Nova（銷售開拓）開通專業版席位，透過 Stripe 安全付款。",
+  subAlipay: "為 Nova（銷售開拓）開通專業版席位，透過支付寶安全付款。",
 
   cycleMonthly: "月付",
   cycleAnnual: "年付 −20%",
@@ -241,37 +270,40 @@ const zht: PaymentDict = {
   regionCN: "中国大陆 · 支付宝",
   regionNote: "已依您的語言設定自動選擇，可隨時切換。",
 
-  applePay: "Apple Pay",
-  googlePay: "Google Pay",
-  orPayWithCard: "或使用信用卡付款",
-  email: "電子郵件",
-  cardNumber: "卡號",
-  expiry: "有效期限",
-  cvc: "安全碼",
-  nameOnCard: "持卡人姓名",
-  country: "國家/地區",
-  countryDefault: "Singapore",
-  processing: "處理中…",
-  payAmount: (amt) => "支付 " + amt,
-  paymentFailed: "付款失敗，請重試。",
+  continueToStripe: "繼續前往 Stripe",
+  redirectingStripe: "正在前往 Stripe…",
+  stripeWallets:
+    "Apple Pay、Google Pay 與信用卡皆可在 Stripe 的付款頁面選擇，我們不會接觸您的卡片資料。",
   stripeFootnote: "由 STRIPE 提供 · PCI DSS 第一級 · 3-D SECURE",
 
+  alipayTitle: "支付宝 · Alipay",
+  openAlipayApp: "開啟支付寶完成付款",
+  redirectingAlipay: "正在前往支付寶…",
+  completeOnPhone: "您將於支付寶完成付款：可在 App 內付款，或掃描收銀頁上的 QR 碼。",
+  alipaySecured: "由支付寶提供安全付款 · SECURED BY ALIPAY",
+
+  paymentFailed: "付款失敗，請重試。",
+  checkoutUnavailable: "無法發起付款：暫時無法連線至付款渠道，請稍後再試。",
+  paymentFailedReason: (reason) => `付款失敗：${reason}`,
+  retryPayment: "重新付款",
+  orderLookupFailed: "無法載入該訂單。",
+
+  statusEyebrow: "付款狀態",
+  confirmingPay: "正在確認付款…",
+  awaitingConfirmationNote: "請勿關閉本頁，我們正在與付款渠道確認結果。",
   paymentSuccessful: "付款成功",
   chargedReceipt: (total, email) => `已扣款 ${total}，收據已寄送至 ${email}。`,
-  invoiceRef: (no) => (no ? `發票 ${no}` : "憑證號 ch_3PqXk2LkdIwHu7ix"),
+  receiptWillEmail: (email) => `收據將寄送至 ${email}。`,
+  paymentPending: "付款處理中",
+  paymentPendingNote: "銀行仍在處理這筆付款，款項到帳後我們會立即開通席位。",
+  paymentCancelled: "付款已取消",
+  paymentCancelledNote: "未產生任何扣款，訂單已為您保留。",
+  invoiceRef: (no) => `發票 ${no}`,
+  orderRef: (no) => `訂單號 ${no}`,
+  eInvoiceNote: "電子發票可於帳單頁申請",
   backToBilling: "返回帳單 →",
 
-  alipayTitle: "支付宝 · Alipay",
-  scanToPay: "請使用支付寶 App 掃一掃付款",
-  qrExpires: "QR 碼將於 04:32 後失效 · 訂單號 ARK-20260613-0042",
-  simulatePay: "模擬掃碼付款（示範）",
-  confirmingPay: "正在確認付款…",
-  completeOnPhone: "請於手機上完成付款驗證",
-  alipaySuccess: "付款成功",
-  alipayActivated: (amt) => `已開通：專業版席位 × 1 · ${amt}`,
-  alipayInvoiceRef: (no) =>
-    (no ? `訂單號 ${no}` : "訂單號 ARK-20260613-0042") + " · 電子發票可於帳單頁申請",
-  alipaySecured: "由支付寶提供安全付款 · SECURED BY ALIPAY",
+  mockNotice: "模擬付款：目前環境未設定付款渠道，未產生任何實際扣款。",
 };
 
 const ja: PaymentDict = {
@@ -281,7 +313,10 @@ const ja: PaymentDict = {
 
   eyebrow: "セキュアチェックアウト",
   title: "ご注文の確定",
-  sub: "Nova（セールス開拓）にプロフェッショナル席を割り当てます。Stripe による安全な決済です。",
+  subStripe:
+    "Nova（セールス開拓）にプロフェッショナル席を割り当てます。Stripe による安全な決済です。",
+  subAlipay:
+    "Nova（セールス開拓）にプロフェッショナル席を割り当てます。Alipay による安全な決済です。",
 
   cycleMonthly: "月払い",
   cycleAnnual: "年払い −20%",
@@ -305,37 +340,41 @@ const ja: PaymentDict = {
   regionCN: "中国大陆 · 支付宝",
   regionNote: "言語設定から自動選択されました。いつでも切り替えできます。",
 
-  applePay: "Apple Pay",
-  googlePay: "Google Pay",
-  orPayWithCard: "またはカードで支払う",
-  email: "メールアドレス",
-  cardNumber: "カード番号",
-  expiry: "有効期限",
-  cvc: "セキュリティコード",
-  nameOnCard: "カード名義",
-  country: "国/地域",
-  countryDefault: "Singapore",
-  processing: "処理中…",
-  payAmount: (amt) => amt + " を支払う",
-  paymentFailed: "決済に失敗しました。もう一度お試しください。",
+  continueToStripe: "Stripe に進む",
+  redirectingStripe: "Stripe に移動しています…",
+  stripeWallets:
+    "Apple Pay、Google Pay、カードはいずれも Stripe の決済ページで選べます。カード情報を当社が受け取ることはありません。",
   stripeFootnote: "POWERED BY STRIPE · PCI DSS レベル 1 · 3-D セキュア",
 
+  alipayTitle: "支付宝 · Alipay",
+  openAlipayApp: "Alipay を開いて支払いを完了",
+  redirectingAlipay: "Alipay に移動しています…",
+  completeOnPhone: "お支払いは Alipay のページ、またはアプリでの読み取りで完了します。",
+  alipaySecured: "Alipay による安全な決済 · SECURED BY ALIPAY",
+
+  paymentFailed: "決済に失敗しました。もう一度お試しください。",
+  checkoutUnavailable:
+    "決済を開始できませんでした。決済事業者に接続できません。しばらくしてからお試しください。",
+  paymentFailedReason: (reason) => `決済に失敗しました：${reason}`,
+  retryPayment: "もう一度試す",
+  orderLookupFailed: "この注文を読み込めませんでした。",
+
+  statusEyebrow: "お支払い状況",
+  confirmingPay: "お支払いを確認しています…",
+  awaitingConfirmationNote: "このページを閉じずにお待ちください。決済事業者に確認しています。",
   paymentSuccessful: "お支払いが完了しました",
   chargedReceipt: (total, email) => `${total} を請求しました。領収書を ${email} に送信しました。`,
-  invoiceRef: (no) => (no ? `請求書 ${no}` : "参照番号 ch_3PqXk2LkdIwHu7ix"),
+  receiptWillEmail: (email) => `領収書は ${email} にお送りします。`,
+  paymentPending: "お支払い処理中",
+  paymentPendingNote: "決済処理が続いています。完了しだい席を有効化します。",
+  paymentCancelled: "お支払いをキャンセルしました",
+  paymentCancelledNote: "請求は発生していません。ご注文はそのまま保存されています。",
+  invoiceRef: (no) => `請求書 ${no}`,
+  orderRef: (no) => `注文番号 ${no}`,
+  eInvoiceNote: "電子請求書は請求ページから申請できます",
   backToBilling: "請求ページへ戻る →",
 
-  alipayTitle: "支付宝 · Alipay",
-  scanToPay: "Alipay アプリでスキャンしてお支払いください",
-  qrExpires: "QR コードは 04:32 後に失効します · 注文番号 ARK-20260613-0042",
-  simulatePay: "スキャン決済をシミュレート（デモ）",
-  confirmingPay: "お支払いを確認しています…",
-  completeOnPhone: "スマートフォンでお支払いを完了してください",
-  alipaySuccess: "お支払いが完了しました",
-  alipayActivated: (amt) => `有効化：プロフェッショナル席 × 1 · ${amt}`,
-  alipayInvoiceRef: (no) =>
-    (no ? `注文番号 ${no}` : "注文番号 ARK-20260613-0042") + " · 電子請求書は請求ページから申請できます",
-  alipaySecured: "Alipay による安全な決済 · SECURED BY ALIPAY",
+  mockNotice: "これはシミュレーション決済です。決済事業者が未設定のため、実際の請求は発生していません。",
 };
 
 export const payment: Record<Lang, PaymentDict> = { en, zh, zht, ja };

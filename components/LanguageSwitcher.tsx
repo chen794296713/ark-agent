@@ -1,123 +1,76 @@
 "use client";
 
 /**
- * Language switch. Reads + sets the active language on the AppProvider, which
- * persists the choice to localStorage and (when signed in) to the user profile.
+ * Language switch. A single globe icon (the universal "choose language"
+ * affordance) that opens a small popover listing every supported language by
+ * its native name. Picking one sets it on the AppProvider, which persists the
+ * choice to localStorage and (when signed in) to the user profile.
+ *
  * Two presentations:
- *  - compact (default): a compact dropdown with short labels for nav bars.
- *  - full: a wider dropdown with full language names for the mobile drawer.
- * Both show "short + label" in the dropdown options for consistency.
+ *  - compact (default): an icon-only square button for nav bars.
+ *  - full: an icon + current-language row for the mobile drawer / dashboard
+ *    footer, where the menu opens upward.
+ *
+ * The popover itself — open state, outside-click, keyboard, focus return and
+ * drop direction — lives in MenuPopover, shared with ThemeToggle so the two
+ * controls that sit side by side in every nav behave identically.
  */
-import { useState, useRef, useEffect } from "react";
-import { c, font } from "@/lib/theme";
 import { useApp } from "@/lib/store";
 import { LANGS } from "@/lib/i18n";
 import { common } from "@/lib/i18n/common";
+import { MenuPopover } from "@/components/MenuPopover";
+
+/** Line-style globe that inherits the button's text color via currentColor. */
+function GlobeIcon({ size = 16 }: { size?: number }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.6"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      style={{ display: "block" }}
+    >
+      <circle cx="12" cy="12" r="9" />
+      <path d="M3 12h18" />
+      <path d="M12 3c2.6 2.7 3.9 5.8 3.9 9s-1.3 6.3-3.9 9c-2.6-2.7-3.9-5.8-3.9-9S9.4 5.7 12 3Z" />
+    </svg>
+  );
+}
 
 export function LanguageSwitcher({
   compact = true,
+  drop,
   style,
 }: {
   compact?: boolean;
+  /** Which way the menu opens. Defaults to whichever side has room. */
+  drop?: "up" | "down";
   style?: React.CSSProperties;
 }) {
   const { lang, setLang } = useApp();
   const t = common[lang];
-  const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
-
-  const currentLang = LANGS.find((l) => l.code === lang) || LANGS[0];
-
-  // Close dropdown when clicking outside
-  useEffect(() => {
-    function handleClick(e: MouseEvent) {
-      if (ref.current && !ref.current.contains(e.target as Node)) {
-        setOpen(false);
-      }
-    }
-    if (open) {
-      document.addEventListener("mousedown", handleClick);
-    }
-    return () => document.removeEventListener("mousedown", handleClick);
-  }, [open]);
+  const current = LANGS.find((l) => l.code === lang) ?? LANGS[0];
 
   return (
-    <div ref={ref} style={{ position: "relative", ...style }}>
-      <button
-        onClick={() => setOpen(!open)}
-        aria-label={t.language}
-        aria-expanded={open}
-        aria-haspopup="listbox"
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: 6,
-          padding: compact ? "6px 10px" : "10px 14px",
-          background: "transparent",
-          border: `1px solid ${c.border}`,
-          color: c.text,
-          fontFamily: font.mono,
-          fontSize: compact ? 12 : 14,
-          cursor: "pointer",
-          minWidth: compact ? 48 : 120,
-          justifyContent: "center",
-        }}
-      >
-        <span>{compact ? currentLang.short : currentLang.label}</span>
-        <span style={{ fontSize: 10, color: c.muted }}>▼</span>
-      </button>
-
-      {open && (
-        <div
-          role="listbox"
-          aria-label={t.language}
-          style={{
-            position: "absolute",
-            top: "100%",
-            left: 0,
-            marginTop: 4,
-            background: c.panel,
-            border: `1px solid ${c.border}`,
-            zIndex: 50,
-            minWidth: 140,
-            boxShadow: "0 4px 12px rgba(0,0,0,0.3)",
-          }}
-        >
-          {LANGS.map((l) => {
-            const selected = lang === l.code;
-            return (
-              <button
-                key={l.code}
-                role="option"
-                aria-selected={selected}
-                onClick={() => {
-                  setLang(l.code);
-                  setOpen(false);
-                }}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 8,
-                  width: "100%",
-                  padding: "10px 14px",
-                  background: selected ? c.limeWash : "transparent",
-                  color: selected ? c.accent : c.text,
-                  border: "none",
-                  borderBottom: `1px solid ${c.line}`,
-                  cursor: "pointer",
-                  fontFamily: font.mono,
-                  fontSize: 13,
-                  textAlign: "left",
-                }}
-              >
-                <span style={{ fontWeight: 600, width: 28 }}>{l.short}</span>
-                <span style={{ color: c.muted }}>{l.label}</span>
-                {selected && <span style={{ marginLeft: "auto", color: c.lime }}>✓</span>}
-              </button>
-            );
-          })}
-        </div>
-      )}
-    </div>
+    <MenuPopover
+      label={t.language}
+      icon={<GlobeIcon size={compact ? 16 : 17} />}
+      valueLabel={current.label}
+      compact={compact}
+      drop={drop}
+      style={style}
+      options={LANGS.map((l) => ({
+        key: l.code,
+        selected: l.code === lang,
+        onSelect: () => setLang(l.code),
+        lead: l.short,
+        label: l.label,
+      }))}
+    />
   );
 }

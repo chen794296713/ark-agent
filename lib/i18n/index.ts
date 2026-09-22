@@ -15,6 +15,19 @@ import type { Lang } from "@/lib/types";
 
 export type { Lang } from "@/lib/types";
 
+/**
+ * BCP-47 tag per UI language, for Intl formatters (dates, number grouping).
+ * `Lang` is our own short code and is NOT a valid locale — passing "zht" to
+ * toLocaleDateString silently falls back to the browser default, which is how
+ * a 日本語 visitor ends up reading "Jun 1, 2026".
+ */
+export const BCP47: Record<Lang, string> = {
+  en: "en-US",
+  zh: "zh-CN",
+  zht: "zh-TW",
+  ja: "ja-JP",
+};
+
 /** localStorage key for the persisted language choice. */
 export const LANG_STORAGE_KEY = "ark-lang";
 

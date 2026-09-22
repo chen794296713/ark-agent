@@ -8,7 +8,10 @@
  * Full reference: docs/API.md.
  */
 
-export type AmEngine = "openclaw" | "hermes";
+import type { Harness } from "@/lib/harness";
+
+/** The wire name for a harness. Same set as `Harness` — aliased, not forked. */
+export type AmEngine = Harness;
 export type LifecycleAction = "pause" | "resume" | "terminate";
 
 export interface ProvisionInput {

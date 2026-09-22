@@ -13,26 +13,10 @@ export interface RoleTranslation {
 export type RoleTranslations = Partial<Record<string, RoleTranslation>>;
 
 export const roleTranslations: Record<Lang, RoleTranslations> = {
-  en: {
-    // Add English translations for roles here if needed
-    // Example:
-    // "role-id-1": { name: "Sales Agent", blurb: "Your sales assistant" },
-  },
-  zh: {
-    // Add Simplified Chinese translations for roles here if needed
-    // Example:
-    // "role-id-1": { name: "销售智能体", blurb: "您的销售助手" },
-  },
-  zht: {
-    // Add Traditional Chinese translations for roles here if needed
-    // Example:
-    // "role-id-1": { name: "銷售智能體", blurb: "您的銷售助手" },
-  },
-  ja: {
-    // Add Japanese translations for roles here if needed
-    // Example:
-    // "role-id-1": { name: "セールスイエージェント", blurb: "あなたのセールスイエージェント" },
-  },
+  en: {},
+  zh: {},
+  zht: {},
+  ja: {},
 };
 
 /**

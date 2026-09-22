@@ -1,6 +1,6 @@
-import { and, asc, eq } from "drizzle-orm";
+import { and, asc, eq, inArray, ne } from "drizzle-orm";
 import { db } from "@/lib/db";
-import { channels, agents, agentManagerConfig } from "@/lib/db/schema";
+import { channels, agents, agentChannels, agentManagerConfig } from "@/lib/db/schema";
 import { requireAuth, parseBody, json } from "@/lib/api";
 import { connectChannelSchema } from "@/lib/validation";
 import { serializeChannel } from "@/lib/serializers";
@@ -103,7 +103,35 @@ export async function GET(req: Request) {
     .from(channels)
     .where(eq(channels.workspaceId, auth.ctx.workspace.id))
     .orderBy(asc(channels.createdAt));
-  return json({ channels: rows.map(serializeChannel) });
+
+  // Which of THIS workspace's agents use each channel. The page used to fall
+  // back to a hardcoded "USED BY NOVA" whenever `channels.label` was null,
+  // printing a fictional demo roster onto real customers' screens.
+  const usedBy = new Map<string, string[]>();
+  if (rows.length) {
+    const links = await db
+      .select({ channelId: agentChannels.channelId, name: agents.name })
+      .from(agentChannels)
+      .innerJoin(agents, eq(agents.id, agentChannels.agentId))
+      .where(
+        and(
+          inArray(agentChannels.channelId, rows.map((r) => r.id)),
+          eq(agents.workspaceId, auth.ctx.workspace.id),
+          ne(agents.status, "terminated"),
+        ),
+      )
+      .orderBy(asc(agents.createdAt));
+    for (const l of links) {
+      usedBy.set(l.channelId, [...(usedBy.get(l.channelId) ?? []), l.name]);
+    }
+  }
+
+  return json({
+    channels: rows.map((row) => ({
+      ...serializeChannel(row),
+      usedBy: usedBy.get(row.id) ?? [],
+    })),
+  });
 }
 
 /** Connect (or update) a channel for the workspace. */

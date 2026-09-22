@@ -1,16 +1,26 @@
-import { and, asc, desc, eq } from "drizzle-orm";
+import { asc, desc, eq } from "drizzle-orm";
 import { db } from "@/lib/db";
-import { conversations, messages, usageRecords } from "@/lib/db/schema";
-import { requireAuth, parseBody, json, notFound } from "@/lib/api";
+import { agentRoles, conversations, messages, usageRecords } from "@/lib/db/schema";
+import { requireAuth, parseBody, json, notFound, apiError } from "@/lib/api";
 import { sendMessageSchema } from "@/lib/validation";
 import { getAgentRow } from "@/lib/services/agents";
 import { serializeMessage } from "@/lib/serializers";
-import { mockReply } from "@/lib/agent-manager";
+import { agentManagerMode, mockReply } from "@/lib/agent-manager";
 import {
   getOpenclawConfigByAgentId,
   streamOpenclawChat,
 } from "@/lib/services/openclaw_instances";
-import type { Message } from "@/lib/db/schema";
+import { mergeSettings } from "@/lib/agent-settings";
+import {
+  streamChatCompletion,
+  type ChatMessage,
+  type LlmConnection,
+  type LlmUsageSample,
+} from "@/lib/llm/openrouter";
+import { resolveWorkspaceLlmConnection } from "@/lib/llm/channel-config";
+import { buildAgentSystemPrompt } from "@/lib/llm/agent-prompt";
+import { recordLlmUsage, classifyLlmError, type LlmErrorCode } from "@/lib/llm/usage";
+import type { Agent, Message } from "@/lib/db/schema";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -79,8 +89,32 @@ export async function POST(req: Request, { params }: Ctx) {
     .where(eq(conversations.id, conv.id));
 
   const openclawConfig = await getOpenclawConfigByAgentId(id);
-  const useStream =
-    process.env.AGENT_MANAGER_MODE === "live" && !!openclawConfig?.externalId;
+  const useStream = agentManagerMode() === "live" && !!openclawConfig?.externalId;
+  // When no live OpenClaw runtime is attached, prefer a real LLM (OpenRouter)
+  // over the canned reply — as long as an API key is configured.
+  const agentSettings = mergeSettings(agent.settings);
+  const primaryOverride = agentSettings.model && agentSettings.model !== "auto" ? {
+    channelKind: agentSettings.modelChannelKind,
+    channelId: agentSettings.modelChannelId,
+    model: agentSettings.model,
+  } : undefined;
+  const llmConnection = !useStream ? await resolveWorkspaceLlmConnection(auth.ctx.workspace.id, primaryOverride) : null;
+  const fallbackConnection = !useStream && agentSettings.fallbackModel ? await resolveWorkspaceLlmConnection(auth.ctx.workspace.id, {
+    channelKind: agentSettings.fallbackModelChannelKind,
+    channelId: agentSettings.fallbackModelChannelId,
+    model: agentSettings.fallbackModel,
+  }) : null;
+  const useLLM = !!llmConnection;
+
+  // Neither a runtime nor a model: the only thing left is the canned reply, and
+  // pantomiming a model to a paying customer is worse than saying nothing. Fail
+  // the way self-review already does rather than streaming fiction.
+  if (!useStream && !useLLM && process.env.NODE_ENV === "production") {
+    return apiError(
+      "No agent runtime or language model is configured for this deployment.",
+      503,
+    );
+  }
 
   const encoder = new TextEncoder();
   const stream = new ReadableStream<Uint8Array>({
@@ -99,6 +133,20 @@ export async function POST(req: Request, { params }: Ctx) {
             conversationId: conv!.id,
             agentName: agent.name,
             body: parsed.data.body,
+            sessionKey: parsed.data.sessionKey,
+            onDelta: (delta) => send({ type: "delta", delta }),
+            onComplete: (replyMessage) =>
+              send({ type: "done", conversationId: conv!.id, replyMessage: serializeMessage(replyMessage) }),
+            onError: (message) => send({ type: "error", message }),
+          });
+        } else if (useLLM) {
+          await streamLLMReply({
+            agent,
+            connection: llmConnection!,
+            fallbackConnection,
+            userId: auth.ctx.user.id,
+            workspaceId: auth.ctx.workspace.id,
+            conversationId: conv!.id,
             onDelta: (delta) => send({ type: "delta", delta }),
             onComplete: (replyMessage) =>
               send({ type: "done", conversationId: conv!.id, replyMessage: serializeMessage(replyMessage) }),
@@ -153,6 +201,7 @@ async function streamOpenclawReply(opts: {
   conversationId: string;
   agentName: string;
   body: string;
+  sessionKey?: string;
   onDelta: (delta: string) => void;
   onComplete: (replyMessage: Message) => void;
   onError: (message: string) => void;
@@ -160,7 +209,11 @@ async function streamOpenclawReply(opts: {
   try {
     const handle = await streamOpenclawChat(
       opts.externalId,
-      { agent: "main", message: opts.body },
+      {
+        agent: "main",
+        message: opts.body,
+        ...(opts.sessionKey ? { sessionKey: opts.sessionKey } : {}),
+      },
       {
         onEvent: (event) => {
           if (event.type === "response.output_text.delta" && event.delta) {
@@ -214,6 +267,94 @@ async function streamOpenclawReply(opts: {
   } catch (e) {
     opts.onError(e instanceof Error ? e.message : "OpenClaw stream failed");
   }
+}
+
+async function streamLLMReply(opts: {
+  agent: Agent;
+  connection: LlmConnection;
+  fallbackConnection: LlmConnection | null;
+  userId: string;
+  workspaceId: string;
+  conversationId: string;
+  onDelta: (delta: string) => void;
+  onComplete: (replyMessage: Message) => void;
+  onError: (message: string) => void;
+}) {
+  const startedAt = Date.now();
+  let sample: LlmUsageSample | undefined;
+  let errorCode: LlmErrorCode | undefined;
+  try {
+    const [role] = await db
+      .select({ name: agentRoles.name, blurb: agentRoles.blurb })
+      .from(agentRoles)
+      .where(eq(agentRoles.id, opts.agent.roleId))
+      .limit(1);
+    const settings = mergeSettings(opts.agent.settings);
+
+    // Recent conversation history (includes the message we just stored).
+    const history = await db
+      .select()
+      .from(messages)
+      .where(eq(messages.conversationId, opts.conversationId))
+      .orderBy(asc(messages.createdAt));
+    const recent = history.slice(-20);
+
+    const llmMessages: ChatMessage[] = [
+      {
+        role: "system",
+        content: buildAgentSystemPrompt({
+          agentName: opts.agent.name,
+          roleName: role?.name ?? "AI employee",
+          roleBlurb: role?.blurb ?? null,
+          instructions: opts.agent.instructions,
+          rules: opts.agent.rules,
+          settings,
+        }),
+      },
+    ];
+    for (const m of recent) {
+      if (m.sender === "user") llmMessages.push({ role: "user", content: m.body });
+      else if (m.sender === "agent") llmMessages.push({ role: "assistant", content: m.body });
+    }
+
+    let emitted = false;
+    const run = (connection: LlmConnection) => streamChatCompletion({
+      connection, messages: llmMessages, temperature: settings.temperature, maxTokens: settings.maxTokens,
+      onDelta: (delta) => { emitted = true; opts.onDelta(delta); },
+      onUsage: (u) => { sample = u; },
+    });
+    let full: string;
+    try {
+      full = await run(opts.connection);
+    } catch (primaryError) {
+      if (!opts.fallbackConnection || emitted) throw primaryError;
+      full = await run(opts.fallbackConnection);
+    }
+
+    const reply = await persistAgentReply({
+      agentId: opts.agent.id,
+      conversationId: opts.conversationId,
+      agentName: opts.agent.name,
+      body: full.trim() || "(no reply)",
+    });
+    opts.onComplete(reply);
+  } catch (e) {
+    errorCode = classifyLlmError(e);
+    opts.onError(e instanceof Error ? e.message : "LLM reply failed");
+  }
+  // Accounting runs only after the terminal SSE frame is already enqueued, and
+  // recordLlmUsage swallows its own failures — so a slow or broken analytics
+  // write can neither delay what the user sees nor abort the stream. Failures
+  // are recorded too, or the admin console would show spend without error rate.
+  await recordLlmUsage({
+    sample,
+    kind: "chat",
+    userId: opts.userId,
+    workspaceId: opts.workspaceId,
+    agentId: opts.agent.id,
+    latencyMs: Date.now() - startedAt,
+    errorCode,
+  });
 }
 
 async function persistAgentReply(opts: {

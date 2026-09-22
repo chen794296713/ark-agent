@@ -11,9 +11,10 @@ export const dynamic = "force-dynamic";
  * Request a WeChat QR code login for a specific agent instance.
  * POST /api/channels/wechat/login?instance_uuid=<agentId>
  *
- * Supports two lookup strategies:
- * 1. instance_uuid = agents.id (ArkAgent UUID)
- * 2. instance_uuid = agentManagerConfig.externalId (OpenClaw instance UUID)
+ * Returns an SSE stream that proxies upstream `/api/channels/{uuid}/flows`.
+ * Browser receives events named: wait_matched, step_completed, heartbeat,
+ * session_completed, plus a terminal `done` event whose payload is the
+ * aggregated WechatLoginResponse JSON.
  */
 export async function POST(req: Request) {
   const auth = await requireAuth();
@@ -74,7 +75,36 @@ export async function POST(req: Request) {
     return json({ error: "Agent has no OpenClaw instance configured" }, 400);
   }
 
-  // Call the OpenClaw Manager API with the externalId (OpenClaw instance UUID)
-  const result = await wechatLogin(cfg.externalId);
-  return json(result);
+  const encoder = new TextEncoder();
+  const stream = new ReadableStream<Uint8Array>({
+    async start(controller) {
+      const send = (event: string, data: unknown) => {
+        controller.enqueue(
+          encoder.encode(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`)
+        );
+      };
+      try {
+        const result = await wechatLogin(cfg.externalId, {
+          signal: req.signal,
+          onEvent: (e) => send(e.event, e.data),
+        });
+        send("done", result);
+      } catch (e) {
+        send("error", {
+          message: e instanceof Error ? e.message : "WeChat login stream failed",
+        });
+      } finally {
+        controller.close();
+      }
+    },
+  });
+
+  return new Response(stream, {
+    headers: {
+      "content-type": "text/event-stream; charset=utf-8",
+      "cache-control": "no-cache, no-transform",
+      "x-accel-buffering": "no",
+      connection: "keep-alive",
+    },
+  });
 }
