@@ -38,6 +38,9 @@ export async function POST(req: Request) {
     if (err instanceof Error && /Unknown role/.test(err.message)) {
       return apiError("Unknown role", 400);
     }
+    if (err instanceof Error && /Unknown LLM model selection/.test(err.message)) {
+      return apiError("Unknown LLM model selection", 422);
+    }
     throw err;
   }
 }

@@ -119,7 +119,8 @@
 .field { display: grid; gap: 10px; }
 .field > label, .fieldHeader > label, .tasksField legend, .channelsField legend { font-size: 15px; color: var(--c-text); font-weight: 650; }
 .fieldHeader { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
-.field input, .field textarea, .customName input, .addTask input { width: 100%; min-width: 0; background: var(--c-panel); color: var(--c-text); border: 1px solid var(--c-border-field); border-radius: 7px; padding: 13px 15px; font-size: 16px; line-height: 1.65; }
+.field input, .field textarea, .field select, .customName input, .addTask input { width: 100%; min-width: 0; background: var(--c-panel); color: var(--c-text); border: 1px solid var(--c-border-field); border-radius: 7px; padding: 13px 15px; font-size: 16px; line-height: 1.65; }
+.field select { min-height: 52px; }
 .field textarea { resize: vertical; min-height: 132px; }
 .roleDescription { color: var(--c-text2); line-height: 1.7; margin-bottom: 32px; }
 .presetSelection .roleDescription { margin-bottom: 14px; font-size: 15px; }
@@ -144,6 +145,13 @@
 .channel input { margin-top: 0; }
 .channel.selectedOption { border-color: var(--c-lime-border); }
 .helpText { color: var(--c-muted); font-size: 13px; line-height: 1.7; margin: 17px 0 0; }
+.modelConfig { display: grid; gap: 0; border-top: 1px solid var(--c-line); }
+.modelConfig .notice, .modelConfig .error { grid-column: 1 / -1; }
+.modelConfig .helpText { margin-top: 0; }
+.modelRow { display: grid; grid-template-columns: minmax(150px, .75fr) minmax(0, 1fr) minmax(0, 1.35fr); gap: 18px; align-items: end; padding: 22px 0; border-bottom: 1px solid var(--c-line); }
+.modelRowTitle { align-self: center; display: grid; gap: 5px; }
+.modelRowTitle strong { font-size: 16px; color: var(--c-text); }
+.modelRowTitle span { font-size: 12px; line-height: 1.5; color: var(--c-muted); }
 
 .review { margin: 0 0 34px; }
 .review > div { display: grid; grid-template-columns: 126px minmax(0, 1fr); gap: 28px; padding: 16px 0; border-bottom: 1px solid var(--c-line); }
@@ -229,6 +237,7 @@
   .engineOption { padding: 18px 16px; gap: 13px; }
   .engineOption strong { font-size: 17px; }
   .channels { gap: 10px; }
+  .modelRow { grid-template-columns: 1fr; gap: 14px; align-items: stretch; }
   .channel { padding: 12px; font-size: 13px; }
   .review > div { grid-template-columns: 90px minmax(0, 1fr); gap: 20px; }
   .review dd { font-size: 14px; }

@@ -15,6 +15,10 @@ export type Tone = "professional" | "friendly" | "concise" | "formal" | "playful
 export type ResponseLanguage = "auto" | "en" | "zh" | "zht" | "ja";
 export type Autonomy = "suggest" | "ask" | "auto";
 export type ReasoningEffort = "low" | "medium" | "high";
+export interface LlmModelSelection {
+  channelId: string;
+  model: string;
+}
 
 /**
  * Fixed denomination of `AgentSettings.approvalAmount`. Not the display
@@ -58,6 +62,8 @@ export interface AgentSettings {
 
   // ---- LLM provider (model-agnostic) ----
   model: string; // "auto" or a provider/model id
+  primaryModel: LlmModelSelection | null;
+  backupModel: LlmModelSelection | null;
   temperature: number; // 0..1
   maxTokens: number;
   reasoningEffort: ReasoningEffort; // Hermes deep-reasoning depth
@@ -102,6 +108,8 @@ export const DEFAULT_SETTINGS: AgentSettings = {
   digestTime: "18:00",
 
   model: "auto",
+  primaryModel: null,
+  backupModel: null,
   temperature: 0.4,
   maxTokens: 4096,
   reasoningEffort: "medium",

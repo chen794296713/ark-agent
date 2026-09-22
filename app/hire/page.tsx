@@ -4,7 +4,7 @@ import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
-import { api, ApiError, type RoleDTO } from "@/lib/client-api";
+import { api, ApiError, type LlmChannelDTO, type LlmModelSelection, type RoleDTO } from "@/lib/client-api";
 import { ENGINE_LABEL, planLabel } from "@/lib/agent-display";
 import { isHarness, type Harness } from "@/lib/harness";
 import { useApp } from "@/lib/store";
@@ -19,16 +19,15 @@ import styles from "./hire.module.css";
 const CUSTOM_ROLE_ID = "custom";
 const ROLE_PAGE_SIZE = 10;
 
-/** Channel picker labels mapped to API type strings. Labels are set dynamically from i18n. */
-const CHANNEL_TYPES = [
-  "telegram",
-  "whatsapp",
-  "wechat",
-  "line",
-  "slack",
-  "email",
-] as const;
-type ChannelType = (typeof CHANNEL_TYPES)[number];
+const modelValue = (selection: LlmModelSelection) => JSON.stringify([selection.channelId, selection.model]);
+function parseModelValue(value: string): LlmModelSelection | null {
+  try {
+    const parsed = JSON.parse(value) as unknown;
+    return Array.isArray(parsed) && typeof parsed[0] === "string" && typeof parsed[1] === "string"
+      ? { channelId: parsed[0], model: parsed[1] }
+      : null;
+  } catch { return null; }
+}
 
 function HireInner() {
   const router = useRouter();
@@ -71,11 +70,11 @@ function HireInner() {
   const [taskDraft, setTaskDraft] = useState("");
   const [tasks, setTasks] = useState<string[]>(() => [...t.tasksDefault]);
   const [engine, setEngine] = useState("auto");
-  const [channels, setChannels] = useState<Record<ChannelType, boolean>>(() =>
-    Object.fromEntries(
-      CHANNEL_TYPES.map((type) => [type, type === "telegram" || type === "whatsapp"]),
-    ) as Record<ChannelType, boolean>,
-  );
+  const [llmChannels, setLlmChannels] = useState<LlmChannelDTO[]>([]);
+  const [modelsLoading, setModelsLoading] = useState(true);
+  const [modelsError, setModelsError] = useState<string | null>(null);
+  const [primaryModel, setPrimaryModel] = useState("");
+  const [backupModel, setBackupModel] = useState("");
   const [genBusyI, setGenBusyI] = useState(false);
   const [genBusyR, setGenBusyR] = useState(false);
 
@@ -90,6 +89,30 @@ function HireInner() {
       if (lvRef.current) clearInterval(lvRef.current);
     };
   }, []);
+
+  useEffect(() => {
+    let alive = true;
+    api.llmChannels().then(({ channels: available }) => {
+      if (!alive) return;
+      const usable = available.filter((channel) => channel.models.length > 0 && (channel.kind === "custom" || channel.configured));
+      setLlmChannels(usable);
+      const custom = usable.filter((channel) => channel.kind === "custom");
+      const system = usable.filter((channel) => channel.kind === "system");
+      const preferred = [
+        ...custom.map((channel) => ({ channelId: channel.id, model: channel.models[0] })),
+        ...system.map((channel) => ({ channelId: channel.id, model: channel.models[0] })),
+        ...custom.flatMap((channel) => channel.models.slice(1).map((model) => ({ channelId: channel.id, model }))),
+        ...system.flatMap((channel) => channel.models.slice(1).map((model) => ({ channelId: channel.id, model }))),
+      ];
+      if (preferred[0]) setPrimaryModel(modelValue(preferred[0]));
+      if (preferred[1]) setBackupModel(modelValue(preferred[1]));
+    }).catch((err: unknown) => {
+      if (!alive) return;
+      if (err instanceof ApiError && err.status === 401) { router.push("/auth"); return; }
+      setModelsError(err instanceof ApiError ? err.message : hire[localeRef.current].modelsLoadError);
+    }).finally(() => { if (alive) setModelsLoading(false); });
+    return () => { alive = false; };
+  }, [router]);
 
   // Fetch the role catalog on mount. (rolesLoading starts true, rolesError null.)
   useEffect(() => {
@@ -245,22 +268,24 @@ function HireInner() {
     setTaskDraft("");
   };
 
-  // Selected channel TYPE strings (e.g. ["telegram","whatsapp"]).
-  const chanTypes = CHANNEL_TYPES.filter((type) => channels[type]);
-
-  // Channel labels from i18n
-  const getChannelLabel = (type: ChannelType): string => {
-    switch (type) {
-      case "telegram": return t.channelTelegram;
-      case "whatsapp": return t.channelWhatsApp;
-      case "wechat": return t.channelWeChat;
-      case "line": return t.channelLINE;
-      case "slack": return t.channelSlack;
-      case "email": return t.channelEmail;
-    }
+  const selectedPrimary = parseModelValue(primaryModel);
+  const selectedBackup = parseModelValue(backupModel);
+  const primaryChannel = llmChannels.find((channel) => channel.id === selectedPrimary?.channelId);
+  const backupChannel = llmChannels.find((channel) => channel.id === selectedBackup?.channelId);
+  const selectChannel = (target: "primary" | "backup", channelId: string) => {
+    const channel = llmChannels.find((item) => item.id === channelId);
+    if (!channel) return;
+    const excluded = target === "backup" ? primaryModel : backupModel;
+    const model = channel.models.find((item) => modelValue({ channelId, model: item }) !== excluded) ?? channel.models[0];
+    const value = modelValue({ channelId, model });
+    if (target === "primary") setPrimaryModel(value);
+    else setBackupModel(value);
   };
-
-  const chanLabels = chanTypes.map(getChannelLabel);
+  const modelLabel = (value: string) => {
+    const selection = parseModelValue(value);
+    const channel = selection ? llmChannels.find((item) => item.id === selection.channelId) : null;
+    return selection && channel ? `${channel.name} · ${selection.model}` : "—";
+  };
   const revName = agentName.trim() || selRoleDisplay?.name || "Aria";
 
   // Engine actually used: explicit pick, or the role's default for auto-match.
@@ -280,7 +305,8 @@ function HireInner() {
 
   const canNext = !rolesLoading && !rolesError && !!selRoleObj &&
     (!agentPreset.requested || isCustomRole) &&
-    (hireStep !== 1 || !isCustomRole || !!customRoleName.trim());
+    (hireStep !== 1 || !isCustomRole || !!customRoleName.trim()) &&
+    (hireStep < 3 || (!modelsLoading && !modelsError && !!selectedPrimary && !!selectedBackup && primaryModel !== backupModel));
   const nextStep = () => {
     if (!canNext) return;
     if (hireStep < 4) setHireStep(hireStep + 1);
@@ -328,8 +354,10 @@ function HireInner() {
         planTier,
         instructions,
         rules,
-        channels: chanTypes,
+        channels: [],
         tasks,
+        primaryModel: selectedPrimary!,
+        backupModel: selectedBackup!,
       })
       .then(({ agent }) => {
         setCreatedId(agent.id);
@@ -372,7 +400,8 @@ function HireInner() {
     { label: t.rowRole, value: selRoleDisplay?.name ?? "—" },
     { label: t.rowName, value: revName },
     { label: t.rowEngine, value: engineName },
-    { label: t.rowChannels, value: chanLabels.length ? `${chanLabels.join(" · ")} · ${t.webSuffix}` : t.webConsole },
+    { label: t.rowPrimaryModel, value: modelLabel(primaryModel) },
+    { label: t.rowBackupModel, value: modelLabel(backupModel) },
     { label: t.rowPlan, value: planLabel(planTier) },
   ];
   const goToStep = (step: number) => {
@@ -539,18 +568,22 @@ function HireInner() {
                   </label>
                 ))}
               </fieldset>
-              <fieldset className={styles.channelsField}>
-                <legend>{sentenceLabel(t.channelsLabel)}</legend>
-                <div className={styles.channels}>
-                  {CHANNEL_TYPES.map((type) => (
-                    <label key={type} className={`${styles.channel} ${channels[type] ? styles.selectedOption : ""}`}>
-                      <input type="checkbox" checked={channels[type]} onChange={() => setChannels((current) => ({ ...current, [type]: !current[type] }))} />
-                      <span>{getChannelLabel(type)}</span>
-                    </label>
-                  ))}
-                </div>
-                <p className={styles.helpText}>{t.channelsNote}</p>
-              </fieldset>
+              <div className={styles.modelConfig}>
+                {modelsLoading && <div className={styles.notice}><span className={styles.spinner} aria-hidden="true" />{t.modelsLoading}</div>}
+                {!modelsLoading && modelsError && <div className={styles.error} role="alert">{modelsError}</div>}
+                {!modelsLoading && !modelsError && llmChannels.length > 0 && <>
+                  <div className={styles.modelRow}>
+                    <div className={styles.modelRowTitle}><strong>{t.primaryModel}</strong><span>{t.primaryModelHelp}</span></div>
+                    <div className={styles.field}><label htmlFor="primary-channel">{t.modelChannel}</label><select id="primary-channel" value={selectedPrimary?.channelId ?? ""} onChange={(event) => selectChannel("primary", event.target.value)}>{llmChannels.map((channel) => <option key={channel.id} value={channel.id}>{channel.kind === "custom" ? t.customChannel : t.systemChannel} · {channel.name}</option>)}</select></div>
+                    <div className={styles.field}><label htmlFor="primary-model">{t.modelName}</label><select id="primary-model" value={selectedPrimary?.model ?? ""} onChange={(event) => setPrimaryModel(modelValue({ channelId: primaryChannel!.id, model: event.target.value }))}>{primaryChannel?.models.map((model) => <option key={model} value={model}>{model}</option>)}</select></div>
+                  </div>
+                  <div className={styles.modelRow}>
+                    <div className={styles.modelRowTitle}><strong>{t.backupModel}</strong><span>{t.backupModelHelp}</span></div>
+                    <div className={styles.field}><label htmlFor="backup-channel">{t.modelChannel}</label><select id="backup-channel" value={selectedBackup?.channelId ?? ""} onChange={(event) => selectChannel("backup", event.target.value)}>{llmChannels.map((channel) => <option key={channel.id} value={channel.id}>{channel.kind === "custom" ? t.customChannel : t.systemChannel} · {channel.name}</option>)}</select></div>
+                    <div className={styles.field}><label htmlFor="backup-model">{t.modelName}</label><select id="backup-model" value={selectedBackup?.model ?? ""} onChange={(event) => setBackupModel(modelValue({ channelId: backupChannel!.id, model: event.target.value }))}>{backupChannel?.models.map((model) => <option key={model} disabled={modelValue({ channelId: backupChannel.id, model }) === primaryModel} value={model}>{model}</option>)}</select></div>
+                  </div>
+                </>}
+              </div>
             </>
           )}
 

@@ -6,6 +6,7 @@ export interface DashLayoutDict {
   navFleet: string;
   navTemplates: string;
   navSkills: string;
+  navLlmChannels: string;
   navChannels: string;
   navBilling: string;
   navPayment: string;
@@ -34,6 +35,7 @@ export const dashLayout: Record<Lang, DashLayoutDict> = {
     navFleet: "Your agents",
     navTemplates: "Templates",
     navSkills: "Skills",
+    navLlmChannels: "LLM channels",
     navChannels: "Channels",
     navBilling: "Billing & usage",
     navPayment: "Payment",
@@ -54,6 +56,7 @@ export const dashLayout: Record<Lang, DashLayoutDict> = {
     navFleet: "智能体团队",
     navTemplates: "模板库",
     navSkills: "技能库",
+    navLlmChannels: "LLM 渠道管理",
     navChannels: "渠道",
     navBilling: "账单与用量",
     navPayment: "支付",
@@ -74,6 +77,7 @@ export const dashLayout: Record<Lang, DashLayoutDict> = {
     navFleet: "智能體團隊",
     navTemplates: "範本庫",
     navSkills: "技能庫",
+    navLlmChannels: "LLM 通路管理",
     navChannels: "通路",
     navBilling: "帳單與用量",
     navPayment: "支付",
@@ -94,6 +98,7 @@ export const dashLayout: Record<Lang, DashLayoutDict> = {
     navFleet: "エージェント一覧",
     navTemplates: "テンプレート",
     navSkills: "スキル",
+    navLlmChannels: "LLM チャネル",
     navChannels: "チャネル",
     navBilling: "請求と利用状況",
     navPayment: "支払い",

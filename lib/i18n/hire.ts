@@ -61,14 +61,16 @@ export interface HireDict {
   autoMatchBlurb: string;
   openclawBlurb: string;
   hermesBlurb: string;
-  channelsLabel: string;
-  channelsNote: string;
-  channelTelegram: string;
-  channelWhatsApp: string;
-  channelWeChat: string;
-  channelLINE: string;
-  channelSlack: string;
-  channelEmail: string;
+  modelsLoading: string;
+  modelsLoadError: string;
+  primaryModel: string;
+  primaryModelHelp: string;
+  backupModel: string;
+  backupModelHelp: string;
+  modelChannel: string;
+  modelName: string;
+  customChannel: string;
+  systemChannel: string;
 
   // Step 4 — Review & launch
   s4Title: string;
@@ -76,11 +78,10 @@ export interface HireDict {
   rowRole: string;
   rowName: string;
   rowEngine: string;
-  rowChannels: string;
+  rowPrimaryModel: string;
+  rowBackupModel: string;
   rowFirstTasks: string;
   rowPlan: string;
-  webConsole: string;
-  webSuffix: string;
   tasksQueued: (count: number, reminders: string) => string;
   launchBtn: (name: string) => string;
   launchFailed: string;
@@ -112,7 +113,7 @@ const en: HireDict = {
   steps: {
     role: { label: "Role", sub: "Pick the job" },
     brief: { label: "Brief", sub: "Instructions & tasks" },
-    engine: { label: "Engine & channels", sub: "OpenClaw / Hermes" },
+    engine: { label: "Engine & models", sub: "Runtime and failover" },
     review: { label: "Review & launch", sub: "Provision the VM" },
   },
   tipLabel: "TIP",
@@ -156,9 +157,8 @@ const en: HireDict = {
   addTask: "+ Add",
   reminders: "REMINDERS & SCHEDULE",
 
-  s3Title: "Engine & channels",
-  s3Sub:
-    "Pick the runtime — or let us match it to the brief. Add the channels you'll manage it from.",
+  s3Title: "Engine & models",
+  s3Sub: "Pick the runtime, then choose a primary model and a backup for failover.",
   recommended: "RECOMMENDED",
   community: "COMMUNITY",
   precision: "PRECISION",
@@ -166,26 +166,26 @@ const en: HireDict = {
   autoMatchBlurb: "We read the brief and pick. Switch anytime.",
   openclawBlurb: "100+ skills, every chat channel, huge ecosystem.",
   hermesBlurb: "Deep reasoning, guardrails, full audit trail.",
-  channelsLabel: "CHANNELS — WHERE YOU'LL TALK TO IT",
-  channelsNote:
-    "Web console is always included. Tokens & accounts are configured in Dashboard → Channels after launch.",
-  channelTelegram: "Telegram",
-  channelWhatsApp: "WhatsApp",
-  channelWeChat: "WeChat",
-  channelLINE: "LINE",
-  channelSlack: "Slack",
-  channelEmail: "Email",
+  modelsLoading: "Loading available models…",
+  modelsLoadError: "Couldn't load available models.",
+  primaryModel: "Primary model",
+  primaryModelHelp: "Used for normal agent work.",
+  backupModel: "Backup model",
+  backupModelHelp: "Used when the primary model is unavailable.",
+  modelChannel: "Channel",
+  modelName: "Model",
+  customChannel: "Custom",
+  systemChannel: "System",
 
   s4Title: "Review & launch",
   s4Sub: "A dedicated machine will be provisioned for this agent.",
   rowRole: "ROLE",
   rowName: "NAME",
   rowEngine: "ENGINE",
-  rowChannels: "CHANNELS",
+  rowPrimaryModel: "PRIMARY MODEL",
+  rowBackupModel: "BACKUP MODEL",
   rowFirstTasks: "FIRST TASKS",
   rowPlan: "PLAN",
-  webConsole: "Web console",
-  webSuffix: "Web",
   tasksQueued: (count, reminders) => `${count} queued · reminders: ${reminders}`,
   launchBtn: (name) => `⏻ Launch ${name}`,
   launchFailed: "Launch failed. Please try again.",
@@ -214,7 +214,7 @@ const zh: HireDict = {
   steps: {
     role: { label: "岗位", sub: "选择职位" },
     brief: { label: "工作简报", sub: "指令与任务" },
-    engine: { label: "引擎与渠道", sub: "OpenClaw / Hermes" },
+    engine: { label: "引擎与模型", sub: "运行环境与故障切换" },
     review: { label: "确认并启动", sub: "开通专属服务器" },
   },
   tipLabel: "提示",
@@ -258,8 +258,8 @@ const zh: HireDict = {
   addTask: "+ 添加",
   reminders: "提醒与日程",
 
-  s3Title: "引擎与渠道",
-  s3Sub: "选择运行引擎，或交给我们根据简报自动匹配。再添加你用来管理它的渠道。",
+  s3Title: "引擎与模型",
+  s3Sub: "选择运行引擎，再配置主模型和故障切换时使用的备用模型。",
   recommended: "推荐",
   community: "社区",
   precision: "精准",
@@ -267,25 +267,26 @@ const zh: HireDict = {
   autoMatchBlurb: "我们读懂简报后自动选择，随时可切换。",
   openclawBlurb: "100+ 技能、覆盖所有聊天渠道、生态庞大。",
   hermesBlurb: "深度推理、安全护栏、完整审计记录。",
-  channelsLabel: "渠道——你将在哪里与它沟通",
-  channelsNote: "网页控制台始终包含在内。令牌与账号将在启动后于 控制台 → 渠道 中配置。",
-  channelTelegram: "Telegram",
-  channelWhatsApp: "WhatsApp",
-  channelWeChat: "微信",
-  channelLINE: "LINE",
-  channelSlack: "Slack",
-  channelEmail: "电子邮件",
+  modelsLoading: "正在加载可用模型…",
+  modelsLoadError: "无法加载可用模型。",
+  primaryModel: "主模型",
+  primaryModelHelp: "智能体日常工作优先使用此模型。",
+  backupModel: "备用模型",
+  backupModelHelp: "主模型不可用时自动切换到此模型。",
+  modelChannel: "渠道",
+  modelName: "模型",
+  customChannel: "自定义渠道",
+  systemChannel: "系统渠道",
 
   s4Title: "确认并启动",
   s4Sub: "我们将为这个智能体开通一台专属服务器。",
   rowRole: "岗位",
   rowName: "名称",
   rowEngine: "引擎",
-  rowChannels: "渠道",
+  rowPrimaryModel: "主模型",
+  rowBackupModel: "备用模型",
   rowFirstTasks: "首批任务",
   rowPlan: "方案",
-  webConsole: "网页控制台",
-  webSuffix: "网页",
   tasksQueued: (count, reminders) => `已排队 ${count} 项 · 提醒：${reminders}`,
   launchBtn: (name) => `⏻ 启动 ${name}`,
   launchFailed: "启动失败，请重试。",
@@ -314,7 +315,7 @@ const zht: HireDict = {
   steps: {
     role: { label: "職位", sub: "選擇職務" },
     brief: { label: "工作簡報", sub: "指令與任務" },
-    engine: { label: "引擎與管道", sub: "OpenClaw / Hermes" },
+    engine: { label: "引擎與模型", sub: "執行環境與故障切換" },
     review: { label: "確認並啟動", sub: "開通專屬伺服器" },
   },
   tipLabel: "提示",
@@ -358,8 +359,8 @@ const zht: HireDict = {
   addTask: "+ 新增",
   reminders: "提醒與排程",
 
-  s3Title: "引擎與管道",
-  s3Sub: "選擇執行引擎，或交給我們依簡報自動配對。再加入你用來管理它的管道。",
+  s3Title: "引擎與模型",
+  s3Sub: "選擇執行引擎，再設定主模型與故障切換時使用的備用模型。",
   recommended: "推薦",
   community: "社群",
   precision: "精準",
@@ -367,25 +368,26 @@ const zht: HireDict = {
   autoMatchBlurb: "我們讀懂簡報後自動選擇，隨時可切換。",
   openclawBlurb: "100+ 技能、涵蓋所有聊天管道、生態龐大。",
   hermesBlurb: "深度推理、安全護欄、完整稽核紀錄。",
-  channelsLabel: "管道——你將在哪裡與它溝通",
-  channelsNote: "網頁主控台一律包含在內。權杖與帳號將在啟動後於 主控台 → 管道 中設定。",
-  channelTelegram: "Telegram",
-  channelWhatsApp: "WhatsApp",
-  channelWeChat: "微信",
-  channelLINE: "LINE",
-  channelSlack: "Slack",
-  channelEmail: "電子郵件",
+  modelsLoading: "正在載入可用模型…",
+  modelsLoadError: "無法載入可用模型。",
+  primaryModel: "主模型",
+  primaryModelHelp: "智能體日常工作優先使用此模型。",
+  backupModel: "備用模型",
+  backupModelHelp: "主模型無法使用時自動切換至此模型。",
+  modelChannel: "通路",
+  modelName: "模型",
+  customChannel: "自訂通路",
+  systemChannel: "系統通路",
 
   s4Title: "確認並啟動",
   s4Sub: "我們將為這個智能體開通一台專屬伺服器。",
   rowRole: "職位",
   rowName: "名稱",
   rowEngine: "引擎",
-  rowChannels: "管道",
+  rowPrimaryModel: "主模型",
+  rowBackupModel: "備用模型",
   rowFirstTasks: "首批任務",
   rowPlan: "方案",
-  webConsole: "網頁主控台",
-  webSuffix: "網頁",
   tasksQueued: (count, reminders) => `已排入 ${count} 項 · 提醒：${reminders}`,
   launchBtn: (name) => `⏻ 啟動 ${name}`,
   launchFailed: "啟動失敗，請重試。",
@@ -414,7 +416,7 @@ const ja: HireDict = {
   steps: {
     role: { label: "職種", sub: "仕事を選ぶ" },
     brief: { label: "ブリーフ", sub: "指示とタスク" },
-    engine: { label: "エンジンとチャネル", sub: "OpenClaw / Hermes" },
+    engine: { label: "エンジンとモデル", sub: "ランタイムとフェイルオーバー" },
     review: { label: "確認して起動", sub: "VM をプロビジョニング" },
   },
   tipLabel: "ヒント",
@@ -459,9 +461,8 @@ const ja: HireDict = {
   addTask: "+ 追加",
   reminders: "リマインダーとスケジュール",
 
-  s3Title: "エンジンとチャネル",
-  s3Sub:
-    "ランタイムを選ぶか、ブリーフに合わせて自動でマッチングします。管理に使うチャネルも追加してください。",
+  s3Title: "エンジンとモデル",
+  s3Sub: "ランタイムを選び、プライマリモデルと障害時のバックアップモデルを設定します。",
   recommended: "おすすめ",
   community: "コミュニティ",
   precision: "高精度",
@@ -469,26 +470,26 @@ const ja: HireDict = {
   autoMatchBlurb: "ブリーフを読み取って自動で選びます。いつでも切り替え可能。",
   openclawBlurb: "100以上のスキル、あらゆるチャットチャネル、巨大なエコシステム。",
   hermesBlurb: "深い推論、ガードレール、完全な監査ログ。",
-  channelsLabel: "チャネル — どこでやり取りするか",
-  channelsNote:
-    "Web コンソールは常に含まれます。トークンとアカウントは起動後にダッシュボード → チャネルで設定します。",
-  channelTelegram: "Telegram",
-  channelWhatsApp: "WhatsApp",
-  channelWeChat: "WeChat",
-  channelLINE: "LINE",
-  channelSlack: "Slack",
-  channelEmail: "メール",
+  modelsLoading: "利用可能なモデルを読み込み中…",
+  modelsLoadError: "利用可能なモデルを読み込めませんでした。",
+  primaryModel: "プライマリモデル",
+  primaryModelHelp: "通常のエージェント作業で使用します。",
+  backupModel: "バックアップモデル",
+  backupModelHelp: "プライマリモデルが利用できない場合に使用します。",
+  modelChannel: "チャネル",
+  modelName: "モデル",
+  customChannel: "カスタム",
+  systemChannel: "システム",
 
   s4Title: "確認して起動",
   s4Sub: "このエージェント専用のマシンをプロビジョニングします。",
   rowRole: "職種",
   rowName: "名前",
   rowEngine: "エンジン",
-  rowChannels: "チャネル",
+  rowPrimaryModel: "プライマリモデル",
+  rowBackupModel: "バックアップモデル",
   rowFirstTasks: "最初のタスク",
   rowPlan: "プラン",
-  webConsole: "Web コンソール",
-  webSuffix: "Web",
   tasksQueued: (count, reminders) => `${count}件をキュー登録 · リマインダー：${reminders}`,
   launchBtn: (name) => `⏻ ${name} を起動`,
   launchFailed: "起動に失敗しました。もう一度お試しください。",

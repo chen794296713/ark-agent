@@ -1,0 +1,3 @@
+-- The idempotent 0011 migration already converges legacy and fresh
+-- llm_channels schemas. This marker keeps databases that already recorded the
+-- generated follow-up migration on the same migration head.

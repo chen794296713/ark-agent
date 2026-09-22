@@ -20,6 +20,7 @@ const navDefs = [
   { id: "agents", key: "navFleet", icon: "◉", href: "/dashboard/fleet" },
   { id: "templates", key: "navTemplates", icon: "▤", href: "/dashboard/templates" },
   { id: "skills", key: "navSkills", icon: "◈", href: "/dashboard/skills" },
+  { id: "llm-channels", key: "navLlmChannels", icon: "⌁", href: "/dashboard/llm-channels" },
   // { id: "channels", key: "navChannels", icon: "⌁", href: "/dashboard/channels" },
   { id: "billing", key: "navBilling", icon: "▤", href: "/dashboard/billing" },
   { id: "payment", key: "navPayment", icon: "◇", href: "/payment" },
@@ -75,6 +76,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     if (id === "agents") return pathname.startsWith("/dashboard/fleet");
     if (id === "templates") return pathname.startsWith("/dashboard/templates");
     if (id === "skills") return pathname.startsWith("/dashboard/skills");
+    if (id === "llm-channels") return pathname.startsWith("/dashboard/llm-channels");
     if (id === "channels") return pathname.startsWith("/dashboard/channels");
     if (id === "billing") return pathname.startsWith("/dashboard/billing");
     if (id === "payment") return pathname.startsWith("/payment");

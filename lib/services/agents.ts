@@ -21,6 +21,8 @@ import { categoryIdFor } from "@/lib/harness/provisioning";
 import type { AuthContext } from "@/lib/auth";
 import { deletePackageDraft, getLegacyAgentPackageRecord } from "@/lib/agent-packages/service";
 import { PackageDeploymentError } from "@/lib/agent-packages/deployment";
+import { validateModelSelection } from "@/lib/services/llm-channels";
+import { systemLlmChannels, type LlmModelSelection } from "@/lib/llm/channels";
 import {
   serializeAgent,
   serializeActivity,
@@ -175,12 +177,27 @@ export interface CreateAgentInput {
   rules: string;
   channels: ChannelType[];
   tasks: string[];
+  primaryModel?: LlmModelSelection;
+  backupModel?: LlmModelSelection;
 }
 
 export async function createAgent(ctx: AuthContext, input: CreateAgentInput) {
   if (input.roleId === "package-agent") throw new Error("Unknown role: package-agent");
   const [role] = await db.select().from(agentRoles).where(eq(agentRoles.id, input.roleId)).limit(1);
   if (!role) throw new Error(`Unknown role: ${input.roleId}`);
+
+  const defaultPrimary = systemLlmChannels()[0];
+  const primaryModel = input.primaryModel ?? {
+    channelId: defaultPrimary.id,
+    model: defaultPrimary.models[0],
+  };
+  const [primaryValid, backupValid] = await Promise.all([
+    validateModelSelection(ctx.workspace.id, primaryModel),
+    input.backupModel
+      ? validateModelSelection(ctx.workspace.id, input.backupModel)
+      : Promise.resolve(true),
+  ]);
+  if (!primaryValid || !backupValid) throw new Error("Unknown LLM model selection");
 
   const [agent] = await db
     .insert(agents)
@@ -195,6 +212,11 @@ export async function createAgent(ctx: AuthContext, input: CreateAgentInput) {
       instructions: input.instructions,
       rules: input.rules,
       hue: role.hue,
+      settings: {
+        model: primaryModel.model,
+        primaryModel,
+        backupModel: input.backupModel ?? null,
+      },
     })
     .returning();
 

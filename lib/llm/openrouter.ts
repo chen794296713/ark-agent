@@ -197,6 +197,9 @@ interface CompletionOptions {
   signal?: AbortSignal;
   /** Called once, after the response is complete, with what the call cost. */
   onUsage?: (u: LlmUsageSample) => void;
+  /** Optional workspace/provider override for a custom OpenAI-compatible endpoint. */
+  apiKey?: string;
+  baseUrl?: string;
 }
 
 /**
@@ -206,11 +209,11 @@ interface CompletionOptions {
 export async function streamChatCompletion(
   opts: CompletionOptions & { onDelta: (delta: string) => void },
 ): Promise<string> {
-  const apiKey = process.env.OPENROUTER_API_KEY;
+  const apiKey = opts.apiKey || process.env.OPENROUTER_API_KEY;
   if (!apiKey) throw new Error("OPENROUTER_API_KEY is not set");
 
   const requestedModel = resolveModel(opts.model);
-  const res = await fetch(`${baseUrl()}/chat/completions`, {
+  const res = await fetch(`${(opts.baseUrl || baseUrl()).replace(/\/$/, "")}/chat/completions`, {
     method: "POST",
     headers: buildHeaders(apiKey),
     body: JSON.stringify({
@@ -293,12 +296,12 @@ export async function streamChatCompletion(
  * Applies a default 45s timeout unless a signal is supplied.
  */
 export async function chatCompletion(opts: CompletionOptions): Promise<string> {
-  const apiKey = process.env.OPENROUTER_API_KEY;
+  const apiKey = opts.apiKey || process.env.OPENROUTER_API_KEY;
   if (!apiKey) throw new Error("OPENROUTER_API_KEY is not set");
 
   const requestedModel = resolveModel(opts.model);
   const signal = opts.signal ?? AbortSignal.timeout(45_000);
-  const res = await fetch(`${baseUrl()}/chat/completions`, {
+  const res = await fetch(`${(opts.baseUrl || baseUrl()).replace(/\/$/, "")}/chat/completions`, {
     method: "POST",
     headers: buildHeaders(apiKey),
     body: JSON.stringify({

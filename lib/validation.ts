@@ -80,6 +80,8 @@ export const createAgentSchema = z.object({
   rules: z.string().max(8000).default(""),
   channels: z.array(z.enum(CHANNEL_TYPES)).default([]),
   tasks: z.array(z.string().min(1).max(400)).default([]),
+  primaryModel: z.object({ channelId: z.string().min(1).max(120), model: z.string().min(1).max(200) }),
+  backupModel: z.object({ channelId: z.string().min(1).max(120), model: z.string().min(1).max(200) }).optional(),
 });
 
 export const agentSettingsSchema = z.object({
@@ -101,6 +103,8 @@ export const agentSettingsSchema = z.object({
   dailyDigest: z.boolean().optional(),
   digestTime: z.string().max(5).optional(),
   model: z.string().max(80).optional(),
+  primaryModel: z.object({ channelId: z.string().min(1).max(120), model: z.string().min(1).max(200) }).nullable().optional(),
+  backupModel: z.object({ channelId: z.string().min(1).max(120), model: z.string().min(1).max(200) }).nullable().optional(),
   temperature: z.number().min(0).max(2).optional(),
   maxTokens: z.number().int().min(256).max(200_000).optional(),
   reasoningEffort: z.enum(["low", "medium", "high"]).optional(),
@@ -151,6 +155,19 @@ export const connectChannelSchema = z.object({
   type: z.enum(CHANNEL_TYPES),
   config: z.record(z.string(), z.string()).default({}),
   label: z.string().max(80).optional(),
+});
+
+export const llmChannelSchema = z.object({
+  name: z.string().trim().min(1).max(100),
+  baseUrl: z.string().trim().url().max(1000),
+  apiKey: z.string().max(1000),
+  models: z.array(z.string().trim().min(1).max(200)).min(1).max(500),
+});
+
+export const discoverLlmModelsSchema = z.object({
+  channelId: z.string().uuid().optional(),
+  baseUrl: z.string().trim().url().max(1000),
+  apiKey: z.string().max(1000).optional(),
 });
 
 const CHANNEL_TYPE_ALL = ["feishu", "dingtalk", "wechat", "wecom", ...CHANNEL_TYPES] as const;

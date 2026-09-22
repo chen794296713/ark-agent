@@ -9,6 +9,7 @@ import type { Currency } from "@/lib/pricing";
 // Type-only, so the schema module (and Drizzle with it) never reaches the
 // browser bundle — but the admin enums stay pinned to the database definition.
 import type { PlatformRole, UserStatus } from "@/lib/db/schema";
+import type { LlmChannelDTO, LlmModelSelection } from "@/lib/llm/channels";
 
 export class ApiError extends Error {
   status: number;
@@ -143,6 +144,15 @@ export const api = {
   connectChannel: (body: { type: string; config: Record<string, string>; label?: string }) =>
     req<{ channel: ChannelDTO }>("POST", "/api/channels", body),
   disconnectChannel: (id: string) => req<{ channel: ChannelDTO }>("DELETE", `/api/channels/${id}`),
+  llmChannels: () => req<{ channels: LlmChannelDTO[] }>("GET", "/api/llm-channels"),
+  createLlmChannel: (body: LlmChannelInput) =>
+    req<{ channel: LlmChannelDTO }>("POST", "/api/llm-channels", body),
+  updateLlmChannel: (id: string, body: LlmChannelInput) =>
+    req<{ channel: LlmChannelDTO }>("PATCH", `/api/llm-channels/${encodeURIComponent(id)}`, body),
+  deleteLlmChannel: (id: string) =>
+    req<{ ok: true }>("DELETE", `/api/llm-channels/${encodeURIComponent(id)}`),
+  discoverLlmModels: (body: { channelId?: string; baseUrl: string; apiKey?: string }) =>
+    req<{ models: string[] }>("POST", "/api/llm-channels/discover", body),
   billing: () => req<BillingDTO>("GET", "/api/billing"),
   billingUsage: (range: BillingUsageDTO["range"], from?: string, to?: string) => {
     const q = new URLSearchParams({ range });
@@ -488,7 +498,16 @@ export interface CreateAgentBody {
   managerAgentId?: number;
   planTier: "associate" | "professional" | "director"; instructions: string; rules: string;
   channels: string[]; tasks: string[];
+  primaryModel: LlmModelSelection;
+  backupModel?: LlmModelSelection;
 }
+export interface LlmChannelInput {
+  name: string;
+  baseUrl: string;
+  apiKey: string;
+  models: string[];
+}
+export type { LlmChannelDTO, LlmModelSelection };
 export interface UpdateAgentBody {
   name?: string; instructions?: string; rules?: string;
   planTier?: "associate" | "professional" | "director"; engine?: Harness;

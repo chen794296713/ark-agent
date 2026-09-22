@@ -381,6 +381,33 @@ export const workspaceMembers = pgTable(
   ],
 );
 
+/** Workspace-owned OpenAI-compatible LLM endpoints. System channels remain env-backed. */
+export const llmChannels = pgTable(
+  "llm_channels",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    workspaceId: uuid("workspace_id")
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    name: varchar("name", { length: 100 }).notNull(),
+    provider: varchar("provider", { length: 40 }).notNull().default("custom"),
+    protocol: varchar("protocol", { length: 40 }).notNull().default("openai-compatible"),
+    baseUrl: varchar("base_url", { length: 500 }).notNull(),
+    // The deployed schema calls this encrypted. The application layer owns
+    // encryption/decryption; keep the DB column name aligned with production.
+    apiKeyEncrypted: text("api_key_encrypted").notNull(),
+    enabled: boolean("enabled").notNull().default(true),
+    models: jsonb("models").$type<string[]>().notNull().default([]),
+    lastSyncedAt: timestamp("last_synced_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [
+    index("llm_channels_workspace_idx").on(t.workspaceId),
+    uniqueIndex("llm_channels_workspace_name_uniq").on(t.workspaceId, t.name),
+  ],
+);
+
 export const sessions = pgTable(
   "sessions",
   {
