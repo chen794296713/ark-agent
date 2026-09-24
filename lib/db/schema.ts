@@ -381,13 +381,15 @@ export const workspaceMembers = pgTable(
   ],
 );
 
-/** Workspace-owned OpenAI-compatible LLM endpoints. System channels remain env-backed. */
+/**
+ * OpenAI-compatible LLM endpoints. A NULL workspace owns a platform-wide,
+ * read-only system channel; non-NULL rows belong to one workspace.
+ */
 export const llmChannels = pgTable(
   "llm_channels",
   {
     id: uuid("id").defaultRandom().primaryKey(),
     workspaceId: uuid("workspace_id")
-      .notNull()
       .references(() => workspaces.id, { onDelete: "cascade" }),
     name: varchar("name", { length: 100 }).notNull(),
     provider: varchar("provider", { length: 40 }).notNull().default("custom"),

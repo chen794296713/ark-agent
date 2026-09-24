@@ -21,8 +21,8 @@ import { categoryIdFor } from "@/lib/harness/provisioning";
 import type { AuthContext } from "@/lib/auth";
 import { deletePackageDraft, getLegacyAgentPackageRecord } from "@/lib/agent-packages/service";
 import { PackageDeploymentError } from "@/lib/agent-packages/deployment";
-import { validateModelSelection } from "@/lib/services/llm-channels";
-import { systemLlmChannels, type LlmModelSelection } from "@/lib/llm/channels";
+import { listLlmChannels, validateModelSelection } from "@/lib/services/llm-channels";
+import type { LlmModelSelection } from "@/lib/llm/channels";
 import {
   serializeAgent,
   serializeActivity,
@@ -186,10 +186,17 @@ export async function createAgent(ctx: AuthContext, input: CreateAgentInput) {
   const [role] = await db.select().from(agentRoles).where(eq(agentRoles.id, input.roleId)).limit(1);
   if (!role) throw new Error(`Unknown role: ${input.roleId}`);
 
-  const defaultPrimary = systemLlmChannels()[0];
+  const defaultPrimary = input.primaryModel
+    ? null
+    : (await listLlmChannels(ctx.workspace.id)).find(
+        (channel) => channel.configured && channel.models.length > 0,
+      );
+  if (!input.primaryModel && !defaultPrimary) {
+    throw new Error("No LLM model is configured");
+  }
   const primaryModel = input.primaryModel ?? {
-    channelId: defaultPrimary.id,
-    model: defaultPrimary.models[0],
+    channelId: defaultPrimary!.id,
+    model: defaultPrimary!.models[0],
   };
   const [primaryValid, backupValid] = await Promise.all([
     validateModelSelection(ctx.workspace.id, primaryModel),

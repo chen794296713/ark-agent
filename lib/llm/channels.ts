@@ -18,7 +18,8 @@ export interface LlmChannelDTO {
 
 export const SYSTEM_OPENROUTER_CHANNEL_ID = "system:openrouter";
 
-export function systemLlmChannels(): LlmChannelDTO[] {
+/** Compatibility channel used only until an operator creates a DB system row. */
+export function fallbackSystemLlmChannels(): LlmChannelDTO[] {
   const configured = Boolean(process.env.OPENROUTER_API_KEY?.trim());
   const configuredModel = process.env.LLM_MODEL?.trim();
   const models = Array.from(
@@ -43,4 +44,3 @@ export function systemLlmChannels(): LlmChannelDTO[] {
     },
   ];
 }
-
