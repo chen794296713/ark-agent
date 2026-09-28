@@ -58,7 +58,9 @@ export function serializeManagerLlmProvider(
     baseUrl: provider.base_url?.trim() || "",
     apiKey: apiKey ? MASKED_KEY : "",
     models,
-    configured: Boolean(models.length && (scope === "system" || apiKey)),
+    // Manager owns provider credentials and may omit api_key from reads. A
+    // provider with models is selectable even when its secret is not echoed.
+    configured: Boolean(models.length),
     createdAt: null,
   };
 }
@@ -76,6 +78,21 @@ async function listManagerLlmChannels(): Promise<LlmChannelDTO[]> {
     ...(custom.providers ?? []).map((provider, index) => serializeManagerLlmProvider(provider, "custom", index)),
     ...(system.providers ?? []).map((provider, index) => serializeManagerLlmProvider(provider, "system", index)),
   ];
+}
+
+async function localSystemLlmChannels(workspaceId: string): Promise<LlmChannelDTO[]> {
+  const rows = await listVisibleLlmChannelRows(workspaceId);
+  const systemRows = rows.filter((row) => row.workspaceId === null);
+  return systemRows.length
+    ? systemRows.map(serializeLlmChannel)
+    : fallbackSystemLlmChannels();
+}
+
+async function localCustomLlmChannels(workspaceId: string): Promise<LlmChannelDTO[]> {
+  const rows = await listVisibleLlmChannelRows(workspaceId);
+  return rows
+    .filter((row) => row.workspaceId !== null)
+    .map(serializeLlmChannel);
 }
 
 function modelConfigForProvider(input: {
@@ -194,7 +211,26 @@ async function hasDatabaseSystemChannels(): Promise<boolean> {
 export async function listLlmChannels(workspaceId: string): Promise<LlmChannelDTO[]> {
   if (hasManagerUser()) {
     try {
-      return await listManagerLlmChannels();
+      const managerChannels = await listManagerLlmChannels();
+      const managerSystem = managerChannels.filter(
+        (channel) => channel.kind === "system" && channel.models.length > 0,
+      );
+      const managerCustom = managerChannels.filter(
+        (channel) => channel.kind === "custom" && channel.models.length > 0,
+      );
+      const system = managerSystem.length ? managerSystem : await localSystemLlmChannels(workspaceId);
+      // Keep workspace-owned channels visible even when Manager's custom
+      // scope is empty or filtered by its per-user permissions.
+      const custom = [
+        ...managerCustom,
+        ...(await localCustomLlmChannels(workspaceId)),
+      ];
+      const seen = new Set<string>();
+      return [...custom, ...system].filter((channel) => {
+        if (seen.has(channel.id)) return false;
+        seen.add(channel.id);
+        return true;
+      });
     } catch (error) {
       console.error("Failed to load OpenClaw Manager model config", error);
     }
@@ -251,11 +287,11 @@ export async function validateModelSelection(
         ...(configs[0].providers ?? []).map((provider) => ({ provider, scope: "system" as const })),
         ...(configs[1].providers ?? []).map((provider) => ({ provider, scope: "custom" as const })),
       ].find((item) => item.provider.key === selection.channelId);
-      return Boolean(
-        candidate &&
-        modelNames(candidate.provider).includes(selection.model) &&
-        (candidate.scope === "system" || candidate.provider.api_key),
-      );
+      if (candidate) {
+        return Boolean(
+          modelNames(candidate.provider).includes(selection.model),
+        );
+      }
     } catch (error) {
       console.error("Failed to validate OpenClaw Manager model selection", error);
     }
@@ -292,7 +328,7 @@ export async function resolveLlmProvider(
           return { apiKey: provider.api_key, baseUrl: provider.base_url, model };
         }
       }
-      if (selection) return null;
+      if (selection && provider) return null;
     } catch (error) {
       console.error("Failed to resolve OpenClaw Manager model provider", error);
     }
