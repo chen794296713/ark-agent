@@ -58,7 +58,7 @@ export function serializeManagerLlmProvider(
     baseUrl: provider.base_url?.trim() || "",
     apiKey: apiKey ? MASKED_KEY : "",
     models,
-    configured: Boolean(apiKey && models.length),
+    configured: Boolean(models.length && (scope === "system" || apiKey)),
     createdAt: null,
   };
 }
@@ -247,9 +247,15 @@ export async function validateModelSelection(
         getOpenClawModelConfig("system"),
         getOpenClawModelConfig("custom"),
       ]);
-      const provider = configs.flatMap((config) => config.providers ?? [])
-        .find((item) => item.key === selection.channelId);
-      return Boolean(provider && provider.api_key && modelNames(provider).includes(selection.model));
+      const candidate = [
+        ...(configs[0].providers ?? []).map((provider) => ({ provider, scope: "system" as const })),
+        ...(configs[1].providers ?? []).map((provider) => ({ provider, scope: "custom" as const })),
+      ].find((item) => item.provider.key === selection.channelId);
+      return Boolean(
+        candidate &&
+        modelNames(candidate.provider).includes(selection.model) &&
+        (candidate.scope === "system" || candidate.provider.api_key),
+      );
     } catch (error) {
       console.error("Failed to validate OpenClaw Manager model selection", error);
     }

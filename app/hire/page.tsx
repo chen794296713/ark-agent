@@ -94,7 +94,12 @@ function HireInner() {
     let alive = true;
     api.llmChannels().then(({ channels: available }) => {
       if (!alive) return;
-      const usable = available.filter((channel) => channel.models.length > 0 && (channel.kind === "custom" || channel.configured));
+      // System providers are configured by clawmanager and may intentionally
+      // omit their API key from the response. Their model list is the source
+      // of truth for the selection UI; custom providers still need a key.
+      const usable = available.filter((channel) =>
+        channel.models.length > 0 && (channel.kind === "system" || channel.configured),
+      );
       setLlmChannels(usable);
       const custom = usable.filter((channel) => channel.kind === "custom");
       const system = usable.filter((channel) => channel.kind === "system");
