@@ -1,9 +1,10 @@
 import { asc, ne, sql } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { agentRoles } from "@/lib/db/schema";
-import { json } from "@/lib/api";
+import { json, requireAuth } from "@/lib/api";
 import { serializeRole } from "@/lib/serializers";
 import { listOpenClawManagerAgents } from "@/app/lib/openclaw_manager_api";
+import { withOpenClawManagerUser } from "@/lib/openclaw-manager-auth";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -23,7 +24,9 @@ const CUSTOM_ROLE = {
   sortOrder: -1,
 };
 
-export async function GET() {
+export async function GET(req: Request) {
+  const auth = await requireAuth(req);
+  if (auth.res) return auth.res;
   await db
     .insert(agentRoles)
     .values(CUSTOM_ROLE)
@@ -39,7 +42,7 @@ export async function GET() {
     });
 
   try {
-    const templates = await listOpenClawManagerAgents();
+    const templates = await withOpenClawManagerUser(auth.ctx.user, listOpenClawManagerAgents);
     if (templates.length) {
       // Keep the external templates compatible with the existing create-agent
       // contract and foreign key by mirroring them into the local role catalog.

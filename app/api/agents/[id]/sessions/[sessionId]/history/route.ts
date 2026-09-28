@@ -4,6 +4,7 @@ import {
   getOpenclawConfigByAgentId,
   getOpenclawSessionHistory,
 } from "@/lib/services/openclaw_instances";
+import { withOpenClawManagerUser } from "@/lib/openclaw-manager-auth";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -20,7 +21,8 @@ export async function GET(_req: Request, { params }: Ctx) {
   const config = await getOpenclawConfigByAgentId(id);
   if (!config?.externalId) return json({ sessionId, messages: [] });
 
-  const history = await getOpenclawSessionHistory(config.externalId, sessionId);
+  const history = await withOpenClawManagerUser(auth.ctx.user, () =>
+    getOpenclawSessionHistory(config.externalId, sessionId));
   return json({
     sessionId: history.sessionId,
     sessionKey: history.sessionKey,

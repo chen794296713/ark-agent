@@ -1,7 +1,10 @@
 import "server-only";
 import { NextResponse } from "next/server";
 import type { ZodType } from "zod";
-import { getAuthContext, getCurrentUser, type AuthContext } from "@/lib/auth";
+import {
+  getRequestAuthContext,
+  type RequestAuthContext,
+} from "@/lib/auth";
 import type { PlatformRole, User } from "@/lib/db/schema";
 
 export function json<T>(data: T, status = 200): NextResponse {
@@ -49,11 +52,7 @@ export async function parseBody<T>(
 const ROLE_RANK: Record<PlatformRole, number> = { user: 0, support: 1, admin: 2 };
 
 /**
- * Require a platform-staff session at `min` or above.
- *
- * Built on getCurrentUser(), NOT getAuthContext(): the latter returns null for
- * a user who owns no workspace (lib/auth.ts), which would lock a workspace-less
- * staff account out of the console with a misleading 401.
+ * Require a platform-staff session or API key at `min` or above.
  *
  * This is the whole authorization boundary — there is no middleware — so every
  * /api/admin route must call it. Hiding the nav item is not a control.
@@ -61,17 +60,18 @@ const ROLE_RANK: Record<PlatformRole, number> = { user: 0, support: 1, admin: 2 
 export async function requirePlatformRole(
   min: PlatformRole = "admin",
 ): Promise<{ actor: User; res?: never } | { actor?: never; res: NextResponse }> {
-  const user = await getCurrentUser();
+  const requestCtx = await getRequestAuthContext();
+  const user = requestCtx?.user ?? null;
   if (!user) return { res: unauthorized() };
   if (ROLE_RANK[user.platformRole] < ROLE_RANK[min]) return { res: forbidden() };
   return { actor: user };
 }
 
-/** Require an authenticated session. Returns {ctx} or {res:401}. */
-export async function requireAuth(): Promise<
-  { ctx: AuthContext; res?: never } | { ctx?: never; res: NextResponse }
+/** Require an authenticated browser session or scoped API key. */
+export async function requireAuth(req?: Request): Promise<
+  { ctx: RequestAuthContext; res?: never } | { ctx?: never; res: NextResponse }
 > {
-  const ctx = await getAuthContext();
+  const ctx = await getRequestAuthContext(req?.method);
   if (!ctx) return { res: unauthorized() };
   return { ctx };
 }

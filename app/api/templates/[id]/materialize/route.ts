@@ -31,6 +31,7 @@ import { getTemplateForRead, markGenerationMaterialized } from "@/lib/atg/querie
 import { materializeTemplate, MaterializeError } from "@/lib/atg/materialize";
 import { isUuid, materializeTemplateSchema, readIdempotencyKey } from "@/lib/atg/validation";
 import { remediateDraft, validateDraft } from "@/lib/atg/validate";
+import { withOpenClawManagerUser } from "@/lib/openclaw-manager-auth";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -98,7 +99,7 @@ export async function POST(req: Request, { params }: Ctx) {
   }
 
   try {
-    const result = await materializeTemplate({
+    const result = await withOpenClawManagerUser(auth.ctx.user, () => materializeTemplate({
       template,
       draft: {
         ...linted.draft,
@@ -116,7 +117,7 @@ export async function POST(req: Request, { params }: Ctx) {
         ...(parsed.data.planTier ? { planTier: parsed.data.planTier } : {}),
         ...(parsed.data.channels ? { channels: parsed.data.channels } : {}),
       },
-    });
+    }));
 
     // Best effort and only for a template this workspace owns: a generation row
     // belongs to the tenant that ran it, and marking a stranger's generation

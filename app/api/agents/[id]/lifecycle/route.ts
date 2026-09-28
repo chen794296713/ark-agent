@@ -2,6 +2,7 @@ import { requireAuth, parseBody, json, notFound, apiError } from "@/lib/api";
 import { PackageDeploymentError } from "@/lib/agent-packages/deployment";
 import { lifecycleSchema } from "@/lib/validation";
 import { setLifecycle } from "@/lib/services/agents";
+import { withOpenClawManagerUser } from "@/lib/openclaw-manager-auth";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -13,7 +14,8 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   const parsed = await parseBody(req, lifecycleSchema);
   if (parsed.res) return parsed.res;
   try {
-    const detail = await setLifecycle(id, auth.ctx.workspace.id, parsed.data.action);
+    const detail = await withOpenClawManagerUser(auth.ctx.user, () =>
+      setLifecycle(id, auth.ctx.workspace.id, parsed.data.action));
     if (!detail) return notFound("Agent not found");
     return json({ agent: detail });
   } catch (error) {

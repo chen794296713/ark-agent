@@ -5,6 +5,7 @@ import { requireAuth, parseBody, json } from "@/lib/api";
 import { connectChannelSchema } from "@/lib/validation";
 import { serializeChannel } from "@/lib/serializers";
 import { getChannelStatus } from "@/app/lib/openclaw_manager_api";
+import { withOpenClawManagerUser } from "@/lib/openclaw-manager-auth";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -80,7 +81,7 @@ export async function GET(req: Request) {
     externalId = cfg.externalId;
 
     // Fetch full channel status from OpenClaw Manager
-    const status = await getChannelStatus(externalId);
+    const status = await withOpenClawManagerUser(auth.ctx.user, () => getChannelStatus(externalId));
     if (!status) {
       return json({ channels: [] });
     }

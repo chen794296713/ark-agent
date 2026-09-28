@@ -11,6 +11,7 @@ import { updateAgentSchema } from "@/lib/validation";
 import { mergeSettings } from "@/lib/agent-settings";
 import { deleteAgent, getAgentDetail, getAgentRow } from "@/lib/services/agents";
 import { getOpenclawVisibleTasks } from "@/lib/services/openclaw_instances";
+import { withOpenClawManagerUser } from "@/lib/openclaw-manager-auth";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -25,7 +26,7 @@ export async function GET(_req: Request, { params }: Ctx) {
   const detail = await getAgentDetail(id, auth.ctx.workspace.id);
   if (!detail) return notFound("Agent not found");
   const runtimeTasks = detail.engine === "openclaw"
-    ? await getOpenclawVisibleTasks(id)
+    ? await withOpenClawManagerUser(auth.ctx.user, () => getOpenclawVisibleTasks(id))
     : null;
   return json({ agent: runtimeTasks ? { ...detail, tasks: runtimeTasks } : detail });
 }
@@ -127,7 +128,7 @@ export async function DELETE(_req: Request, { params }: Ctx) {
   if (auth.res) return auth.res;
   const { id } = await params;
   try {
-    const deleted = await deleteAgent(id, auth.ctx.workspace.id);
+    const deleted = await withOpenClawManagerUser(auth.ctx.user, () => deleteAgent(id, auth.ctx.workspace.id));
     if (!deleted) return notFound("Agent not found");
     return json({ ok: true as const });
   } catch (error) {

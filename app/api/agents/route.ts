@@ -3,6 +3,7 @@ import { createAgentSchema } from "@/lib/validation";
 import { listAgents, createAgent } from "@/lib/services/agents";
 import { harnessLabel } from "@/lib/harness";
 import { enabledHarnesses, isHarnessEnabled } from "@/lib/harness/provisioning";
+import { withOpenClawManagerUser } from "@/lib/openclaw-manager-auth";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -32,7 +33,7 @@ export async function POST(req: Request) {
   }
 
   try {
-    const agent = await createAgent(auth.ctx, parsed.data);
+    const agent = await withOpenClawManagerUser(auth.ctx.user, () => createAgent(auth.ctx, parsed.data));
     return json({ agent }, 201);
   } catch (err) {
     if (err instanceof Error && /Unknown role/.test(err.message)) {

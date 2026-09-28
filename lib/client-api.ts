@@ -68,6 +68,11 @@ export const api = {
     req<{ user: SessionUser }>("PATCH", "/api/me/preferences", body),
   changePassword: (body: { currentPassword?: string; newPassword: string }) =>
     req<{ ok: true }>("PATCH", "/api/me/password", body),
+  apiKeys: () => req<{ apiKeys: ApiKeyDTO[] }>("GET", "/api/api-keys"),
+  createApiKey: (body: CreateApiKeyBody) =>
+    req<{ apiKey: ApiKeyDTO }>("POST", "/api/api-keys", body),
+  deleteApiKey: (id: string) =>
+    req<{ ok: true }>("DELETE", `/api/api-keys/${encodeURIComponent(id)}`),
 
   // ---- reference ----
   roles: () => req<{ roles: RoleDTO[] }>("GET", "/api/roles"),
@@ -215,6 +220,25 @@ export const api = {
     }),
   adminLlmUsage: (days = 30) => req<AdminLlmUsageDTO>("GET", `/api/admin/llm-usage?days=${days}`),
 };
+
+export type ApiKeyPermission = "read" | "write";
+
+export interface ApiKeyDTO {
+  id: string;
+  name: string;
+  key: string;
+  permissions: ApiKeyPermission[];
+  expiresAt: string | null;
+  expired: boolean;
+  lastUsedAt: string | null;
+  createdAt: string;
+}
+
+export interface CreateApiKeyBody {
+  name: string;
+  permissions: ApiKeyPermission[];
+  expiresAt: string | null;
+}
 
 // ---- admin console shapes ----
 // The console renders a live database, so a field the route stops sending must

@@ -1,0 +1,47 @@
+.page { padding: var(--r-content-py) var(--r-page-px); }
+.header { margin-bottom: 30px; max-width: 760px; }
+.header h1 { margin: 0 0 8px; font: 650 32px var(--f-display), var(--font-sans); color: var(--c-text); }
+.header p, .sectionHeading p { margin: 0; color: var(--c-muted); font-size: 14px; line-height: 1.6; }
+.layout { display: grid; grid-template-columns: minmax(290px, 380px) minmax(0, 1fr); gap: 42px; align-items: start; }
+.formPanel, .listPanel { border-top: 1px solid var(--c-line); padding-top: 22px; min-width: 0; }
+.sectionHeading { margin-bottom: 22px; }
+.sectionHeading h2 { margin: 0 0 7px; color: var(--c-text); font: 650 20px var(--f-display), var(--font-sans); }
+.form { display: grid; gap: 21px; }
+.field { display: grid; gap: 8px; }
+.field label, .fieldset legend { color: var(--c-text2); font-size: 13px; font-weight: 650; }
+.field input { width: 100%; min-width: 0; box-sizing: border-box; border: 1px solid var(--c-border-field); border-radius: 6px; background: var(--c-panel); color: var(--c-text); padding: 11px 12px; font: 14px var(--font-sans); color-scheme: light dark; }
+.field small, .permissionCard small { color: var(--c-faint); font-size: 12px; line-height: 1.5; }
+.fieldset { border: 0; padding: 0; margin: 0; display: grid; gap: 9px; }
+.fieldset legend { margin-bottom: 9px; }
+.permissionCard { display: flex; align-items: flex-start; gap: 11px; border: 1px solid var(--c-border); border-radius: 6px; padding: 12px; cursor: pointer; }
+.permissionCard:has(input:checked) { border-color: var(--c-lime-border); background: var(--c-lime-wash); }
+.permissionCard input { margin: 3px 0 0; accent-color: var(--c-accent); }
+.permissionCard span { display: grid; gap: 3px; }
+.permissionCard strong { color: var(--c-text); font-size: 13.5px; }
+.usage { border-left: 2px solid var(--c-lime); padding: 4px 0 4px 13px; display: grid; gap: 6px; }
+.usage strong { color: var(--c-text); font-size: 13px; }
+.usage span { color: var(--c-muted); font-size: 12px; line-height: 1.5; }
+.usage code { color: var(--c-text2); font: 11.5px/1.5 var(--font-mono); overflow-wrap: anywhere; }
+.primary, .danger, .keyValue button { border-radius: 999px; cursor: pointer; font: 600 13px var(--font-sans); }
+.primary { min-height: 42px; border: 1px solid var(--c-lime); background: var(--c-lime); color: var(--c-ink); padding: 9px 18px; }
+.primary:disabled, .danger:disabled { opacity: .55; cursor: default; }
+.error { border: 1px solid var(--c-red-border); background: var(--c-red-wash); color: var(--c-red); padding: 10px 12px; border-radius: 6px; font-size: 13px; line-height: 1.5; }
+.state { color: var(--c-faint); font-size: 13px; padding: 24px 0; }
+.keyList { display: grid; gap: 14px; }
+.keyCard { border: 1px solid var(--c-border); border-radius: 8px; padding: 18px; background: var(--c-panel); display: grid; gap: 17px; }
+.keyHeader { display: flex; justify-content: space-between; gap: 18px; align-items: flex-start; }
+.keyHeader h3 { margin: 0 0 9px; color: var(--c-text); font: 650 16px var(--f-display), var(--font-sans); }
+.badges { display: flex; flex-wrap: wrap; gap: 6px; }
+.badges span { border: 1px solid var(--c-border); border-radius: 999px; padding: 3px 8px; color: var(--c-muted); font-size: 10.5px; }
+.badges .active { color: var(--c-green); border-color: var(--c-green-border); background: var(--c-green-wash); }
+.badges .expired { color: var(--c-red); border-color: var(--c-red-border); background: var(--c-red-wash); }
+.danger { border: 0; background: transparent; color: var(--c-red); padding: 6px 4px; }
+.keyValue { border: 1px solid var(--c-border-field); background: var(--c-bg); border-radius: 6px; padding: 10px 10px 10px 12px; display: flex; align-items: center; gap: 10px; }
+.keyValue code { min-width: 0; flex: 1; overflow-wrap: anywhere; color: var(--c-text2); font: 12px/1.55 var(--font-mono); }
+.keyValue button { flex: 0 0 auto; border: 1px solid var(--c-border-strong); background: transparent; color: var(--c-text); padding: 7px 12px; }
+.meta { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; margin: 0; }
+.meta div { min-width: 0; }
+.meta dt { color: var(--c-faint); font-size: 10.5px; text-transform: uppercase; margin-bottom: 5px; }
+.meta dd { margin: 0; color: var(--c-text2); font-size: 11.5px; line-height: 1.45; }
+@media (max-width: 1050px) { .layout { grid-template-columns: 1fr; gap: 36px; } }
+@media (max-width: 700px) { .page { padding-inline: 20px; } .meta { grid-template-columns: 1fr; } .keyHeader { gap: 10px; } }

@@ -5,6 +5,7 @@ import { hashPassword, createSession, isReservedEmail } from "@/lib/auth";
 import { parseBody, apiError, json } from "@/lib/api";
 import { registerSchema } from "@/lib/validation";
 import { publicUser, publicWorkspace } from "@/lib/serializers";
+import { ensureOpenClawManagerUser } from "@/app/lib/openclaw_manager_api";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -38,6 +39,19 @@ export async function POST(req: Request) {
     .values({ name: `${name.split(" ")[0]}'s Workspace`, ownerId: user.id })
     .returning();
   await db.insert(workspaceMembers).values({ workspaceId: ws.id, userId: user.id, role: "owner" });
+
+  // Mirror the new ArkAgent account into OpenClaw Manager. Manager credentials
+  // are derived from this user's email (`local-part@iagent1`). An upstream
+  // outage must not roll back a valid local registration; the first later
+  // Manager call repeats the same idempotent register/sign-in flow.
+  try {
+    await ensureOpenClawManagerUser({ email: user.email, name: user.name });
+  } catch (error) {
+    console.error(
+      "OpenClaw Manager user bootstrap failed; it will retry on first use",
+      error instanceof Error ? error.message : "Unknown error",
+    );
+  }
 
   await createSession(user.id);
   return json({ user: publicUser(user), workspace: publicWorkspace(ws) }, 201);

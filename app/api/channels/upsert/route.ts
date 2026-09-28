@@ -4,6 +4,7 @@ import { agents, agentManagerConfig } from "@/lib/db/schema";
 import { requireAuth, parseBody, json, notFound } from "@/lib/api";
 import { upsertChannelSchema } from "@/lib/validation";
 import { upsertChannel as callUpsertChannel } from "@/app/lib/openclaw_manager_api";
+import { withOpenClawManagerUser } from "@/lib/openclaw-manager-auth";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -78,12 +79,12 @@ export async function POST(req: Request) {
   }
 
   // Call the OpenClaw Manager API with the externalId (instance UUID)
-  await callUpsertChannel({
+  await withOpenClawManagerUser(auth.ctx.user, () => callUpsertChannel({
     instanceUuid: cfg.externalId,
     channelType,
     enabled,
     config,
-  });
+  }));
 
   return json({ ok: true });
 }

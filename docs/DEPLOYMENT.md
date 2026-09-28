@@ -87,7 +87,7 @@ startup options:
 |---|---|---|
 | **Postgres** | **Required** | Nothing works. `lib/db/index.ts` throws `DATABASE_URL is not set` on first query (not at import — module evaluation is side-effect-free so `next build` succeeds without a database) |
 | **Agent Manager** (`AGENT_MANAGER_BASE_URL`) | **Required in production** | `agentManagerMode()` returns `unconfigured` and `getAgentManager()` throws. It never silently falls back to the simulator — but **nothing converts that throw into a 503**; every call site swallows it. See §2.3 |
-| **OpenClaw Manager** (`OPENCLAW_MANAGER_API_*`) | **Required in production** | `assertConfigured()` in `app/lib/openclaw_manager_api.ts:22` throws per call in production rather than sending `Bearer ` to the built-in default host. `createAgent()` catches it and parks the new agent at `status = 'error'` with `last_error` set — `POST /api/agents` still answers **201** |
+| **OpenClaw Manager** (`OPENCLAW_MANAGER_API_URL`) | **Required in production** | Each signed-in user exchanges credentials for a Manager key. Without a usable Manager account or URL, provisioning can leave the new agent at `status = 'error'` even when `POST /api/agents` answers **201** |
 | **Stripe** | Optional (required to take USD payments) | Stripe checkout returns **503** in production; in development it falls back to `mock` and fulfils inline |
 | **Alipay / GoHire gateway** | Optional (required to take CNY payments) | Same shape as Stripe |
 | **OpenRouter** | Optional | Brief generation falls back to the role's seeded default. Agent chat returns **503** in production when there is *also* no live runtime (`app/api/agents/[id]/messages/route.ts:99`). Self-review returns 503 without a key regardless (`app/api/agents/[id]/self-review/route.ts:35`) |
@@ -177,7 +177,7 @@ writing `AGENT_MANAGER_MODE=mock` by name.
 | Variable | Required | Default | What it does / what breaks |
 |---|---|---|---|
 | `OPENCLAW_MANAGER_API_URL` | **Yes in production** | `https://clawmanager.lightark.cc` | Base URL. In production `assertConfigured()` **throws** rather than using the built-in default host (`app/lib/openclaw_manager_api.ts:22`) |
-| `OPENCLAW_MANAGER_API_KEY` | **Yes in production** | `""` | Bearer token. Unset outside production, calls go out as `Bearer ` and come back 401 — which reads as an upstream outage rather than a missing variable. In production it throws instead, naming the variable |
+| `OPENCLAW_MANAGER_USERNAME`, `OPENCLAW_MANAGER_PASSWORD` | Background jobs only | Unset | Service account credentials when no ArkAgent user is signed in. User requests exchange the user's email and derived password for a Manager key cached in memory by username. `OPENCLAW_MANAGER_API_KEY` is ignored. |
 | `OPENCLAW_DEBUG_LOG` | No | `0` | `1` logs Manager request URLs, query parameters and JSON bodies. **Leave off in production** — bodies can contain agent configuration |
 
 The check is per call, not at module load: throwing at import time would take down every route that
@@ -944,9 +944,8 @@ Work down this list; the first four are configuration, not incidents.
    and `hermes` are provisionable. Check `ATG_ENABLED_HARNESSES`; if it is set-but-empty, *no*
    harness is offered, by design. (`HarnessNotProvisionableError` from `categoryIdFor()` is the
    deeper backstop inside `createAgent()`; the route's 422 normally fires first.)
-3. **Provisioning fails against the Manager.** `OPENCLAW_MANAGER_API_KEY` is unset. Outside
-   production this shows as an upstream 401; in production `assertConfigured()` throws and names the
-   variable. Either way `createAgent()` catches it, so the hire returns **201** and the agent lands
+3. **Provisioning fails against the Manager.** The per-user key exchange or registration failed.
+   `createAgent()` catches it, so the hire returns **201** and the agent lands
    at `status = 'error'` with the reason in `agents.last_error` — **and the billing seat is still
    created.** Reconcile seats after fixing the configuration. Temporarily set `OPENCLAW_DEBUG_LOG=1`
    to log the request URL, query and body — **turn it off again.**
@@ -1014,7 +1013,8 @@ Durable in-database trails, which outlive log retention: `scheduler_ticks` (ever
 | `CRON_SECRET` | Update the Vercel variable, redeploy. | Ticks 401 between the change and the redeploy. Nothing is lost — the next successful tick catches up occurrences younger than `SCHEDULER_MISFIRE_MAX_AGE_SECONDS` |
 | `STRIPE_WEBHOOK_SECRET` | Add the new endpoint secret in the Dashboard, update the variable, redeploy, then remove the old endpoint. | Events during the gap fail 400; **Stripe retries**, so they land once the secret is right |
 | `AGENT_MANAGER_WEBHOOK_SECRET` | Must be rotated **on both sides at once**, coordinated with the Manager team. | Every inbound event 401s during the gap. Redelivery depends on the Manager — assume events in the window are lost |
-| `AGENT_MANAGER_API_KEY`, `OPENCLAW_MANAGER_API_KEY` | Issue the new key upstream, update, redeploy, revoke the old. | Outbound calls 401 during the gap |
+| `AGENT_MANAGER_API_KEY` | Issue the new key upstream, update, redeploy, revoke the old. | Adapter calls 401 during the gap |
+| OpenClaw Manager user credentials | For a signed-in user, restore the Manager password expected from their email prefix; for a background service account, update `OPENCLAW_MANAGER_PASSWORD`. | The next key exchange fails until credentials match |
 | `ALIPAY_CALLBACK_SECRET` | Update and redeploy. The token is baked into the `notify_url` at order-create time, so **notifies for orders created before the change carry the old token and will be rejected**. Rotate during a quiet window and reconcile open orders afterwards | Unpaid-looking paid orders |
 | `ADMIN_PASSWORD` | Set the variable and re-run `npm run db:seed` (idempotent upsert), or change it from the account screen | None |
 | `SESSION_COOKIE_NAME` | Not a secret — changing it signs every user out | All sessions |

@@ -111,7 +111,7 @@ With PostgreSQL configured, you can explore the dashboard, save package drafts, 
 | Public origin | `NEXT_PUBLIC_APP_URL` | Used for OAuth and payment callback/return URLs; set the public HTTPS origin in production |
 | Administrator | `ADMIN_EMAIL`, `ADMIN_PASSWORD`, `ADMIN_NAME` | Applied by `db:seed`; set your own password before seeding an exposed environment |
 | Agent Manager adapter | `AGENT_MANAGER_MODE`, `AGENT_MANAGER_BASE_URL`, `AGENT_MANAGER_API_KEY`, `AGENT_MANAGER_WEBHOOK_SECRET` | Runtime operations and signed inbound webhooks |
-| Legacy instance provisioning | `OPENCLAW_MANAGER_API_URL`, `OPENCLAW_MANAGER_API_KEY`, `ATG_ENABLED_HARNESSES` | Separate from the adapter's mock/live switch |
+| Legacy instance provisioning | `OPENCLAW_MANAGER_API_URL`, `ATG_ENABLED_HARNESSES` | Manager keys are fetched per signed-in username and cached in memory; background jobs can use `OPENCLAW_MANAGER_USERNAME` and `OPENCLAW_MANAGER_PASSWORD` |
 | Package deployment | `ARK_PACKAGE_MANAGER_URL`, `ARK_PACKAGE_MANAGER_TOKEN`, `ARK_PACKAGE_MANAGER_HARNESSES` | Requires an HTTPS endpoint implementing the package runtime contract |
 | LLM features | `OPENROUTER_API_KEY`, `LLM_MODEL` | Powers model-backed generation and chat; individual features define their no-key behavior |
 | Scheduled jobs | `CRON_SECRET` | Bearer authentication for schedule ticks and skill discovery sync |

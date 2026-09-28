@@ -59,7 +59,6 @@ export async function createOpenclawInstance(
   const preprocessed = await createInstance({
     name: input.name,
     category_id: input.categoryId,
-    target_user_id: input.targetUserId,
     tasks: brief ? [brief, ...input.tasks] : input.tasks,
     ...(input.managerAgentId !== undefined
       ? { agent_id: input.managerAgentId }

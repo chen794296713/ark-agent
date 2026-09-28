@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { agents, agentManagerConfig } from "@/lib/db/schema";
 import { requireAuth, json, notFound } from "@/lib/api";
 import { wechatLogin } from "@/app/lib/openclaw_manager_api";
+import { withOpenClawManagerUser } from "@/lib/openclaw-manager-auth";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -84,10 +85,10 @@ export async function POST(req: Request) {
         );
       };
       try {
-        const result = await wechatLogin(cfg.externalId, {
+        const result = await withOpenClawManagerUser(auth.ctx.user, () => wechatLogin(cfg.externalId, {
           signal: req.signal,
           onEvent: (e) => send(e.event, e.data),
-        });
+        }));
         send("done", result);
       } catch (e) {
         send("error", {

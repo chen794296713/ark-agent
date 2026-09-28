@@ -6,6 +6,7 @@ export function WorkspaceIcon({ name, size = 19 }: { name: string; size?: number
     templates: <><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 8h6M9 12h6M9 16h3"/></>,
     skills: <><path d="m14 3-3 7H5l5 4-2 7 7-8h5l-6-3z"/></>,
     "llm-channels": <><path d="M8 4h8M9 4v4l-4 7a3 3 0 0 0 2.6 4.5h8.8A3 3 0 0 0 19 15l-4-7V4"/><path d="M7 15h10M9 12h6"/></>,
+    "api-keys": <><circle cx="8" cy="15" r="4"/><path d="m11 12 8-8M15 8l3 3M17 6l2 2"/></>,
     billing: <><path d="M5 3h14v18l-3-2-4 2-4-2-3 2zM9 7h6M9 11h6M9 15h3"/></>,
     payment: <><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 10h18M7 15h3"/></>,
     account: <><circle cx="12" cy="8" r="4"/><path d="M4 21v-1a8 8 0 0 1 16 0v1"/></>,

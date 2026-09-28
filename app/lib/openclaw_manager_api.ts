@@ -2,44 +2,157 @@
  * OpenClaw Manager API client
  * 对接 manager_api.md 中的所有接口
  */
+import {
+  captureOpenClawManagerAuthScope,
+  isManagerApiKeyPayload,
+  withOpenClawManagerUser,
+  type OpenClawManagerAuthScope,
+  type OpenClawManagerUser,
+} from "@/lib/openclaw-manager-auth";
+import { OpenClawManagerKeyCache } from "@/lib/openclaw-manager-key-cache";
 
 const BASE_URL = (
   process.env.OPENCLAW_MANAGER_API_URL || "https://clawmanager.lightark.cc"
 ).replace(/\/+$/, "");
-const API_KEY = process.env.OPENCLAW_MANAGER_API_KEY || "";
+
+const managerKeyCache = new OpenClawManagerKeyCache();
 
 /**
- * Both values fall back to a literal, which is convenient locally and dangerous
- * in production: an unset key means every call goes out to a specific named
- * host carrying `Bearer ` and comes back 401, so provisioning fails in a way
- * that reads as an upstream outage rather than a missing variable. Fail on the
- * configuration instead, and say which variable is missing.
- *
- * Checked per call rather than at module load: throwing at import time takes
- * down every route that transitively imports this file, including ones that
- * never talk to the Manager.
+ * Manager keys are acquired per username and kept only in process memory.
  */
-function assertConfigured(): void {
-  if (process.env.NODE_ENV !== "production") return;
-  if (!API_KEY) {
+function assertConfigured(scope: OpenClawManagerAuthScope | null): asserts scope is OpenClawManagerAuthScope {
+  if (!scope) {
     throw new Error(
-      "OPENCLAW_MANAGER_API_KEY is not set. The OpenClaw Manager cannot be reached in production without it.",
+      "OpenClaw Manager user is missing. Pass the signed-in user, or configure OPENCLAW_MANAGER_USERNAME and OPENCLAW_MANAGER_PASSWORD for background jobs.",
     );
   }
-  if (!process.env.OPENCLAW_MANAGER_API_URL) {
+  if (process.env.NODE_ENV === "production" && !process.env.OPENCLAW_MANAGER_API_URL) {
     throw new Error(
       "OPENCLAW_MANAGER_API_URL is not set. Refusing to fall back to the built-in default host in production.",
     );
   }
 }
 
-function getHeaders(): HeadersInit {
-  assertConfigured();
+function headersFor(apiKey: string, scope: OpenClawManagerAuthScope): HeadersInit {
+  assertConfigured(scope);
   return {
-    Authorization: `Bearer ${API_KEY}`,
+    Authorization: `Bearer ${apiKey}`,
     "Content-Type": "application/json",
     Accept: "application/json, text/plain, */*",
   };
+}
+
+async function responseText(res: Response): Promise<string> {
+  return res.text().catch(() => "Unknown error");
+}
+
+/**
+ * Exchange credentials for a Manager key. A missing Manager account is
+ * registered by fetchOrRegisterApiKey before retrying the exchange.
+ *
+ * This deliberately bypasses request()/logRequest(): credentials and freshly
+ * issued keys must never appear in OPENCLAW_DEBUG_LOG output.
+ */
+async function fetchApiKey(scope: OpenClawManagerAuthScope): Promise<string> {
+  const credentials = scope.credentials;
+  const commonHeaders = {
+    "Content-Type": "application/json",
+    Accept: "application/json",
+  };
+  const keyResponse = await fetch(`${BASE_URL}/api/auth/api-key`, {
+    method: "POST",
+    headers: commonHeaders,
+    body: JSON.stringify({
+      username: credentials.username,
+      password: credentials.password,
+    }),
+    cache: "no-store",
+  });
+  if (!keyResponse.ok) {
+    const detail = await responseText(keyResponse);
+    throw new Error(`OpenClaw Manager API-key exchange failed (${keyResponse.status}): ${detail}`);
+  }
+
+  const payload: unknown = await keyResponse.json();
+  if (!isManagerApiKeyPayload(payload)) {
+    throw new Error("OpenClaw Manager API-key exchange returned an invalid api_key");
+  }
+  return payload.api_key.trim();
+}
+
+async function fetchOrRegisterApiKey(scope: OpenClawManagerAuthScope): Promise<string> {
+  try {
+    return await fetchApiKey(scope);
+  } catch (firstError) {
+    const credentials = scope.credentials;
+    const register = await fetch(`${BASE_URL}/api/auth/register`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Accept: "application/json" },
+      body: JSON.stringify({
+        email: credentials.username,
+        name: credentials.name,
+        password: credentials.password,
+      }),
+      cache: "no-store",
+    });
+    if (!register.ok && register.status !== 409) {
+      const detail = await responseText(register);
+      throw new Error(`OpenClaw Manager registration failed (${register.status}): ${detail}`, {
+        cause: firstError,
+      });
+    }
+    return fetchApiKey(scope);
+  }
+}
+
+async function refreshManagerApiKey(
+  scope: OpenClawManagerAuthScope,
+  staleKey?: string,
+): Promise<string> {
+  return managerKeyCache.getOrRefresh(
+    scope.cacheKey,
+    () => fetchOrRegisterApiKey(scope),
+    staleKey,
+  );
+}
+
+async function managerApiKey(scope: OpenClawManagerAuthScope): Promise<string> {
+  assertConfigured(scope);
+  return refreshManagerApiKey(scope);
+}
+
+/**
+ * Eagerly acquire the current user's Manager API key. Normal calls also do
+ * this lazily, registering the Manager user if the first exchange fails.
+ */
+export async function ensureOpenClawManagerUser(
+  user: OpenClawManagerUser,
+): Promise<void> {
+  await withOpenClawManagerUser(user, async () => {
+    const scope = captureOpenClawManagerAuthScope();
+    assertConfigured(scope);
+    await managerApiKey(scope);
+  });
+}
+
+async function authenticatedFetch(url: string, options?: RequestInit): Promise<Response> {
+  // Capture once. Never re-read AsyncLocalStorage during a 401 refresh: the
+  // request may have crossed a stream/callback boundary by then.
+  const scope = captureOpenClawManagerAuthScope();
+  assertConfigured(scope);
+  const send = async (apiKey: string) => fetch(url, {
+    ...options,
+    headers: { ...headersFor(apiKey, scope), ...options?.headers },
+    cache: options?.cache ?? "no-store",
+  });
+
+  let apiKey = await managerApiKey(scope);
+  let res = await send(apiKey);
+  if (res.status === 401) {
+    apiKey = await refreshManagerApiKey(scope, apiKey);
+    res = await send(apiKey);
+  }
+  return res;
 }
 
 function logRequest(url: string, options?: RequestInit): void {
@@ -99,16 +212,10 @@ export async function listOpenClawManagerAgents(): Promise<OpenClawManagerAgent[
 
 async function request<T>(url: string, options?: RequestInit): Promise<T> {
   logRequest(url, options);
-  const res = await fetch(url, {
-    ...options,
-    headers: {
-      ...getHeaders(),
-      ...options?.headers,
-    },
-  });
+  const res = await authenticatedFetch(url, options);
 
   if (!res.ok) {
-    const text = await res.text().catch(() => "Unknown error");
+    const text = await responseText(res);
     throw new Error(`OpenClaw API error ${res.status}: ${text}`);
   }
 
@@ -304,7 +411,7 @@ export interface PreprocessedChatHistory {
 export interface CreateInstanceParams {
   name: string;
   category_id: number;
-  target_user_id: string;
+  // target_user_id: string;
   agent_id?: number;
   tasks: string[];
 }
@@ -582,10 +689,7 @@ export async function streamChat(
     signal: options?.signal,
   };
   logRequest(url, requestOptions);
-  const res = await fetch(url, {
-    ...requestOptions,
-    headers: getHeaders(),
-  });
+  const res = await authenticatedFetch(url, requestOptions);
   if (!res.ok) {
     const text = await res.text().catch(() => "Unknown error");
     throw new Error("OpenClaw API error " + res.status + ": " + text);
@@ -1000,16 +1104,17 @@ export async function wechatLogin(
   options?: WechatLoginOptions
 ): Promise<WechatLoginResponse> {
   const url = `${BASE_URL}/api/channels/${encodeURIComponent(instanceUuid)}/flows`;
-  const res = await fetch(url, {
+  const requestOptions: RequestInit = {
     method: "POST",
     headers: {
-      ...getHeaders(),
       Accept: "text/event-stream, */*",
       "Content-Length": "0",
     },
     body: "",
     signal: options?.signal,
-  });
+  };
+  logRequest(url, requestOptions);
+  const res = await authenticatedFetch(url, requestOptions);
 
   if (!res.ok) {
     const text = await res.text().catch(() => "Unknown error");

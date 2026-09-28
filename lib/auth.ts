@@ -13,10 +13,16 @@ import {
   scryptSync,
   timingSafeEqual,
 } from "node:crypto";
-import { and, eq, gt } from "drizzle-orm";
+import { and, eq, gt, isNull, or } from "drizzle-orm";
 import { db } from "@/lib/db";
-import { sessions, users, workspaces } from "@/lib/db/schema";
+import { apiKeys, sessions, users, workspaces } from "@/lib/db/schema";
 import type { User, Workspace } from "@/lib/db/schema";
+import {
+  hasApiKeyPermission,
+  isArkApiKey,
+  permissionForMethod,
+  type ApiKeyPermission,
+} from "@/lib/api-keys";
 
 const COOKIE = process.env.SESSION_COOKIE_NAME || "ark_session";
 const TTL_DAYS = Number(process.env.SESSION_TTL_DAYS || 30);
@@ -135,8 +141,13 @@ export async function getCurrentUser(): Promise<User | null> {
 
 export type AuthContext = { user: User; workspace: Workspace };
 
-/** User + their primary (owned) workspace, or null if not signed in. */
-export async function getAuthContext(): Promise<AuthContext | null> {
+export type AuthCredential =
+  | { kind: "session" }
+  | { kind: "apiKey"; id: string; permissions: ApiKeyPermission[] };
+
+export type RequestAuthContext = AuthContext & { credential: AuthCredential };
+
+async function getSessionAuthContext(): Promise<RequestAuthContext | null> {
   const user = await getCurrentUser();
   if (!user) return null;
   const ws = await db
@@ -145,5 +156,81 @@ export async function getAuthContext(): Promise<AuthContext | null> {
     .where(eq(workspaces.ownerId, user.id))
     .limit(1);
   if (!ws[0]) return null;
-  return { user, workspace: ws[0] };
+  return { user, workspace: ws[0], credential: { kind: "session" } };
+}
+
+function bearerToken(header: string | null): string | null {
+  if (!header) return null;
+  const match = /^Bearer\s+(\S+)$/i.exec(header.trim());
+  return match?.[1] ?? null;
+}
+
+async function getApiKeyAuthContext(
+  token: string,
+  method: string,
+): Promise<RequestAuthContext | null> {
+  if (!isArkApiKey(token)) return null;
+  const now = new Date();
+  const rows = await db
+    .select({ apiKey: apiKeys, user: users, workspace: workspaces })
+    .from(apiKeys)
+    .innerJoin(users, eq(users.id, apiKeys.userId))
+    .innerJoin(workspaces, eq(workspaces.id, apiKeys.workspaceId))
+    .where(
+      and(
+        eq(apiKeys.key, token),
+        eq(users.status, "active"),
+        eq(workspaces.ownerId, users.id),
+        or(isNull(apiKeys.expiresAt), gt(apiKeys.expiresAt, now)),
+      ),
+    )
+    .limit(1);
+  const row = rows[0];
+  if (!row) return null;
+  const required = permissionForMethod(method);
+  if (!hasApiKeyPermission(row.apiKey.permissions, required)) return null;
+
+  // Usage metadata is operational, never part of deciding whether the request
+  // is allowed. Record it reliably, but do not turn a telemetry write failure
+  // into an authentication failure.
+  try {
+    await db.update(apiKeys).set({ lastUsedAt: now }).where(eq(apiKeys.id, row.apiKey.id));
+  } catch {
+    // The credential was already validated; last-used metadata is best effort.
+  }
+
+  return {
+    user: row.user,
+    workspace: row.workspace,
+    credential: {
+      kind: "apiKey",
+      id: row.apiKey.id,
+      permissions: row.apiKey.permissions as ApiKeyPermission[],
+    },
+  };
+}
+
+/**
+ * Resolve either a browser session or an API key for the current request.
+ * A present Bearer header is authoritative: an invalid/under-scoped key does
+ * not silently fall back to a browser cookie and accidentally gain access.
+ */
+export async function getRequestAuthContext(method?: string): Promise<RequestAuthContext | null> {
+  const hdrs = await headers();
+  const authorization = hdrs.get("authorization");
+  if (authorization) {
+    const token = bearerToken(authorization);
+    if (!token) return null;
+    return getApiKeyAuthContext(
+      token,
+      method || hdrs.get("x-ark-request-method") || "GET",
+    );
+  }
+  return getSessionAuthContext();
+}
+
+/** User + their primary (owned) workspace, or null if not signed in. */
+export async function getAuthContext(): Promise<AuthContext | null> {
+  const ctx = await getSessionAuthContext();
+  return ctx ? { user: ctx.user, workspace: ctx.workspace } : null;
 }

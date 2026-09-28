@@ -21,6 +21,7 @@ const navDefs = [
   { id: "templates", key: "navTemplates", icon: "▤", href: "/dashboard/templates" },
   { id: "skills", key: "navSkills", icon: "◈", href: "/dashboard/skills" },
   { id: "llm-channels", key: "navLlmChannels", icon: "⌁", href: "/dashboard/llm-channels" },
+  { id: "api-keys", key: "navApiKeys", icon: "◇", href: "/dashboard/api-keys" },
   // { id: "channels", key: "navChannels", icon: "⌁", href: "/dashboard/channels" },
   { id: "billing", key: "navBilling", icon: "▤", href: "/dashboard/billing" },
   { id: "payment", key: "navPayment", icon: "◇", href: "/payment" },
@@ -77,6 +78,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     if (id === "templates") return pathname.startsWith("/dashboard/templates");
     if (id === "skills") return pathname.startsWith("/dashboard/skills");
     if (id === "llm-channels") return pathname.startsWith("/dashboard/llm-channels");
+    if (id === "api-keys") return pathname.startsWith("/dashboard/api-keys");
     if (id === "channels") return pathname.startsWith("/dashboard/channels");
     if (id === "billing") return pathname.startsWith("/dashboard/billing");
     if (id === "payment") return pathname.startsWith("/payment");

@@ -7,6 +7,7 @@ import {
   syncOpenclawInstanceToDb,
   getOpenclawConfigByAgentId,
 } from "@/lib/services/openclaw_instances";
+import { withOpenClawManagerUser } from "@/lib/openclaw-manager-auth";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -55,7 +56,8 @@ export async function GET(_req: Request, { params }: Ctx) {
   const openclawConfig = await getOpenclawConfigByAgentId(id);
   if (openclawConfig) {
     try {
-      const result = await syncOpenclawInstanceToDb(openclawConfig.externalId);
+      const result = await withOpenClawManagerUser(auth.ctx.user, () =>
+        syncOpenclawInstanceToDb(openclawConfig.externalId));
       autoStopped = result.autoStopped;
     } catch {
       /* best-effort; fall back to cached DB row */

@@ -21,6 +21,7 @@ import { buildAgentSystemPrompt } from "@/lib/llm/agent-prompt";
 import { resolveLlmProvider } from "@/lib/services/llm-channels";
 import { recordLlmUsage, classifyLlmError, type LlmErrorCode } from "@/lib/llm/usage";
 import type { Agent, Message } from "@/lib/db/schema";
+import { withOpenClawManagerUser } from "@/lib/openclaw-manager-auth";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -119,7 +120,7 @@ export async function POST(req: Request, { params }: Ctx) {
       try {
         send({ type: "user_message", conversationId: conv!.id, message: serializeMessage(userMsg) });
         if (useStream) {
-          await streamOpenclawReply({
+          await withOpenClawManagerUser(auth.ctx.user, () => streamOpenclawReply({
             externalId: openclawConfig!.externalId,
             agentId: id,
             conversationId: conv!.id,
@@ -130,7 +131,7 @@ export async function POST(req: Request, { params }: Ctx) {
             onComplete: (replyMessage) =>
               send({ type: "done", conversationId: conv!.id, replyMessage: serializeMessage(replyMessage) }),
             onError: (message) => send({ type: "error", message }),
-          });
+          }));
         } else if (useLLM) {
           await streamLLMReply({
             agent,

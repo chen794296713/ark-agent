@@ -4,6 +4,7 @@ import { agentManagerConfig } from "@/lib/db/schema";
 import { requireAuth, json, notFound, apiError } from "@/lib/api";
 import { getAgentRow } from "@/lib/services/agents";
 import { getOpenclawTokenReport } from "@/lib/services/openclaw_instances";
+import { withOpenClawManagerUser } from "@/lib/openclaw-manager-auth";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -51,11 +52,11 @@ export async function GET(req: Request, { params }: Ctx) {
   if (!cfg) return notFound("No OpenClaw provider configured for this agent");
 
   try {
-    const report = await getOpenclawTokenReport(
+    const report = await withOpenClawManagerUser(auth.ctx.user, () => getOpenclawTokenReport(
       cfg.externalId,
       periodParam,
       daysParam,
-    );
+    ));
     return json(report);
   } catch (e) {
     const msg = e instanceof Error ? e.message : "Failed to load token report";
