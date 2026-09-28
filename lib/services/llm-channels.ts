@@ -9,6 +9,14 @@ import {
   type LlmChannelDTO,
   type LlmModelSelection,
 } from "@/lib/llm/channels";
+import {
+  getOpenClawModelConfig,
+  putOpenClawModelConfig,
+  type OpenClawModelConfig,
+  type OpenClawModelConfigScope,
+  type OpenClawModelProvider,
+} from "@/app/lib/openclaw_manager_api";
+import { currentOpenClawManagerUser } from "@/lib/openclaw-manager-auth";
 
 export interface LlmProviderConfig {
   apiKey: string;
@@ -17,6 +25,137 @@ export interface LlmProviderConfig {
 }
 
 const MASKED_KEY = "••••••••";
+
+function modelNames(provider: OpenClawModelProvider): string[] {
+  return Array.from(
+    new Set(
+      (provider.models ?? [])
+        .map((model) => {
+          if (!model || typeof model !== "object") return "";
+          const value = model as Record<string, unknown>;
+          return typeof value.name === "string"
+            ? value.name.trim()
+            : typeof value.id === "string"
+              ? value.id.trim()
+              : "";
+        })
+        .filter(Boolean),
+    ),
+  );
+}
+
+export function serializeManagerLlmProvider(
+  provider: OpenClawModelProvider,
+  scope: OpenClawModelConfigScope,
+  index = 0,
+): LlmChannelDTO {
+  const models = modelNames(provider);
+  const apiKey = typeof provider.api_key === "string" ? provider.api_key.trim() : "";
+  return {
+    id: provider.key?.trim() || `${scope}:${index}`,
+    name: provider.name?.trim() || provider.call_name?.trim() || provider.key?.trim() || "LLM provider",
+    kind: scope,
+    baseUrl: provider.base_url?.trim() || "",
+    apiKey: apiKey ? MASKED_KEY : "",
+    models,
+    configured: Boolean(apiKey && models.length),
+    createdAt: null,
+  };
+}
+
+function hasManagerUser(): boolean {
+  return Boolean(currentOpenClawManagerUser());
+}
+
+async function listManagerLlmChannels(): Promise<LlmChannelDTO[]> {
+  const [system, custom] = await Promise.all([
+    getOpenClawModelConfig("system"),
+    getOpenClawModelConfig("custom"),
+  ]);
+  return [
+    ...(custom.providers ?? []).map((provider, index) => serializeManagerLlmProvider(provider, "custom", index)),
+    ...(system.providers ?? []).map((provider, index) => serializeManagerLlmProvider(provider, "system", index)),
+  ];
+}
+
+function modelConfigForProvider(input: {
+  name: string;
+  baseUrl: string;
+  apiKey: string;
+  models: string[];
+  existing?: OpenClawModelProvider;
+}): OpenClawModelProvider {
+  const existing = input.existing;
+  const modelEntries = input.models.map((name) => {
+    const old = (existing?.models ?? []).find((model) => {
+      const value = model as Record<string, unknown>;
+      return value.name === name || value.id === name;
+    });
+    return old ?? {
+      name,
+      api: typeof existing?.api === "string" ? existing.api : "openai-completions",
+      input: ["text"],
+      contextWindow: 128000,
+      maxTokens: 128000,
+    };
+  });
+  return {
+    ...(existing ?? {}),
+    key: existing?.key || input.name,
+    call_name: existing?.call_name || input.name,
+    name: input.name,
+    base_url: input.baseUrl,
+    api_key: input.apiKey,
+    api: typeof existing?.api === "string" ? existing.api : "openai-completions",
+    models: modelEntries,
+    scope: "custom",
+    feature_description: typeof existing?.feature_description === "string" ? existing.feature_description : "",
+  };
+}
+
+async function updateManagerCustomConfig(
+  providers: OpenClawModelProvider[],
+  template?: OpenClawModelConfig,
+): Promise<OpenClawModelConfig> {
+  const current = template ?? await getOpenClawModelConfig("custom");
+  return putOpenClawModelConfig({ ...current, providers });
+}
+
+export async function createManagerLlmChannel(input: {
+  name: string;
+  baseUrl: string;
+  apiKey: string;
+  models: string[];
+}): Promise<LlmChannelDTO> {
+  const config = await getOpenClawModelConfig("custom");
+  const provider = modelConfigForProvider(input);
+  const result = await updateManagerCustomConfig([...(config.providers ?? []), provider], config);
+  const saved = (result.providers ?? []).find((item) => item.key === provider.key) ?? provider;
+  return serializeManagerLlmProvider(saved, "custom");
+}
+
+export async function updateManagerLlmChannel(
+  id: string,
+  input: { name: string; baseUrl: string; apiKey: string; models: string[] },
+): Promise<LlmChannelDTO | null> {
+  const config = await getOpenClawModelConfig("custom");
+  const index = (config.providers ?? []).findIndex((provider) => provider.key === id);
+  if (index < 0) return null;
+  const current = config.providers[index];
+  const provider = modelConfigForProvider({ ...input, apiKey: input.apiKey || current.api_key || "", existing: current });
+  const providers = [...config.providers];
+  providers[index] = provider;
+  const result = await updateManagerCustomConfig(providers, config);
+  return serializeManagerLlmProvider(result.providers?.find((item) => item.key === id) ?? provider, "custom", index);
+}
+
+export async function deleteManagerLlmChannel(id: string): Promise<boolean> {
+  const config = await getOpenClawModelConfig("custom");
+  const providers = (config.providers ?? []).filter((provider) => provider.key !== id);
+  if (providers.length === (config.providers ?? []).length) return false;
+  await updateManagerCustomConfig(providers, config);
+  return true;
+}
 
 export function serializeLlmChannel(row: typeof llmChannels.$inferSelect): LlmChannelDTO {
   return {
@@ -53,6 +192,13 @@ async function hasDatabaseSystemChannels(): Promise<boolean> {
 }
 
 export async function listLlmChannels(workspaceId: string): Promise<LlmChannelDTO[]> {
+  if (hasManagerUser()) {
+    try {
+      return await listManagerLlmChannels();
+    } catch (error) {
+      console.error("Failed to load OpenClaw Manager model config", error);
+    }
+  }
   const rows = await listVisibleLlmChannelRows(workspaceId);
   const custom = rows.filter((row) => row.workspaceId !== null).map(serializeLlmChannel);
   const systemRows = rows.filter((row) => row.workspaceId === null);
@@ -95,6 +241,19 @@ export async function validateModelSelection(
   workspaceId: string,
   selection: LlmModelSelection,
 ): Promise<boolean> {
+  if (hasManagerUser()) {
+    try {
+      const configs = await Promise.all([
+        getOpenClawModelConfig("system"),
+        getOpenClawModelConfig("custom"),
+      ]);
+      const provider = configs.flatMap((config) => config.providers ?? [])
+        .find((item) => item.key === selection.channelId);
+      return Boolean(provider && provider.api_key && modelNames(provider).includes(selection.model));
+    } catch (error) {
+      console.error("Failed to validate OpenClaw Manager model selection", error);
+    }
+  }
   if (selection.channelId === SYSTEM_OPENROUTER_CHANNEL_ID) {
     if (await hasDatabaseSystemChannels()) return false;
     const fallback = fallbackSystemLlmChannels()[0];
@@ -112,6 +271,26 @@ export async function resolveLlmProvider(
   workspaceId: string,
   selection: LlmModelSelection | null | undefined,
 ): Promise<LlmProviderConfig | null> {
+  if (hasManagerUser()) {
+    try {
+      const configs = await Promise.all([
+        getOpenClawModelConfig("system"),
+        getOpenClawModelConfig("custom"),
+      ]);
+      const provider = selection
+        ? configs.flatMap((config) => config.providers ?? []).find((item) => item.key === selection.channelId)
+        : configs.flatMap((config) => config.providers ?? []).find((item) => item.api_key && modelNames(item).length > 0);
+      if (provider?.api_key) {
+        const model = selection?.model ?? modelNames(provider)[0];
+        if (model && modelNames(provider).includes(model)) {
+          return { apiKey: provider.api_key, baseUrl: provider.base_url, model };
+        }
+      }
+      if (selection) return null;
+    } catch (error) {
+      console.error("Failed to resolve OpenClaw Manager model provider", error);
+    }
+  }
   if (!selection) {
     const rows = await listVisibleLlmChannelRows(workspaceId);
     const channel = rows.find(

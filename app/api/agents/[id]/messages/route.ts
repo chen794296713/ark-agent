@@ -96,7 +96,11 @@ export async function POST(req: Request, { params }: Ctx) {
   // When no live OpenClaw runtime is attached, prefer a real LLM (OpenRouter)
   // over the canned reply — as long as an API key is configured.
   const settings = mergeSettings(agent.settings);
-  const provider = !useStream ? await resolveLlmProvider(auth.ctx.workspace.id, settings.primaryModel) : null;
+  const provider = !useStream
+    ? await withOpenClawManagerUser(auth.ctx.user, () =>
+        resolveLlmProvider(auth.ctx.workspace.id, settings.primaryModel),
+      )
+    : null;
   const useLLM = !useStream && !!provider;
 
   // Neither a runtime nor a model: the only thing left is the canned reply, and

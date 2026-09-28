@@ -170,13 +170,22 @@ function logRequest(url: string, options?: RequestInit): void {
     body = "[non-string body]";
   }
 
+  const redact = (value: unknown): unknown => {
+    if (Array.isArray(value)) return value.map(redact);
+    if (!value || typeof value !== "object") return value;
+    return Object.fromEntries(Object.entries(value).map(([key, item]) => {
+      const sensitive = /(api[_-]?key|token|secret|password)/i.test(key);
+      return [key, sensitive ? "[redacted]" : redact(item)];
+    }));
+  };
+
   console.info(
     "[openclaw-manager:request]",
     JSON.stringify({
       method: options?.method || "GET",
       url: `${parsedUrl.origin}${parsedUrl.pathname}`,
       query: Object.fromEntries(parsedUrl.searchParams.entries()),
-      ...(body !== undefined ? { body } : {}),
+      ...(body !== undefined ? { body: redact(body) } : {}),
     }),
   );
 }
@@ -208,6 +217,59 @@ export async function listOpenClawManagerAgents(): Promise<OpenClawManagerAgent[
     const value = item as Record<string, unknown>;
     return typeof value.id === "number" && typeof value.name === "string";
   });
+}
+
+export type OpenClawModelConfigScope = "system" | "custom";
+
+export interface OpenClawModelProvider {
+  key: string;
+  call_name?: string;
+  name: string;
+  base_url: string;
+  api_key?: string;
+  api: string;
+  models: Array<Record<string, unknown>>;
+  primary_model_id?: string;
+  fallback_model_ids?: string[];
+  model_aliases?: Record<string, string>;
+  feature_description?: string;
+  scope?: OpenClawModelConfigScope;
+  [key: string]: unknown;
+}
+
+export interface OpenClawModelConfig {
+  providers: OpenClawModelProvider[];
+  default_provider_key?: string;
+  call_strategy?: Record<string, unknown>;
+  [key: string]: unknown;
+}
+
+export interface OpenClawModelConfigResponse {
+  model_config?: OpenClawModelConfig;
+}
+
+/** Read the Manager's system or custom model provider configuration. */
+export async function getOpenClawModelConfig(
+  scope: OpenClawModelConfigScope,
+): Promise<OpenClawModelConfig> {
+  const raw = await request<OpenClawModelConfigResponse>(
+    `${BASE_URL}/api/model-config?scope=${encodeURIComponent(scope)}`,
+    { method: "GET" },
+  );
+  return raw?.model_config && typeof raw.model_config === "object"
+    ? raw.model_config
+    : { providers: [] };
+}
+
+/** Replace the Manager's model provider configuration. */
+export async function putOpenClawModelConfig(modelConfig: OpenClawModelConfig): Promise<OpenClawModelConfig> {
+  const raw = await request<OpenClawModelConfigResponse>(`${BASE_URL}/api/model-config`, {
+    method: "PUT",
+    body: JSON.stringify({ model_config: modelConfig }),
+  });
+  return raw?.model_config && typeof raw.model_config === "object"
+    ? raw.model_config
+    : modelConfig;
 }
 
 async function request<T>(url: string, options?: RequestInit): Promise<T> {

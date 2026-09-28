@@ -2,6 +2,10 @@
 .header { display: flex; justify-content: space-between; align-items: flex-end; gap: 24px; margin-bottom: 30px; }
 .header h1 { font-family: var(--f-display), var(--font-sans), sans-serif; font-size: 32px; font-weight: 650; margin: 0 0 7px; }
 .header p { color: var(--c-muted); margin: 0; font-size: 14.5px; }
+.filters { display: inline-flex; align-items: center; gap: 3px; padding: 3px; margin-bottom: 24px; border: 1px solid var(--c-border); border-radius: 999px; background: var(--c-bg); }
+.filterButton { min-height: 34px; border: 0; border-radius: 999px; padding: 7px 14px; background: transparent; color: var(--c-muted); font: 600 12.5px var(--font-sans); cursor: pointer; }
+.filterButton:hover { color: var(--c-text); background: var(--c-panel); }
+.filterActive { background: var(--c-panel); color: var(--c-text); box-shadow: 0 1px 3px rgba(17, 24, 18, .12); }
 .primary, .secondary, .textButton, .danger { min-height: 40px; border-radius: 999px; padding: 9px 17px; font: 600 13px var(--font-sans); cursor: pointer; }
 .primary { background: var(--c-lime); color: var(--c-ink); border: 1px solid var(--c-lime); display: inline-flex; align-items: center; gap: 8px; }
 .primary:hover { background: var(--c-lime-hover); }
@@ -51,4 +55,4 @@
 .modelList { display: grid; gap: 8px; max-height: 260px; overflow-y: auto; }
 .modelList code { border: 1px solid var(--c-border); background: var(--c-bg); border-radius: 5px; color: var(--c-text2); padding: 9px 11px; font: 12.5px var(--font-mono); overflow-wrap: anywhere; }
 @media (max-width: 700px) { .details { padding-inline: 18px; } .detailGrid { grid-template-columns: 1fr; } .detailWide { grid-column: auto; } }
-@media (max-width: 700px) { .header { align-items: flex-start; flex-direction: column; } .primary { width: 100%; justify-content: center; } .page { padding-inline: 20px; } .modalHeader, .form { padding-inline: 18px; } }
+@media (max-width: 700px) { .header { align-items: flex-start; flex-direction: column; } .primary { width: 100%; justify-content: center; } .filters { width: 100%; margin-bottom: 20px; } .filterButton { flex: 1; padding-inline: 8px; } .page { padding-inline: 20px; } .modalHeader, .form { padding-inline: 18px; } }

@@ -3,8 +3,10 @@ import { db } from "@/lib/db";
 import { llmChannels } from "@/lib/db/schema";
 import { apiError, jsonPrivate, parseBody, requireAuth } from "@/lib/api";
 import { llmChannelSchema } from "@/lib/validation";
+import { withOpenClawManagerUser } from "@/lib/openclaw-manager-auth";
 import {
   assertPublicHttpsUrl,
+  createManagerLlmChannel,
   listLlmChannels,
   normalizeBaseUrl,
   serializeLlmChannel,
@@ -16,7 +18,9 @@ export const dynamic = "force-dynamic";
 export async function GET() {
   const auth = await requireAuth();
   if (auth.res) return auth.res;
-  return jsonPrivate({ channels: await listLlmChannels(auth.ctx.workspace.id) });
+  return jsonPrivate({
+    channels: await withOpenClawManagerUser(auth.ctx.user, () => listLlmChannels(auth.ctx.workspace.id)),
+  });
 }
 
 export async function POST(req: Request) {
@@ -24,6 +28,28 @@ export async function POST(req: Request) {
   if (auth.res) return auth.res;
   const parsed = await parseBody(req, llmChannelSchema);
   if (parsed.res) return parsed.res;
+  if (auth.ctx.user) {
+    try {
+      assertPublicHttpsUrl(parsed.data.baseUrl);
+    } catch (error) {
+      return apiError(error instanceof Error ? error.message : "Invalid model endpoint", 422);
+    }
+    if (!parsed.data.apiKey.trim()) return apiError("API key is required", 422);
+    try {
+      const channel = await withOpenClawManagerUser(auth.ctx.user, () => createManagerLlmChannel({
+        name: parsed.data.name,
+        baseUrl: normalizeBaseUrl(parsed.data.baseUrl),
+        apiKey: parsed.data.apiKey.trim(),
+        models: Array.from(new Set(parsed.data.models)),
+      }));
+      return jsonPrivate({ channel }, 201);
+    } catch (error) {
+      if (String(error).includes("already exists") || String(error).includes("duplicate")) {
+        return apiError("A channel with this name already exists", 409);
+      }
+      throw error;
+    }
+  }
   try {
     assertPublicHttpsUrl(parsed.data.baseUrl);
   } catch (error) {

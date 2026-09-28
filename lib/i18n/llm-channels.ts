@@ -13,6 +13,9 @@ export interface LlmChannelsDict {
   models: string;
   status: string;
   actions: string;
+  filterAll: string;
+  filterSystem: string;
+  filterCustom: string;
   custom: string;
   system: string;
   ready: string;
@@ -22,6 +25,7 @@ export interface LlmChannelsDict {
   view: string;
   remove: string;
   empty: string;
+  emptyFiltered: string;
   addTitle: string;
   editTitle: string;
   channelName: string;
@@ -50,8 +54,10 @@ const en: LlmChannelsDict = {
   heading: "LLM channels", intro: "Manage system and custom model endpoints for your agents.", add: "Add channel",
   loading: "Loading LLM channels…", loadError: "Couldn't load LLM channels.", retry: "Retry",
   name: "Channel", type: "Type", endpoint: "Endpoint", models: "Models", status: "Status", actions: "Actions",
+  filterAll: "All", filterSystem: "System channels", filterCustom: "Custom channels",
   custom: "Custom", system: "System", ready: "Ready", unavailable: "Not configured", modelCount: (n) => `${n} model${n === 1 ? "" : "s"}`,
   edit: "Edit", view: "View", remove: "Delete", empty: "No custom channels yet. Add one to use your own model provider.",
+  emptyFiltered: "No system channels are available.",
   addTitle: "Add LLM channel", editTitle: "Edit LLM channel", channelName: "Channel name", channelNamePlaceholder: "e.g. Company gateway",
   baseUrl: "API base URL", apiKey: "API key", apiKeyPlaceholder: "sk-…", apiKeyKeep: "Leave the masked value unchanged to keep the current key.",
   modelList: "Models", modelListPlaceholder: "One model ID per line", modelHelp: "Use provider model IDs, one per line. You can also fetch them automatically.",
@@ -64,8 +70,10 @@ const zh: LlmChannelsDict = {
   heading: "LLM 渠道管理", intro: "统一管理智能体可用的系统渠道和自定义模型端点。", add: "新增渠道",
   loading: "正在加载 LLM 渠道…", loadError: "无法加载 LLM 渠道。", retry: "重试",
   name: "渠道", type: "类型", endpoint: "接口地址", models: "模型", status: "状态", actions: "操作",
+  filterAll: "全部", filterSystem: "系统渠道", filterCustom: "自定义渠道",
   custom: "自定义", system: "系统", ready: "可用", unavailable: "未配置", modelCount: (n) => `${n} 个模型`,
   edit: "编辑", view: "查看", remove: "删除", empty: "还没有自定义渠道。新增渠道即可使用自己的模型服务。",
+  emptyFiltered: "暂无系统渠道。",
   addTitle: "新增 LLM 渠道", editTitle: "编辑 LLM 渠道", channelName: "渠道名称", channelNamePlaceholder: "例如：公司模型网关",
   baseUrl: "API 基础地址", apiKey: "API 密钥", apiKeyPlaceholder: "sk-…", apiKeyKeep: "保留遮罩值即可继续使用当前密钥。",
   modelList: "模型列表", modelListPlaceholder: "每行一个模型 ID", modelHelp: "填写供应商模型 ID，每行一个；也可以自动获取。",
@@ -77,7 +85,9 @@ const zh: LlmChannelsDict = {
 const zht: LlmChannelsDict = {
   ...zh, heading: "LLM 通路管理", intro: "統一管理智能體可用的系統通路與自訂模型端點。", add: "新增通路",
   loading: "正在載入 LLM 通路…", loadError: "無法載入 LLM 通路。", custom: "自訂", system: "系統", ready: "可用", unavailable: "未設定",
+  filterAll: "全部", filterSystem: "系統通路", filterCustom: "自訂通路",
   modelCount: (n) => `${n} 個模型`, edit: "編輯", view: "查看", remove: "刪除", empty: "尚無自訂通路。新增通路即可使用自己的模型服務。",
+  emptyFiltered: "目前沒有系統通路。",
   addTitle: "新增 LLM 通路", editTitle: "編輯 LLM 通路", channelName: "通路名稱", channelNamePlaceholder: "例如：公司模型閘道",
   baseUrl: "API 基礎網址", apiKey: "API 金鑰", apiKeyKeep: "保留遮罩值即可繼續使用目前金鑰。", modelList: "模型清單",
   modelListPlaceholder: "每行一個模型 ID", modelHelp: "填寫供應商模型 ID，每行一個；也可以自動取得。", fetchModels: "自動取得模型",
@@ -90,8 +100,10 @@ const ja: LlmChannelsDict = {
   ...en, heading: "LLM チャネル管理", intro: "エージェントが利用するシステムおよびカスタムモデルの接続先を管理します。", add: "チャネルを追加",
   loading: "LLM チャネルを読み込み中…", loadError: "LLM チャネルを読み込めませんでした。", retry: "再試行",
   name: "チャネル", type: "種類", endpoint: "エンドポイント", models: "モデル", status: "状態", actions: "操作",
+  filterAll: "すべて", filterSystem: "システムチャネル", filterCustom: "カスタムチャネル",
   custom: "カスタム", system: "システム", ready: "利用可能", unavailable: "未設定", modelCount: (n) => `${n} モデル`,
   edit: "編集", view: "表示", remove: "削除", empty: "カスタムチャネルはまだありません。独自のモデルプロバイダーを追加できます。",
+  emptyFiltered: "システムチャネルはありません。",
   addTitle: "LLM チャネルを追加", editTitle: "LLM チャネルを編集", channelName: "チャネル名", channelNamePlaceholder: "例：社内モデルゲートウェイ",
   baseUrl: "API ベース URL", apiKey: "API キー", apiKeyKeep: "マスクされた値を変更しなければ、現在のキーを維持します。",
   modelList: "モデル一覧", modelListPlaceholder: "1 行に 1 つのモデル ID", modelHelp: "プロバイダーのモデル ID を 1 行ずつ入力するか、自動取得してください。",

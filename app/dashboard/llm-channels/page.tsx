@@ -8,6 +8,7 @@ import { WorkspaceIcon } from "@/components/WorkspaceIcon";
 import styles from "./llm-channels.module.css";
 
 type Draft = { name: string; baseUrl: string; apiKey: string; models: string };
+type ChannelFilter = "all" | "system" | "custom";
 const EMPTY_DRAFT: Draft = { name: "", baseUrl: "", apiKey: "", models: "" };
 
 export default function LlmChannelsPage() {
@@ -23,6 +24,7 @@ export default function LlmChannelsPage() {
   const [fetching, setFetching] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [fetchMessage, setFetchMessage] = useState<string | null>(null);
+  const [filter, setFilter] = useState<ChannelFilter>("all");
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -91,16 +93,37 @@ export default function LlmChannelsPage() {
   }
 
   const customCount = channels.filter((channel) => channel.kind === "custom").length;
+  const visibleChannels = filter === "all"
+    ? channels
+    : channels.filter((channel) => channel.kind === filter);
+  const emptyMessage = filter === "all" || filter === "custom" ? t.empty : t.emptyFiltered;
   const modalOpen = editing !== undefined;
   return <div className={styles.page} data-screen-label="LLM channels">
     <div className={styles.header}>
       <div><h1>{t.heading}</h1><p>{t.intro}</p></div>
       <button type="button" className={styles.primary} onClick={openCreate}><WorkspaceIcon name="plus" size={17} />{t.add}</button>
     </div>
+    <div className={styles.filters} role="group" aria-label={t.type}>
+      {([
+        ["all", t.filterAll],
+        ["system", t.filterSystem],
+        ["custom", t.filterCustom],
+      ] as const).map(([value, label]) => (
+        <button
+          key={value}
+          type="button"
+          className={`${styles.filterButton} ${filter === value ? styles.filterActive : ""}`}
+          aria-pressed={filter === value}
+          onClick={() => setFilter(value)}
+        >
+          {label}
+        </button>
+      ))}
+    </div>
     {loading ? <div className={styles.state}>{t.loading}</div> : error ? <div className={styles.state}>{error}<div style={{ marginTop: 16 }}><button className={styles.secondary} onClick={() => void load()}>{t.retry}</button></div></div> : <>
       <div className={styles.tableWrap}><table className={styles.table}>
         <thead><tr><th>{t.name}</th><th>{t.type}</th><th>{t.endpoint}</th><th>{t.models}</th><th>{t.status}</th><th>{t.actions}</th></tr></thead>
-        <tbody>{channels.map((channel) => <tr key={channel.id}>
+        <tbody>{visibleChannels.map((channel) => <tr key={channel.id}>
           <td><span className={styles.channelName}>{channel.name}</span></td>
           <td><span className={`${styles.badge} ${channel.kind === "custom" ? styles.badgeCustom : ""}`}>{channel.kind === "custom" ? t.custom : t.system}</span></td>
           <td><div className={styles.endpoint} title={channel.baseUrl}>{channel.baseUrl}</div></td>
@@ -109,7 +132,8 @@ export default function LlmChannelsPage() {
           <td>{channel.kind === "custom" ? <><button className={styles.textButton} onClick={() => openEdit(channel)}>{t.edit}</button><button className={styles.danger} onClick={() => void remove(channel)}>{t.remove}</button></> : <button className={styles.textButton} onClick={() => setViewing(channel)}>{t.view}</button>}</td>
         </tr>)}</tbody>
       </table></div>
-      {customCount === 0 && <p className={styles.empty}>{t.empty}</p>}
+      {visibleChannels.length === 0 && <p className={styles.empty}>{emptyMessage}</p>}
+      {filter === "all" && customCount === 0 && channels.length > 0 && <p className={styles.empty}>{t.empty}</p>}
     </>}
     {modalOpen && <div className={styles.scrim} role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) closeModal(); }}>
       <div className={styles.modal} role="dialog" aria-modal="true" aria-labelledby="llm-channel-title">
