@@ -1,6 +1,6 @@
 # ArkAgent
 
-ArkAgent is a web workspace for configuring AI coworkers and managing their work. Start with a professional role, customize its goals and instructions, and manage its skills, context, schedules, channels, and activity from one dashboard.
+ArkAgent is  a web workspace for configuring AI coworkers and managing their work. Start with a professional role, customize its goals and instructions, and manage its skills, context, schedules, channels, and activity from one dashboard.
 
 This repository contains the Next.js application, API routes, database schema, and versioned agent packages. Agent execution is handled by external runtime services; running the web app alone does not launch an autonomous agent.
 
